@@ -248,8 +248,8 @@ var listener = function(utterance){
 //   "utt": ["E > S"],
 //   "distr": ["PL"],
 //   "vars_marginal": ["E"],
-//   "targets": ['./data/douven-ex2-joint.json',
-//               './data/douven-ex2-marginal.json']
+//   "targets": ['./data/model-skiing-joint.json',
+//               './data/model-skiing-marginal.json']
 // }
 
 var u = data["utt"][0]

@@ -231,11 +231,11 @@ var listener = function(utterance){
 // Run from R ----------------------------------------------------------------
 
 // var data = {
-//   "utt": ["R > -S"],
+//   "utt": ["E > S"],
 //   "distr": ["PL"],
-//   "vars_marginal": ["R"],
-//   "targets": ['./data/douven1-ex1-joint.json',
-//               './data/douven1-ex1-marginal.json']
+//   "vars_marginal": ["E"],
+//   "targets": ['./data/model-sundowners-joint.json',
+//               './data/model-sundowners-marginal.json']
 // }
 
 var u = data["utt"][0]
