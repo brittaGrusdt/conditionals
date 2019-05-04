@@ -1,0 +1,262 @@
+var thresholds = {theta: 0.899, theta_maybe: 0.499}
+var alpha = 5
+
+// Causal networks --------------------------------------------------------------
+var causal_nets = {"cn1": "R > W > S", "cn2": "R||S"}
+var prior_cn1 = 0.05
+var prior_cn2 = 0.95
+// Probabilities ----------------------------------------------------------------
+var vars = [["R", "-R"], ["S", "-S"], ["W", "-W"]]
+var priors_rain = [0.1, 0.5, 0.9]
+var p_wedding_inside = {"R": 1, "-R": 0}
+var probabilities = {"cn1": {"p_wi": p_wedding_inside,
+                             "p_s": {"W": 0, "-W": 1}},
+                     "cn2": {"p_wi": {"R": 1, "-R":1},
+                             "p_s" : {"W": 1, "-W": 1}}
+                    }
+// Helper --------------------------------------------------------------------
+var roundToN = function(x, n){
+  var m = Math.pow(10,n)
+  return Math.round(x*m)/m
+}
+
+var negate = function(x){
+  return x.startsWith("-") ? x.slice(1) : "-" + x
+}
+
+var intersect_arrays = function(arrays){
+  return filter(function(m){
+          var m_in_all_lists = map(function(idx){arrays[idx].includes(m)},
+                                  _.range(1,arrays.length))
+          return sum(m_in_all_lists)==m_in_all_lists.length
+    }, arrays[0])
+}
+
+var combinations = Infer({model:function(){
+  var bools = repeat(vars.length, flip)
+  var tokens = mapIndexed(function(idx, b){
+    b ? uniformDraw(vars[idx]) : ""
+  }, bools)
+  return filter(function(t){t.length>0}, tokens)
+}}).support()
+var combinations = filter(function(x){x.length > 0}, combinations)
+display('# unique combinations of pairs: ' + combinations.length)
+
+var marginal = function(state, variables){
+  var tokens = state.support()
+  var all_x = map(function(v){
+    v.includes("-") ? filter(function(k){k.includes(v)}, tokens) :
+                      filter(function(k){!k.includes("-"+v)}, tokens)
+  }, variables)
+  var xs = intersect_arrays(all_x)
+
+  return reduce(function(x, acc){acc + Math.exp(state.score(x))}, 0, xs)
+}
+
+var compute_marginals = function(distr, variables){
+  var marginals_support = map(function(d){
+    var table = d["table"]
+    return marginal(table, variables)
+//   return [p, Math.exp(distr.score(d))]
+  }, distr.support())
+
+  var marginals_probs = map(function(d){
+    return Math.exp(distr.score(d))
+  }, distr.support())
+
+  return Categorical({"vs": marginals_support, "ps": marginals_probs})
+}
+
+// States ----------------------------------------------------------------
+var joint_probs = function(token, cn, pr){
+  var probs = probabilities[cn]
+  var sw = token.includes("-W") ? probs["p_s"]["-W"] : probs["p_s"]["W"]
+  var p_sw = token.includes("-S") ? 1-sw : sw
+
+  var r = token.includes("-R") ? "-R" : "R"
+  var wr = probs["p_wi"][r]
+  var p_wr = token.includes("-W") ? 1-wr : wr
+
+  var p_r = token.includes("-R") ? 1-pr : pr
+
+  return p_sw * p_wr * p_r
+}
+
+var tokens = {"cn1": filter(function(tokens){tokens.length==3}, combinations),
+              "cn2": filter(function(tokens){
+                tokens.length==2 && !tokens.includes("W")
+              }, combinations)}
+
+var build_tables = cache(function(cn, p_r){
+  var tokens_active = tokens[cn]
+  var tokens_active_str = map(function(elems){elems.join("")}, tokens_active)
+
+  return Infer({model:function(){
+    var arr = map(function(elems){joint_probs(elems, cn, p_r)},
+                  tokens_active_str)
+
+    return categorical({vs:tokens_active_str, ps:arr})
+  }})
+})
+
+var states = function(cn){
+  var tables = map(function(p_rain){build_tables(cn, p_rain)}, priors_rain)
+  var table = uniformDraw(tables)
+  return {"cn": causal_nets[cn], "table": table}
+}
+
+var state_prior = Infer({model:function(){
+  var cn = flip(prior_cn2) ? "cn2" : "cn1"
+  return states(cn)
+}})
+
+// Utterances and meaning ----------------------------------------------------
+var literals_conjunctions = map(function(tokens){
+  tokens.join(" and ")
+}, combinations)
+display('# literals + # conjunctions: ' + literals_conjunctions.length)
+
+var literals = filter(function(utt){!utt.includes(" and ")},
+                      literals_conjunctions)
+var maybes = map(function(utt){'maybe ' + utt}, literals)
+display('# maybe: ' + maybes.length)
+
+var conditionals_list = mapIndexed(function(idx, tokens1){
+  var arr = filter(function(tokens){
+    all(function(x){
+      !tokens.includes(x) && !tokens.includes(negate(x))
+    }, tokens1)
+  }, combinations.slice(idx+1))
+
+  var antecedent = tokens1.join(" and ")
+  var ifs = map(function(tokens2){
+    antecedent + " > " + tokens2.join(" and ")
+  }, arr)
+
+  var ifs_rev = map(function(tokens2){
+    tokens2.join(" and ") + " > " + antecedent
+  }, arr)
+  return ifs.concat(ifs_rev)
+}, combinations)
+
+var conditionals = reduce(function(arr, acc){
+  acc.concat(arr)
+}, [], conditionals_list)
+display('# conditionals: ' + conditionals.length)
+
+var utterances = literals_conjunctions.concat(conditionals.concat(maybes))
+display('# utterances: ' + utterances.length)
+// map(display, utterances)
+
+var utterance_probs = cache(function(utterance, state){
+  if(conditionals.includes(utterance)){
+    var components = utterance.split(" > ")
+    var antecedent = components[0].split(" and ").join("")
+    var consequent = components[1].split(" and ").join("")
+    return marginal(state, [antecedent, consequent]) /
+           marginal(state, [antecedent])
+  }
+  if(literals.includes(utterance)){return marginal(state, [utterance])}
+  if(maybes.includes(utterance)){
+    var u = utterance.slice("maybe ".length)
+    return marginal(state, [u])
+  }
+  if(literals_conjunctions.includes(utterance)){
+    var components = utterance.split(" and ")
+    return marginal(state, components)
+  }
+  else{error("unknown utterance " + utterance)}
+  return p
+})
+
+var meaning = cache(function(utterance, state){
+ var p = utterance_probs(utterance, state)
+ var u_applicable = utterance.includes('maybe') ?
+     (p >= thresholds.theta_maybe) : p >= thresholds.theta
+ return u_applicable
+})
+
+var all_states = state_prior.support()
+
+var utts_to_remove = filter(function(u){
+  !any(function(s){meaning(u,s.table)}, all_states)
+}, utterances)
+display('# utts without corresponding state: ' + utts_to_remove.length)
+// map(display, utts_to_remove)
+
+var utterances = filter(function(u){!utts_to_remove.includes(u)}, utterances)
+display('# included utterances: ' + utterances.length)
+// map(display, utterances)
+
+// Model ----------------------------------------------------------------------
+var literalListener = cache(function(utterance){
+  Infer({method:'enumerate',model: function(){
+    var state = sample(state_prior)
+    condition(meaning(utterance, state["table"]))
+    return state
+  }})
+}, 10000)
+
+var cost = function(utt){
+  if(!utterances.includes(utt)){error('unknown utterance ' + utt)}
+  var c1 = utt.includes(' > ') ? 0.55 : 0
+  var c2 = (utt.split(' and ').length - 1) * 0.25
+  var c3 = (utt.split('-').length - 1) * 0.125
+  var c4 = utt.includes('maybe') ? 0.1 : 0
+  return c1 + c2 + c3 + c4
+}
+
+var speaker = cache(function(state){
+  var vars_in_support = state["table"].support()[0]
+  return Infer({method:'enumerate', model: function(){
+    var utterance = uniformDraw(utterances)
+    var LL_score = literalListener(utterance).score(state)
+    var utility = LL_score == -Infinity ?
+        LL_score : alpha * (LL_score-cost(utterance))
+
+    factor(utility)
+    return utterance
+  }
+ })
+}, 10000)
+
+var listener = function(utterance){
+  return Infer({method:'enumerate', model:function(){
+    var state = sample(state_prior)
+                  observe(speaker(state), utterance)
+                  return state
+                }})
+}
+
+// Run from R ----------------------------------------------------------------
+
+// var data = {
+//   "utt": ["R > -S"],
+//   "distr": ["PL"],
+//   "vars_marginal": ["R"],
+//   "targets": ['./data/douven1-ex1-joint.json',
+//               './data/douven1-ex1-marginal.json']
+// }
+
+var u = data["utt"][0]
+var distr = data["distr"][0]
+var vars_marginal = data["vars_marginal"]
+
+var target_joint = data["targets"][0]
+var target_marginal = data["targets"][1]
+
+var run = function(model){
+  display("")
+  display("return distribution for: " + model)
+  display("utterance: " + u)
+  return model == "PL" ? listener(u) :
+         model == "LL" ? literalListener(u) :
+         model == "prior" ? state_prior :
+         error("distr must be one of 'LL'/'PL'/'prior'")
+}
+
+var posterior = run(distr)
+json.write(target_joint, posterior);
+
+var posterior_marginal = compute_marginals(posterior, vars_marginal)
+json.write(target_marginal, posterior_marginal);
