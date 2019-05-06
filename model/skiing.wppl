@@ -6,6 +6,7 @@ var causal_nets = {"cn1": "E || S>C", "cn2": "E>S>C"}
 
 var prior_cn1 = 0.95
 var prior_cn2 = 0.05
+
 // Probabilities ----------------------------------------------------------------
 var vars = [["S", "-S"], ["E", "-E"], ["C", "-C"]]
 
@@ -54,20 +55,6 @@ var marginal = function(state, variables){
   var xs = intersect_arrays(all_x)
 
   return reduce(function(x, acc){acc + Math.exp(state.score(x))}, 0, xs)
-}
-
-var compute_marginals = function(distr, variables){
-  var marginals_support = map(function(d){
-    var table = d["table"]
-    return marginal(table, variables)
-//   return [p, Math.exp(distr.score(d))]
-  }, distr.support())
-
-  var marginals_probs = map(function(d){
-    return Math.exp(distr.score(d))
-  }, distr.support())
-
-  return Categorical({"vs": marginals_support, "ps": marginals_probs})
 }
 
 // States ----------------------------------------------------------------
@@ -186,7 +173,7 @@ display('# included utterances: ' + utterances.length)
 // map(display, utterances)
 
 // Model ----------------------------------------------------------------------
-var literalListener = cache(function(utterance){
+var literal_listener = cache(function(utterance){
   Infer({method:'enumerate',model: function(){
     var state = sample(state_prior)
     condition(meaning(utterance, state["table"]))
@@ -207,7 +194,7 @@ var speaker = cache(function(state){
   var vars_in_support = state["table"].support()[0]
   return Infer({method:'enumerate', model: function(){
     var utterance = uniformDraw(utterances)
-    var LL_score = literalListener(utterance).score(state)
+    var LL_score = literal_listener(utterance).score(state)
     var utility = LL_score == -Infinity ?
         LL_score : alpha * (LL_score-cost(utterance))
 
@@ -246,7 +233,6 @@ var listener = function(utterance){
 
 // var data = {
 //   "utt": ["E > S"],
-//   "vars_marginal": ["E"],
 // }
 
 var u = data["utt"][0]
@@ -255,7 +241,7 @@ display("")
 display("utterance: " + u)
 
 var PL = listener(u)
-var LL = literalListener(u)
+var LL = literal_listener(u)
 var prior = state_prior
 
 // object to return

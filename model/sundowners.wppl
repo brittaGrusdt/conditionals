@@ -53,20 +53,6 @@ var marginal = function(state, variables){
   return reduce(function(x, acc){acc + Math.exp(state.score(x))}, 0, xs)
 }
 
-var compute_marginals = function(distr, variables){
-  var marginals_support = map(function(d){
-    var table = d["table"]
-    return marginal(table, variables)
-//   return [p, Math.exp(distr.score(d))]
-  }, distr.support())
-
-  var marginals_probs = map(function(d){
-    return Math.exp(distr.score(d))
-  }, distr.support())
-
-  return Categorical({"vs": marginals_support, "ps": marginals_probs})
-}
-
 // States ----------------------------------------------------------------
 var joint_probs = function(token, cn, pr){
   var probs = probabilities[cn]
