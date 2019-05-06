@@ -1,22 +1,19 @@
-var thresholds = {theta: 0.699, theta_maybe: 0.499}
+var thresholds = {theta: 0.899, theta_maybe: 0.499}
 var alpha = 5
 
 // Causal networks --------------------------------------------------------------
-var causal_nets = {"cn1": "E || S>C", "cn2": "E>S>C"}
-
-var prior_cn1 = 0.95
-var prior_cn2 = 0.05
+var causal_nets = {"cn1": "R > W > S", "cn2": "R||S"}
+var prior_cn1 = 0.05
+var prior_cn2 = 0.95
 // Probabilities ----------------------------------------------------------------
-var vars = [["S", "-S"], ["E", "-E"], ["C", "-C"]]
-
-var probabilities = {"cn1": {"p_clothes": {"S": 0.7, "-S": 0.1},
-                             "p_exam": 0.2,
-                             "p_skiing": 0.1},
-                     "cn2": {"p_clothes": {"S": 0.7, "-S": 0.1},
-                             "p_exam": 0.2,
-                             "p_skiing": {"E": 0.98, "-E": 0.1}}
+var vars = [["R", "-R"], ["S", "-S"], ["W", "-W"]]
+var priors_rain = [0.1, 0.5, 0.9]
+var p_wedding_inside = {"R": 1, "-R": 0}
+var probabilities = {"cn1": {"p_wi": p_wedding_inside,
+                             "p_s": {"W": 0, "-W": 1}},
+                     "cn2": {"p_wi": {"R": 1, "-R":1},
+                             "p_s" : {"W": 1, "-W": 1}}
                     }
-
 // Helper --------------------------------------------------------------------
 var roundToN = function(x, n){
   var m = Math.pow(10,n)
@@ -71,34 +68,40 @@ var compute_marginals = function(distr, variables){
 }
 
 // States ----------------------------------------------------------------
-var joint_probs = function(token, cn){
+var joint_probs = function(token, cn, pr){
   var probs = probabilities[cn]
-  var p_e = token.includes("-E") ? 1-probs["p_exam"] : probs["p_exam"]
+  var sw = token.includes("-W") ? probs["p_s"]["-W"] : probs["p_s"]["W"]
+  var p_sw = token.includes("-S") ? 1-sw : sw
 
-  var cs = token.includes("-S") ? probs["p_clothes"]["-S"] : probs["p_clothes"]["S"]
-  var p_cs = token.includes("-C") ? 1-cs : cs
+  var r = token.includes("-R") ? "-R" : "R"
+  var wr = probs["p_wi"][r]
+  var p_wr = token.includes("-W") ? 1-wr : wr
 
-  var se = cn=="cn1" ? probs["p_skiing"] :
-         token.includes("-E") ? probs["p_skiing"]["-E"] : probs["p_skiing"]["E"]
-  var p_se =  token.includes("-S") ? 1-se : se
+  var p_r = token.includes("-R") ? 1-pr : pr
 
-  return p_cs * p_se * p_e
+  return p_sw * p_wr * p_r
 }
-var combinations_len3 = filter(function(tokens){tokens.length==3}, combinations)
-var tokens = {"cn1": combinations_len3, "cn2": combinations_len3}
 
-var build_table_distr = cache(function(cn){
+var tokens = {"cn1": filter(function(tokens){tokens.length==3}, combinations),
+              "cn2": filter(function(tokens){
+                tokens.length==2 && !tokens.includes("W")
+              }, combinations)}
+
+var build_tables = cache(function(cn, p_r){
   var tokens_active = tokens[cn]
   var tokens_active_str = map(function(elems){elems.join("")}, tokens_active)
 
   return Infer({model:function(){
-    var arr = map(function(elems){joint_probs(elems, cn)}, tokens_active_str)
+    var arr = map(function(elems){joint_probs(elems, cn, p_r)},
+                  tokens_active_str)
+
     return categorical({vs:tokens_active_str, ps:arr})
   }})
 })
 
 var states = function(cn){
-  var table = build_table_distr(cn)
+  var tables = map(function(p_rain){build_tables(cn, p_rain)}, priors_rain)
+  var table = uniformDraw(tables)
   return {"cn": causal_nets[cn], "table": table}
 }
 
@@ -218,59 +221,29 @@ var speaker = cache(function(state){
 }, 10000)
 
 var listener = function(utterance){
-  var distr = Infer({method:'enumerate', model:function(){
+  return Infer({method:'enumerate', model:function(){
     var state = sample(state_prior)
-    observe(speaker(state), utterance)
-    return state
-  }})
-
-  // listener has evidence for C
-  var ps = map(function(d){Math.exp(distr.score(d))}, distr.support())
-  var vs = map(function(x){
-    var old_table = x["table"]
-    var new_table = Infer({model:function(){
-      var entry = sample(old_table)
-      condition(!entry.includes("-C"))
-      return entry
-    }})
-    return {"cn": x["cn"], "table": new_table}
-    }, distr.support())
-
-  var new_distr = Infer({model:function(){
-    categorical({vs, ps})
-  }})
-  return new_distr
+                  observe(speaker(state), utterance)
+                  return state
+                }})
 }
 
 // Run from R ----------------------------------------------------------------
 
 // var data = {
 //   "utt": ["E > S"],
-//   "distr": ["PL"],
 //   "vars_marginal": ["E"],
-//   "targets": ['./data/model-skiing-joint.json',
-//               './data/model-skiing-marginal.json']
 // }
 
 var u = data["utt"][0]
-var distr = data["distr"][0]
-var vars_marginal = data["vars_marginal"]
 
-var target_joint = data["targets"][0]
-var target_marginal = data["targets"][1]
+display("")
+display("utterance: " + u)
 
-var run = function(model){
-  display("")
-  display("return distribution for: " + model)
-  display("utterance: " + u)
-  return model == "PL" ? listener(u) :
-         model == "LL" ? literalListener(u) :
-         model == "prior" ? state_prior :
-         error("distr must be one of 'LL'/'PL'/'prior'")
-}
+var PL = listener(u)
+var LL = literalListener(u)
+var prior = state_prior
 
-var posterior = run(distr)
-json.write(target_joint, posterior);
-
-var posterior_marginal = compute_marginals(posterior, vars_marginal)
-json.write(target_marginal, posterior_marginal);
+// object to return
+var distributions = {PL, LL, prior}
+distributions
