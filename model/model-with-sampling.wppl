@@ -110,7 +110,7 @@ var tables = function(cn){
   var table_distributions =
     Infer({method:'forward', samples:n_tables, model:function(){
       var child_p = beta(10,1)
-      var child_np = beta(1,1) // or predefined small value beta
+      var child_np = 0.05 // beta(1,1) // or predefined small value beta
       var parent = beta(1,1)
       var probs =
         cn=="A || C" ? [child_np, parent] :

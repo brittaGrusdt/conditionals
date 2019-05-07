@@ -57,6 +57,31 @@ var marginal = function(state, variables){
   return reduce(function(x, acc){acc + Math.exp(state.score(x))}, 0, xs)
 }
 
+var combine_pairs = function(connective){
+  var pairs_list = mapIndexed(function(idx, tokens1){
+    var arr = filter(function(tokens){
+      all(function(x){
+        !tokens.includes(x) && !tokens.includes(negate(x))
+      }, tokens1)
+    }, combinations.slice(idx+1))
+
+    var antecedent = tokens1.join(" and ")
+    var ifs = map(function(tokens2){
+      antecedent + connective + tokens2.join(" and ")
+    }, arr)
+
+    var ifs_rev = map(function(tokens2){
+      tokens2.join(" and ") + connective + antecedent
+    }, arr)
+    return ifs.concat(ifs_rev)
+  }, combinations)
+
+  var pairs = reduce(function(arr, acc){
+    acc.concat(arr)
+  }, [], pairs_list)
+  return pairs
+}
+
 // States ----------------------------------------------------------------
 var joint_probs = function(token, cn){
   var probs = probabilities[cn]
@@ -105,27 +130,7 @@ var literals = filter(function(utt){!utt.includes(" and ")},
 var maybes = map(function(utt){'maybe ' + utt}, literals)
 display('# maybe: ' + maybes.length)
 
-var conditionals_list = mapIndexed(function(idx, tokens1){
-  var arr = filter(function(tokens){
-    all(function(x){
-      !tokens.includes(x) && !tokens.includes(negate(x))
-    }, tokens1)
-  }, combinations.slice(idx+1))
-
-  var antecedent = tokens1.join(" and ")
-  var ifs = map(function(tokens2){
-    antecedent + " > " + tokens2.join(" and ")
-  }, arr)
-
-  var ifs_rev = map(function(tokens2){
-    tokens2.join(" and ") + " > " + antecedent
-  }, arr)
-  return ifs.concat(ifs_rev)
-}, combinations)
-
-var conditionals = reduce(function(arr, acc){
-  acc.concat(arr)
-}, [], conditionals_list)
+var conditionals = combine_pairs(" > ")
 display('# conditionals: ' + conditionals.length)
 
 var utterances = literals_conjunctions.concat(conditionals.concat(maybes))
