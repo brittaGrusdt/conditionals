@@ -1,0 +1,193 @@
+// Parameters ----------------------------------------------------------------
+globalStore.alpha = 5
+globalStore.thetaCP = 0.05
+var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
+var verbose = data["verbose"][0]
+
+var tables_list = data["tables"]
+var utterances = data["utterances"]
+var causal_nets = data["cns"]
+
+var vars = [["A", "-A"], ["C", "-C"]]
+var p_ac_ind = {"none": 1/2,
+                "lawn": 0.1,
+                "pizza" : 1,
+                "BC-impossible-cons": 1
+                }
+
+var tables = map(function(obj){
+  Categorical({"vs": obj[0].vs, "ps": obj[0].ps})
+}, tables_list)
+if(verbose){ display('# tables: ' + tables.length)}
+
+// Helper --------------------------------------------------------------------
+var intersect_arrays = function(arrays){
+  return filter(function(m){
+          var m_in_all_lists = map(function(idx){arrays[idx].includes(m)},
+                                  _.range(1,arrays.length))
+          return sum(m_in_all_lists)==m_in_all_lists.length
+    }, arrays[0])
+}
+
+// Probabilities ------------------------------------------------------------
+var marginal = cache(function(table, variables){
+  // computes the probability of P(A) marginalized over all other variables in
+  // support of table with P=table and variables=["A"]
+  var tokens = table.support()
+  var all_x = map(function(v){
+    v.includes("-") ? filter(function(k){k.includes(v)}, tokens) :
+                      filter(function(k){!k.includes("-"+v)}, tokens)
+  }, variables)
+  var xs = intersect_arrays(all_x)
+
+  return reduce(function(x, acc){acc + Math.exp(table.score(x))}, 0, xs)
+})
+
+var cn_to_prob = function(state){
+  var cn = state.cn
+  var table = state.table
+  cn == "A implies C" ? marginal(table, ["A", "C"]) / marginal(table, ["A"]) :
+  cn == "A implies -C" ? marginal(table, ["A", "-C"]) / marginal(table, ["A"]) :
+  cn == "-A implies C" ? marginal(table, ["-A", "C"]) / marginal(table, ["-A"]):
+  cn == "-A implies -C" ? marginal(table, ["-A", "-C"])/marginal(table, ["-A"]):
+  cn == "C implies A" ? marginal(table, ["A", "C"]) / marginal(table, ["C"]) :
+  cn == "C implies -A" ? marginal(table, ["-A", "C"]) / marginal(table, ["C"]) :
+  cn == "-C implies A" ? marginal(table, ["A", "-C"]) / marginal(table, ["-C"]):
+  cn == "-C implies -A" ? marginal(table, ["-A", "-C"])/marginal(table, ["-C"]):
+  cn == "A || C" ? Math.abs(marginal(table, ["A", "C"]) -
+                              (marginal(table, ["A"]) * marginal(table, ["C"]))
+                            ) :
+  error('unknown network: ' + cn)
+}
+
+// State prior  --------------------------------------------------------------
+var cn_prior = function(bias) {
+  var p_ind = p_ac_ind[bias]
+  var p_dep = (1 - p_ind) / (causal_nets.length-1)
+  var ps = map(function(cn){cn=="A || C" ?  p_ind : p_dep}, causal_nets)
+  return categorical({vs: causal_nets, ps: ps})
+}
+
+var as_if_zero = 0.000001
+var log_likelihood = function(state){
+  var p = cn_to_prob(state)
+  return state.cn == "A || C" ? (p == 0 ? -Math.log(as_if_zero) : -Math.log(p))
+                              : Math.exp(Beta({a:10, b:1}).score(p))
+}
+
+var state_prior = cache(function(bias){
+  return Infer({method:'enumerate', model:function(){
+    var state = {"table": uniformDraw(tables),
+                 "cn": cn_prior(bias)}
+    var strength = log_likelihood(state)
+    factor(strength)
+
+    if(bias=='lawn'){
+      if(Math.exp(state.table.score("-AC")) <= globalStore.thetaCP){
+        factor(-Math.log(thresholds.f))
+      }
+    }else if(bias == "BC-impossible-cons"){
+      condition(marginal(state.table, ["C"]) <= thresholds.f)
+    }
+    return state
+  }})
+})
+
+// Meaning ------------------------------------------------------------------
+var utterance_probs = cache(function(utterance, table){
+  if(utterance.includes(">")){
+    var components = utterance.split(" > ")
+    var antecedent = components[0].split(" and ").join("")
+    var consequent = components[1].split(" and ").join("")
+    return marginal(table, [antecedent, consequent]) /
+           marginal(table, [antecedent])
+  }
+  else if(utterance.includes("maybe")){
+    var u = utterance.slice("maybe ".length)
+    return marginal(table, [u])
+  }
+  else if(utterance.includes("and")){
+    var components = utterance.split(" and ")
+    return marginal(table, components)
+  }
+  else {
+    return marginal(table, [utterance])
+  }
+})
+
+var meaning = cache(function(utterance, table){
+ var p = utterance_probs(utterance, table)
+ var u_applicable = utterance.includes('maybe') ?
+     (p >= thresholds.theta_maybe) : p >= thresholds.theta
+ return u_applicable
+})
+
+// Model ---------------------------------------------------------------------
+var literal_listener = cache(function(utterance, bias){
+  Infer({method:'enumerate',model: function(){
+    var state = sample(state_prior(bias))
+    condition(meaning(utterance, state.table))
+    return state
+  }})
+}, 10000)
+
+var costs = function(utt){
+  if(!utterances.includes(utt)){error('unknown utterance ' + utt)}
+  var c1 = utt.includes(' > ') ? 0.55 : 0
+  var c2 = (utt.split(' and ').length - 1) * 0.25
+  var c3 = (utt.split('-').length - 1) * 0.125
+  var c4 = utt.includes('maybe') ? 0.1 : 0
+  return c1 + c2 + c3 + c4
+}
+
+var speaker = cache(function(bn, bias, displayU){
+  return Infer({method:'enumerate', model: function(){
+    var utterance = uniformDraw(utterances)
+    var LL = literal_listener(utterance, bias)
+    var utility = LL.score(bn)
+    if(displayU && utility!=-Infinity){
+      display(utterance + utility)
+    }
+    factor(globalStore.alpha * (utility - costs(utterance)))
+    // factor(globalStore.alpha * utility)
+    return utterance
+  }
+ })
+}, 10000)
+
+var listener = function(utterance, bias){
+  return Infer({method:'enumerate', model:function(){
+                  var bn = sample(state_prior(bias))
+                  observe(speaker(bn, bias, false),utterance)
+                  return bn
+                }})
+}
+
+// Run from R ----------------------------------------------------------------
+var u = data["utt"][0]
+var bias = data["bias"][0]
+
+if(verbose){
+  display("")
+  display("utterance: " + u)
+  display("bias: " + bias)
+}
+
+var run = function(level){
+  if(verbose){ display("run " + level + " ...") }
+  return level == "prior" ? state_prior(bias) :
+          level == "LL" ? literal_listener(u, bias) :
+            listener(u, bias)
+}
+
+var prior = run("prior")
+if(verbose){
+  var all_states = prior.support()
+  display('# states: ' + all_states.length)
+}
+var ll = run("LL")
+var pl = run("PL")
+
+// object to return
+var distributions = {"PL": pl, "LL": ll, "prior": prior}
+distributions
