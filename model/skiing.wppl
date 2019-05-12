@@ -19,11 +19,6 @@ var probabilities = {"cn1": {"p_clothes": {"S": 0.7, "-S": 0.1},
                     }
 
 // Helper --------------------------------------------------------------------
-var roundToN = function(x, n){
-  var m = Math.pow(10,n)
-  return Math.round(x*m)/m
-}
-
 var negate = function(x){
   return x.startsWith("-") ? x.slice(1) : "-" + x
 }
