@@ -23,9 +23,7 @@ df <- data %>% filter(id==model_id)
 model_path <- file.path(".", "model", paste(df$model_fn, "wppl", sep="."),
                         fsep = .Platform$file.sep)
 
-noise_str <- as.character(noise) %>% str_replace("\\.", "_")
-main_folder <- paste("seed-", seed, "-noise-", noise_str, "-tables-", n_tables,
-                     sep="")
+main_folder <- get_target_folder(seed, noise, n_tables)
 
 # Load saved tables, utterances and causal networks
 if(df$model_fn == "skiing" || df$model_fn== "sundowners"){

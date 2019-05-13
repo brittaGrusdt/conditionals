@@ -2,7 +2,8 @@ library(tidyverse)
 library(ggplot2)
 library(rwebppl)
 
-# HELPERS
+
+# Probabilities -----------------------------------------------------------
 webppl_distrs_to_tibbles <- function(data){
   data_tibbles <- data %>%
     map(function(x){
@@ -37,6 +38,13 @@ marginals <- function(df, vars){
     }) %>% bind_rows()
 }
 
+expected_val <- function(data, vars){
+  df_marginal <- data %>%  select(table_x, table_probs, bn_probs) %>%
+    marginals(vars) 
+  return(sum(df_marginal$marginal * df_marginal$probs))
+}
+
+# Plotting ----------------------------------------------------------------
 
 plot_bns <- function(data, distribution_str){
   ggplot(data = data) + 
@@ -83,10 +91,11 @@ plot_marginal <- function(data, vars, distribution_str, density_graph = FALSE){
   p
 }
 
-expected_val <- function(data, vars){
-  df_marginal <- data %>%  select(table_x, table_probs, bn_probs) %>%
-    marginals(vars) 
-  return(sum(df_marginal$marginal * df_marginal$probs))
-}
 
+# data structures ---------------------------------------------------------
+get_target_folder <- function(seed, noise, n_tables){
+  noise_str <- as.character(noise) %>% str_replace("\\.", "_")
+  fn <- paste("seed-", seed, "-noise-", noise_str, "-tables-", n_tables, sep="")
+  return(fn)
+}
 

@@ -15,10 +15,7 @@ seed <- 123
 model <- "model-general"
 
 # Setup -------------------------------------------------------------------
-noise_str <- as.character(noise) %>% str_replace("\\.", "_")
-main_folder <- paste("seed-", seed, "-noise-", noise_str, "-tables-", n_tables,
-                     sep="")
-
+main_folder <- get_target_folder(seed, noise, n_tables)
 target_dir <- file.path(".", "data", "precomputations", model, main_folder,
                         fsep = .Platform$file.sep)
 

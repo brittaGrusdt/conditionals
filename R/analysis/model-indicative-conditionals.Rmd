@@ -26,8 +26,7 @@ n_tables <- 1000
 # Geta Data
 
 ```{r}
-noise_str <- as.character(noise) %>% str_replace("\\.", "_")
-fn <- paste("seed-", seed, "-noise-", noise_str, "-tables-", n_tables, sep="")
+fn <- get_target_folder(seed, noise, n_tables)
 result_dir <- file.path("..", "..", "data", "results", "model-general", fn,
                         fsep = .Platform$file.sep)
 fn_no_bias <- file.path(result_dir, "indicative-conditionals.rds")
