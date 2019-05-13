@@ -4,18 +4,21 @@ library(rwebppl)
 
 
 # Probabilities -----------------------------------------------------------
-webppl_distrs_to_tibbles <- function(data){
-  data_tibbles <- data %>%
+webppl_distrs_to_tibbles <- function(posterior){
+  posterior_tibbles <- posterior %>%
     map(function(x){
-      x %>% transmute(cn=support$cn,
-                      table_x=support$table.support,
-                      table_probs=support$table.probs,
-                      bn_probs=probs) %>% 
-        rowid_to_column("bn_id") %>% 
-        mutate("bn_id" = as.character(bn_id))
+      x <- x %>% rowid_to_column("bn_id") 
+      bn_probs <- x %>% select("probs", "bn_id")
+      data_tibble <- x$support %>% rowid_to_column("bn_id") %>% 
+                      unnest() %>%
+                      as_tibble() %>% 
+                      left_join(bn_probs, by = "bn_id") %>% 
+                      mutate("bn_id" = as.character(bn_id)) %>% 
+                      rename(bn_probs=probs, val=table.probs, cell=table.support)
+      return(data_tibble)             
     })
 }
-
+  
 marginalize <- function(data, vars){
   for(var in vars){
     if(str_detect(var, "^-")){
@@ -25,6 +28,8 @@ marginalize <- function(data, vars){
       data <- data %>% group_by(bn_id) %>% filter(!str_detect(cell, token))
     }
   }
+  # data <- data %>% group_by(bn_id) %>% summarise(marginal = sum(val))
+  data <- data %>% group_by(bn_id) %>% mutate(marginal = sum(val))
   return(data)
 }
 
@@ -36,44 +41,43 @@ expected_val <- function(data, vars){
 # Plotting ----------------------------------------------------------------
 
 plot_bns <- function(data, distribution_str){
-  ggplot(data = data) + 
+  data %>% spread(key = cell, value = val) %>% 
+  ggplot() + 
     geom_bar(mapping = aes(x=bn_id, y=bn_probs), stat="identity") +
     labs(title = distribution_str)
 }
 
 plot_cns <- function(data, distribution_str){
-  # Causal Nets
-  ggplot(data = data) + 
+  data %>% spread(key = cell, value = val) %>% 
+  ggplot() + 
     geom_bar(mapping = aes(x=cn, y=bn_probs), stat="identity") + 
     labs(title = distribution_str, y="probability")
 }
 
 plot_bn_table <- function(data, id, distribution_str){
   df <- data %>%  filter(bn_id==id)
-  x <- df$table_x[[1]]
-  y <- df$table_probs[[1]]
-  p <- df$bn_probs
-  ggplot(data=tibble(x=x, probs=y)) + 
-    geom_bar(mapping = aes(x=x, y=probs), stat="identity") +
-    labs(title = paste(distribution_str, ": P(bn", id, "): ", p, " cn: ", df$cn, sep=""),
+  ggplot(data = df) + 
+    geom_bar(mapping = aes(x=cell, y=val), stat="identity") +
+    labs(title = paste(distribution_str, ": P(bn", id, "): ", df$bn_probs[1],
+                       " cn: ", df$cn[1], sep=""),
          y="probability")
 }
 
 plot_marginal <- function(data, vars, distribution_str, density_graph = FALSE){
-  df_marginal <- data %>%  select(table_x, table_probs, bn_probs) %>%
-                  marginals(vars) 
-  
+  df_marginal <- data %>% marginalize(vars)
+   
   vars_str <- paste(vars, collapse = "")
   if(density_graph){
     # mit samples von rwebppl::get_samples machen!
-    p <-  ggplot(data=df_marginal, aes(marginal)) +
-            geom_density() +
-            labs(x = paste('P(', vars_str, ')'),  y = "density",
-                 title = distribution_str)
+    # p <-  ggplot(data=df_marginal, aes(marginal)) +
+    #         geom_density() +
+    #         labs(x = paste('P(', vars_str, ')'),  y = "density",
+    #              title = distribution_str)
   }else{
-    df_marginal <- df_marginal %>% mutate(marginal=as.character(marginal))
-    p <- ggplot(data = df_marginal) +
-          geom_bar(mapping = aes(x=marginal, y=probs), stat="identity") +
+    marginals <- df_marginal %>% spread(key = cell, value = val) %>%
+                 mutate(marginal=as.character(marginal))
+    p <- ggplot(data = marginals) +
+          geom_bar(mapping = aes(x=marginal, y=bn_probs), stat="identity") +
           labs(x = paste('P(', vars_str, ')'),  y = "probability",
                title = distribution_str)
   }

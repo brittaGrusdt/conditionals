@@ -15,15 +15,15 @@ library(ggplot2)
 source(file.path("..", "helpers.R", fsep = .Platform$file.sep))
 ```
 
-# Get Data
+Get Data
 
 ```{r}
-fn_skiing <- file.path("..", "..", "data", "skiing.rds",
+fn_skiing <- file.path("..", "..", "data", "results", "skiing.rds",
                        fsep = .Platform$file.sep)
-fn_sundowners <- file.path("..", "..", "data", "sundowners.rds",
+fn_sundowners <- file.path("..", "..", "data", "results", "sundowners.rds",
                            fsep = .Platform$file.sep)
-skiing <- read_rds(fn_skiing) %>% webppl_distrs_to_tibbles()
-sundowners <- read_rds(fn_sundowners) %>%  webppl_distrs_to_tibbles()
+skiing <- read_rds(fn_skiing) 
+sundowners <- read_rds(fn_sundowners)
 ```
 
 # Skiing example
