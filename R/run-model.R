@@ -10,7 +10,7 @@ data <- tribble(~id, ~bias, ~save_as, ~utterance, ~model_fn,
 
 # Set parameters --------------------------------------------------------------
 
-model_id <- 4
+model_id <- 2
 
 seed <- "123"
 n_tables <- 1000
@@ -64,8 +64,30 @@ params <- list(utt=df$utterance,
 
 posterior <- webppl(program_file = model_path,
                     data = params,
-                    data_var = "data")
-posterior_tibble <- posterior %>% map(function(x){as_tibble(x)})
+                    data_var = "data")  %>% 
+             map(function(x){as_tibble(x)})
+
+posterior_tibbles_list = list()
+for(i in seq(1, length(posterior))){
+  distr <- posterior_tibble[[i]]
+  cells <- seq(1,4) %>%  map(function(idx_cell){
+    distr$support$table.probs %>% map(function(x){nth(x, idx_cell)})
+  })
+  
+  cells <- seq(1,4) %>%  map(function(idx_cell){
+    distr$table_probs %>% map(function(x){nth(x, idx_cell)}) %>% as.numeric()
+  })
+  n <- nrow(distr)
+                            
+  distr <- distr %>% mutate("AC"=cells[[1]], "A-C"=cells[[2]],
+                            "-AC"=cells[[3]], "-A-C"=cells[[4]]) %>% 
+           gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", value="val") %>% 
+           select(bn_id, bn_probs, cell, val)
+  
+  posterior_tibbles_list[[i]] <- distr
+}
+names(posterior_tibbles_list) <- names(posterior)
+
 
 # samples <- posterior %>%  map(function(x){get_samples(x, 1000000)})
 write_rds(posterior_tibble, target_path)
