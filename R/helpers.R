@@ -18,30 +18,19 @@ webppl_distrs_to_tibbles <- function(data){
 
 marginalize <- function(data, vars){
   for(var in vars){
-    if(var %>% startsWith("-")) {
-      data <- data %>% filter(stringr::str_detect(table_x, var)) 
+    if(str_detect(var, "^-")){
+      data <- data %>% group_by(bn_id) %>% filter(str_detect(cell, var))
     } else {
-      var_neg <- paste("-", var, sep="")
-      data <- data %>% filter(!stringr::str_detect(table_x, var_neg))
-    }  
-  } 
+      token <- paste("-", var, sep="")
+      data <- data %>% group_by(bn_id) %>% filter(!str_detect(cell, token))
+    }
+  }
   return(data)
 }
 
-marginals <- function(df, vars){
-  seq(nrow(df)) %>% 
-    map(function(i){
-      tibble(table_x = df$table_x[[i]], table_probs=df$table_probs[[i]]) %>% 
-        marginalize(vars) %>% 
-        summarise(marginal=sum(table_probs)) %>% 
-        mutate(probs=df$bn_probs[i])
-    }) %>% bind_rows()
-}
-
 expected_val <- function(data, vars){
-  df_marginal <- data %>%  select(table_x, table_probs, bn_probs) %>%
-    marginals(vars) 
-  return(sum(df_marginal$marginal * df_marginal$probs))
+  df <- marginalize(data, vars)
+  return(sum(df$val*df$bn_probs))
 }
 
 # Plotting ----------------------------------------------------------------
