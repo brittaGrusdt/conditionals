@@ -231,10 +231,10 @@ var u = data["utt"][0]
 display("")
 display("utterance: " + u)
 
-var PL = listener(u)
-var LL = literal_listener(u)
+var pl = listener(u)
+var ll = literal_listener(u)
 var prior = state_prior
 
 // object to return
-var distributions = {PL, LL, prior}
+var distributions = {"PL": pl, "LL": ll, "prior": prior}
 distributions

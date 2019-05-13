@@ -17,7 +17,6 @@ var probabilities = {"cn1": {"p_clothes": {"S": 0.7, "-S": 0.1},
                              "p_exam": 0.2,
                              "p_skiing": {"E": 0.98, "-E": 0.1}}
                     }
-
 // Helper --------------------------------------------------------------------
 var negate = function(x){
   return x.startsWith("-") ? x.slice(1) : "-" + x
@@ -240,10 +239,10 @@ var u = data["utt"][0]
 display("")
 display("utterance: " + u)
 
-var PL = listener(u)
-var LL = literal_listener(u)
+var pl = listener(u)
+var ll = literal_listener(u)
 var prior = state_prior
 
 // object to return
-var distributions = {PL, LL, prior}
+var distributions = {"PL": pl, "LL": ll, "prior": prior}
 distributions
