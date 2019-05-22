@@ -1,0 +1,176 @@
+---
+title: "Prior"
+author: "Britta Grusdt"
+date: "5/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(testit)
+library(Metrics)
+```
+
+
+## Noisy independent tables
+
+For each cell entry, a noisy value is sampled from a beta distribution parametrized
+with $\alpha = \mu * v$ and $\beta = (1-\mu) * v$ where $\mu$ is the respective
+cell entry. 
+Plot beta distributions for each cell entry of a particular table depending on
+noise parameter $v$.
+
+```{r}
+noise_v <- c(10, 50, 100, 500)
+table <- c(0.7, 0.1, 0.15, 0.05)
+
+v <- noise_v[[1]]
+x <- table %>% map(function(p){
+  rbeta(1000, p*v, (1-p)*v) %>% as_tibble()})  %>% bind_rows(.id = "cell") 
+means <- x %>% group_by(cell) %>%  summarize(mean=mean(value))
+
+for(v in noise_v){
+  x <- table %>% map(function(p){
+  rbeta(1000, p*v, (1-p)*v) %>% as_tibble()})  %>% bind_rows(.id = "cell")
+  pl <- x %>% ggplot(aes(x=value, color=cell)) +
+                      geom_density() +
+                      facet_wrap(~cell, scales = "free_y") + 
+                      labs(title =  paste("parameter v:", v)) +
+                      geom_vline(aes(xintercept=mean), data=means, linetype="dotted",
+                      color="red") 
+  print(pl)
+}
+```
+
+Load tables generated with particular beta/theta from noisy or model:
+$P(C|A)=\theta + \beta * \theta - \beta, P(C|\neg A)=\beta$ and
+$P(A)\sim beta(1,1)$; or if beta/theta=NA, 
+$P(C|A)\sim beta(10,1), P(C|\neg A)\sim beta(1,10)$ and $P(A)\sim beta(1,1)$.
+
+```{r}
+param_theta <- NA
+param_beta <- NA
+
+target_dir <- file.path("..", "..", "data", "precomputations", "model-general",
+                        sep="")
+
+tables <- read_rds(paste(target_dir,"tables-all.rds",sep=""))
+if(is.na(param_theta)){
+    tables <- tables %>% filter(is.na(beta) & is.na(theta))
+} else {
+    tables <- tables %>% filter(beta==param_beta & theta==param_theta)
+}
+tables_independent <- tables %>% filter(cn=="A || C")
+
+assert(unique(tables_independent$theta) %>% length() == 1)
+assert(unique(tables_independent$beta) %>% length() == 1)
+```
+
+Compute mean/median/max/min for indpendence-score p: |P(A,C)-P(A)*P(C)| and 
+also P(C|A),  the dependence-score for network A->C.
+
+```{r }
+tables_tidy <- tables %>% select(ps, vs, rowid, noise_v, cn) %>%
+                unnest() %>% spread(key=vs, value=ps) %>%
+               mutate(C=`AC`+`-AC`, A=`AC`+`A-C`, p=abs(`AC`-(C*A)),
+                      p_ac=`AC`/(`AC`+`A-C`)) %>% 
+               gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", value="val")
+
+tables_wide <- tables_tidy %>%  spread(key=cell, value=val)
+
+means_p <- tables_wide %>% group_by(noise_v, cn) %>%
+            summarize(mean_p=mean(p), min_p=min(p), max_p=max(p),
+                      median_p=median(p),
+                      mean_pac=mean(p_ac), min_pac=min(p_ac), max_pac=max(p_ac),
+                      median_pac=median(p_ac))
+means_p
+```
+
+Plot distributions of p (independence measure) for different noise parameters $v$.
+
+```{r, echo=FALSE}
+noise_vals <- tables_tidy$noise_v %>% as.factor() %>%  levels() %>% as.double()
+params_beta <- c(25, 30, 35, 50, 70, 110, 150)
+models <- list()
+i<-1
+for(noise in noise_vals){
+  models[[i]] <-tibble(approx=rbeta(1000, 1, params_beta[[i]]),
+                       noise_v=noise, param=params_beta[[i]])
+  i <- i + 1
+}
+beta_pdfs <- bind_rows(models)
+
+plot_p <- tables_wide %>% filter(cn=="A || C") %>%
+            ggplot(aes(x=p,  color = noise_v)) +
+              geom_density()  +
+              facet_wrap(~noise_v, scales="free")
+plot_p 
+```
+
+Use beta distributions (with different parameters for different noise parameter)
+to approximate distributions of p (independence measure).
+
+```{r, echo=FALSE}
+mean_vals <- means_p %>% filter(cn=="A || C")
+plot_p +
+  geom_vline(aes(xintercept=mean_p), data=mean_vals, linetype="dashed") +
+  geom_density(aes(x=approx, color=noise_v), data=beta_pdfs, color="green") +
+  facet_wrap(~noise_v, scales="free")
+
+```
+
+Compute mean squared error between actual and approximated values.
+
+```{r}
+tibbles <- list()
+i <- 1
+tables_ind <- tables_wide %>% filter(cn=="A || C")
+for(noise in noise_vals){
+  data <- tables_ind %>% filter(noise_v==noise) %>% pull(p) %>% density()
+  t <- tibble(x=data$x, y=data$y, noise_v=noise) %>% filter(x>=0)
+  tibbles[[i]] <- t
+  i <- i + 1
+}
+densities_tibble <- bind_rows(tibbles)
+
+df <- densities_tibble %>% group_by(noise_v) %>% 
+      mutate(f1=dbeta(x, 1, 25), f2=dbeta(x, 1,30),
+             f3=dbeta(x, 1, 35), f4=dbeta(x, 1,50),
+             f5=dbeta(x, 1, 70), f6=dbeta(x, 1,110),
+             f7=dbeta(x, 1, 150)) %>% 
+      gather(f1, f2, f3, f4, f5, f6, f7, key="model", value="val")
+
+df_summary <- df %>% group_by(noise_v, model) %>% summarise(mse=mse(y,val))
+df_summary 
+```
+
+
+Plot the distributions of p (independence measure) and of P(C|A) (dependence measure
+for network A->C) for all networks.
+
+
+```{r}
+noise <- 100
+mean_vals <- means_p %>% filter(noise_v==noise)
+
+tables_wide %>% filter(noise_v==noise) %>% 
+  ggplot() + geom_density(aes(x=p,color=cn)) + facet_wrap(~cn, scales="free") +
+  geom_vline(aes(xintercept=mean_p), data=mean_vals, linetype="dashed") +
+  geom_vline(aes(xintercept=median_p), data=mean_vals, linetype="dotted",
+             color="red") 
+
+tables_wide %>% filter(noise_v==noise) %>% 
+  ggplot() + geom_density(aes(x=p_ac, color=cn)) +
+  facet_wrap(~cn, scales="free") +
+  geom_vline(aes(xintercept=mean_pac), data=mean_vals, linetype="dashed") +
+  geom_vline(aes(xintercept=median_pac), data=mean_vals, linetype="dotted",
+             color="red")
+```
+
+
+
