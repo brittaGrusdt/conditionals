@@ -3,7 +3,6 @@ globalStore.alpha = 5
 globalStore.thetaCP = 0.05
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
 var verbose = data["verbose"][0]
-
 var tables_list = data["tables"]
 var utterances = data["utterances"]
 var causal_nets = data["cns"]
@@ -16,7 +15,7 @@ var p_ac_ind = {"none": 1/2,
                 }
 
 var tables = map(function(obj){
-  Categorical({"vs": obj[0].vs, "ps": obj[0].ps})
+  Categorical({"vs": obj["vs"], "ps": obj["ps"]})
 }, tables_list)
 if(verbose){ display('# tables: ' + tables.length)}
 
@@ -46,12 +45,12 @@ var marginal = cache(function(table, variables){
 var cn_to_prob = function(state){
   var cn = state.cn
   var table = state.table
-  cn == "A implies C" ? marginal(table, ["A", "C"]) / marginal(table, ["A"]) :
-  cn == "A implies -C" ? marginal(table, ["A", "-C"]) / marginal(table, ["A"]) :
+  cn == "A implies C" ? marginal(table, ["A", "C"]) / marginal(table, ["A"]):
+  cn == "A implies -C" ? marginal(table, ["A", "-C"]) / marginal(table, ["A"]):
   cn == "-A implies C" ? marginal(table, ["-A", "C"]) / marginal(table, ["-A"]):
   cn == "-A implies -C" ? marginal(table, ["-A", "-C"])/marginal(table, ["-A"]):
-  cn == "C implies A" ? marginal(table, ["A", "C"]) / marginal(table, ["C"]) :
-  cn == "C implies -A" ? marginal(table, ["-A", "C"]) / marginal(table, ["C"]) :
+  cn == "C implies A" ? marginal(table, ["A", "C"]) / marginal(table, ["C"]):
+  cn == "C implies -A" ? marginal(table, ["-A", "C"]) / marginal(table, ["C"]):
   cn == "-C implies A" ? marginal(table, ["A", "-C"]) / marginal(table, ["-C"]):
   cn == "-C implies -A" ? marginal(table, ["-A", "-C"])/marginal(table, ["-C"]):
   cn == "A || C" ? Math.abs(marginal(table, ["A", "C"]) -
@@ -68,11 +67,13 @@ var cn_prior = function(bias) {
   return categorical({vs: causal_nets, ps: ps})
 }
 
-var as_if_zero = 0.000001
 var log_likelihood = function(state){
   var p = cn_to_prob(state)
-  return state.cn == "A || C" ? (p == 0 ? -Math.log(as_if_zero) : -Math.log(p))
-                              : Math.exp(Beta({a:10, b:1}).score(p))
+  return state.cn == "A || C" ? Beta({a:1, b:10}).score(p) :
+                                Beta({a:10, b:1}).score(p)
+  // (p==0 ? -Math.log(as_if_zero) : -Math.log(p))
+  // (p == 0 ? Math.log(1/(10*as_if_zero)) : Math.log(1/(10*p)))
+
 }
 
 var state_prior = cache(function(bias){
@@ -149,7 +150,6 @@ var speaker = cache(function(bn, bias, displayU){
       display(utterance + utility)
     }
     factor(globalStore.alpha * (utility - costs(utterance)))
-    // factor(globalStore.alpha * utility)
     return utterance
   }
  })
@@ -158,6 +158,7 @@ var speaker = cache(function(bn, bias, displayU){
 var listener = function(utterance, bias){
   return Infer({method:'enumerate', model:function(){
                   var bn = sample(state_prior(bias))
+                  // factor(speaker(bn, bias, false).score(utterance))
                   observe(speaker(bn, bias, false),utterance)
                   return bn
                 }})
@@ -185,9 +186,38 @@ if(verbose){
   var all_states = prior.support()
   display('# states: ' + all_states.length)
 }
+
+// var x = literal_listener("maybe A", bias)
+// var distr = {"ll": x}
+// distr
+
+
+// var x = map(function(bn){
+//   var ps = map(function(u){
+//     literal_listener(u, bias).score(bn)
+//   }, utterances)
+//   if(!any(function(p){p!=Infinity}, ps)){
+//     display(u)
+//     display(bn)
+//     error('stop')
+//   }
+// }, prior.support())
+
+// var x = map(function(bn){
+//   display(bn)
+//   var sp = speaker(bn, bias, false)
+//   return sp.score(u)
+// }, prior.support())
+
+// var xf = filter(function(i){i==Infinity}, x)
+// display(xf.length)
+// xf
+
 var ll = run("LL")
 var pl = run("PL")
 
 // object to return
-var distributions = {"PL": pl, "LL": ll, "prior": prior}
+// var distributions = {"prior": prior, "LL": ll}
+var distributions = {"prior": prior, "LL": ll, "PL": pl}
+
 distributions
