@@ -1,7 +1,10 @@
 ////////////  SET PARAMETERS  /////////////////
-var noise_independent = data["noise"][0]
+var noise_v = data["noise"][0]
 var n_tables = data["n_tables"][0]
 var verbose = data["verbose"][0]
+var param_beta = data["beta"][0]
+var param_theta = data["theta"][0]
+var d = 7
 
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
 
@@ -11,6 +14,12 @@ var vars = [["A", "-A"], ["C", "-C"]]
 var negate = function(x){
   return x.startsWith("-") ? x.slice(1) : "-" + x
 }
+
+var roundToN = cache(function(x){
+  var n = d
+  var m = Math.pow(10,n)
+  return Math.round(x*m)/m
+}, 10000)
 
 var combinations = Infer({model:function(){
   var bools = repeat(vars.length, flip)
@@ -73,50 +82,65 @@ var marginal = cache(function(table, variables){
 })
 
 var p_ac_ind = {"none": 1/2,
-                   "lawn": 0.1,
-                   "pizza" : 1,
-                   "BC-impossible-cons": 1
-                  }
+                "lawn": 0.1,
+                "pizza" : 1,
+                "BC-impossible-cons": 1
+                }
 
 var cn_to_prob = cache(function(state){
   var cn = state.cn
   var table = state.table
-  cn == "A implies C" ? marginal(table, ["A", "C"]) / marginal(table, ["A"]) :
-  cn == "A implies -C" ? marginal(table, ["A", "-C"]) / marginal(table, ["A"]) :
-  cn == "-A implies C" ? marginal(table, ["-A", "C"]) / marginal(table, ["-A"]):
-  cn == "-A implies -C" ? marginal(table, ["-A", "-C"])/marginal(table, ["-A"]):
-  cn == "C implies A" ? marginal(table, ["A", "C"]) / marginal(table, ["C"]) :
-  cn == "C implies -A" ? marginal(table, ["-A", "C"]) / marginal(table, ["C"]) :
-  cn == "-C implies A" ? marginal(table, ["A", "-C"]) / marginal(table, ["-C"]):
-  cn == "-C implies -A" ? marginal(table, ["-A", "-C"])/marginal(table, ["-C"]):
-  cn == "A || C" ? Math.abs(marginal(table, ["A", "C"]) -
-                            (marginal(table, ["A"]) * marginal(table, ["C"]))
-                           ) :
+  cn == "A implies C" ?
+      marginal(table, ["A", "C"]) / marginal(table, ["A"]) :
+  cn == "A implies -C" ?
+      marginal(table, ["A", "-C"]) / marginal(table, ["A"]) :
+  cn == "-A implies C" ?
+      marginal(table, ["-A", "C"]) / marginal(table, ["-A"]):
+  cn == "-A implies -C" ?
+      marginal(table, ["-A", "-C"])/marginal(table, ["-A"]):
+  cn == "C implies A" ?
+      marginal(table, ["A", "C"]) / marginal(table, ["C"]) :
+  cn == "C implies -A" ?
+      marginal(table, ["-A", "C"]) / marginal(table, ["C"]) :
+  cn == "-C implies A" ?
+      marginal(table, ["A", "-C"]) / marginal(table, ["-C"]):
+  cn == "-C implies -A" ?
+      marginal(table, ["-A", "-C"])/marginal(table, ["-C"]):
+  cn == "A || C" ?
+      Math.abs(marginal(table, ["A", "C"]) -
+                (marginal(table, ["A"]) * marginal(table, ["C"]))
+              ) :
   error('unknown network: ' + cn)
 }, 10000)
 
 // States --------------------------------------------------------------------
 var build_table_functions = {
   "A/-A implies" : cache(function(c_a, c_na, a){
-                          return {"AC": c_a * a, "A-C": (1-c_a) * a,
-                                  "-AC": c_na * (1-a), "-A-C": (1-c_na) * (1-a)
+                          return {"AC": roundToN(c_a * a),
+                                  "A-C": roundToN((1-c_a) * a),
+                                  "-AC": roundToN(c_na * (1-a)),
+                                  "-A-C": roundToN((1-c_na) * (1-a))
                                  }
                          }),
   "C/-C implies" : cache(function(a_c, a_nc, c){
-                          return {"AC": a_c * c, "A-C": a_nc * (1-c),
-                                  "-AC": (1-a_c) * c, "-A-C": (1-a_nc) * (1-c)
+                          return {"AC": roundToN(a_c * c),
+                                  "A-C": roundToN(a_nc * (1-c)),
+                                  "-AC": roundToN((1-a_c) * c),
+                                  "-A-C": roundToN((1-a_nc) * (1-c))
                                  }
                          }),
 
   "||" : cache(function(a, c){
-                var epsilon = uniform({a:0, b:noise_independent})
-                var table = map(function(t){t + epsilon},
-                                [a*c, a * (1-c), (1-a) * c, (1-a) * (1-c)])
-                var c = sum(table)
+          var table = [a*c, a * (1-c), (1-a) * c, (1-a) * (1-c)]
+          var table_noisy = map(function(cell){
+                                  beta({a: cell*noise_v, b:(1-cell)*noise_v})
+                                }, table)
+          var c = sum(table_noisy)
+          var table_new = map(function(cell){roundToN(cell/c)}, table_noisy)
 
-                return {"AC": table[0] / c, "A-C": table[1] / c,
-                        "-AC": table[2] / c, "-A-C": table[3] / c}
-                })
+          return {"AC": table_new[0], "A-C": table_new[1],
+                  "-AC": table_new[2], "-A-C": table_new[3]}
+          })
 }
 
 var make_tables = cache(function(cn){
@@ -127,9 +151,13 @@ var make_tables = cache(function(cn){
 
   var table_distributions =
     Infer({method:'forward', samples:n_tables, model:function(){
-      var child_p = beta(10,1)
-      var child_np = beta(1,10)
-      var parent = beta(1,1)
+
+      var child_p = param_beta  ?
+                      param_theta + param_beta * param_theta - param_beta :
+                      beta(10,1)
+      var child_np = param_beta ? param_beta : beta(1,10)
+      var parent = beta(1, 1)
+
       var probs =
         cn=="A || C" ? [beta(1,1), beta(1,1)] :
         cn=="A implies C" || cn=="C implies A" ? [child_p, child_np, parent] :
@@ -143,6 +171,7 @@ var make_tables = cache(function(cn){
 
       var table = cn=="A || C" ? build_table(probs[0], probs[1])
                                  : build_table(probs[0], probs[1], probs[2])
+
       return Categorical({"vs": Object.keys(table),"ps": Object.values(table)})
   }}).support()
   return table_distributions
