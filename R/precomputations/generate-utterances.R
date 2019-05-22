@@ -9,29 +9,40 @@ bias <- "none"
 # bias <- "pizza"
 # bias <- "lawn"
 
-n_tables <- 1000
-noise <- 0.03
 seed <- 123
+n_tables_per_cn <- 1000
+noise_param <- 20
+noisy_or_beta <- NA
+noisy_or_theta <- NA
+
 model <- "model-general"
 
 # Setup -------------------------------------------------------------------
-main_folder <- get_target_folder(seed, noise, n_tables)
-target_dir <- file.path(".", "data", "precomputations", model, main_folder,
+target_dir <- file.path(".", "data", "precomputations", model,
                         fsep = .Platform$file.sep)
 
 name_utts <- paste("utterances-", bias, ".rds", sep="")
 target_utterances <- file.path(target_dir, name_utts, fsep = .Platform$file.sep)
 
 # Load tables and causal nets
-path_tables <- file.path(target_dir, "tables.rds", fsep = .Platform$file.sep)
+path_tables <- file.path(target_dir, "tables-all.rds", fsep = .Platform$file.sep)
 path_cns <- file.path(target_dir, "cns.rds", fsep = .Platform$file.sep)
 
 tables <- read_rds(path_tables)
+tables <- read_rds(path_tables) %>% filter(n_tables==n_tables_per_cn &
+                                           noise_v==noise_param &
+                                           seed==seed)
+if(is.na(noisy_or_beta)){
+  tables <- tables %>% filter(is.na(beta) & is.na(theta))
+} else {
+  tables <- tables %>% filter(beta==noisy_or_beta & theta==noisy_or_theta)
+}
+
 causal_nets <- read_rds(path_cns)
 
 
 # Run WebPPL --------------------------------------------------------------
-utterances <- webppl(program_file = "./R/pre-analysis/utterances.wppl",
+utterances <- webppl(program_file = "./R/precomputations/generate-utterances.wppl",
                      data = list(bias=bias,
                                  tables=tables,
                                  cns=causal_nets,
@@ -40,9 +51,4 @@ utterances <- webppl(program_file = "./R/pre-analysis/utterances.wppl",
                      random_seed=seed)
 
 # Save data ---------------------------------------------------------------
-save <- function(data, target_path){
-  data %>% write_rds(target_path)
-  print(paste("saved to:", target_path))
-}
-
 utterances %>% save(target_utterances)

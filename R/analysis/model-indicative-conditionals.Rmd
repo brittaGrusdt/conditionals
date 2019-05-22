@@ -19,15 +19,14 @@ Specify parameters of model to plot
 
 ```{r}
 seed <- 123
-noise <- 0.03
+noise_param <- 20
 n_tables <- 1000
 ```
 
 Geta Data
 
 ```{r}
-fn <- get_target_folder(seed, noise, n_tables)
-result_dir <- file.path("..", "..", "data", "results", "model-general", fn,
+result_dir <- file.path("..", "..", "data", "results", "model-general",
                         fsep = .Platform$file.sep)
 fn_no_bias <- file.path(result_dir, "indicative-conditionals.rds")
 fn_biscuits <- file.path(result_dir, "biscuit-conditionals.rds")
@@ -47,12 +46,14 @@ data <- indicative_no_bias[[distr]]
 
 data  %>% plot_cns(distr)
 
+data %>% plot_marginal(c("C"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("C"))
 print(paste('E[P(C)]:', ev))
 
+data %>% plot_marginal(c("A"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("A"))
 print(paste('E[P(A)]:', ev))
-
+  
 ```
 
 ## Literal Listener
@@ -63,9 +64,11 @@ data <- indicative_no_bias[[distr]]
 
 data  %>% plot_cns(distr)
 
+data %>% plot_marginal(c("C"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("C"))
 print(paste('E[P(C)]:', ev))
 
+data %>% plot_marginal(c("A"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("A"))
 print(paste('E[P(A)]:', ev))
 ```
@@ -79,9 +82,11 @@ data <- indicative_no_bias[[distr]]
 
 data  %>% plot_cns(distr)
 
+data %>% plot_marginal(c("C"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("C"))
 print(paste('E[P(C)]:', ev))
 
+data %>% plot_marginal(c("A"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("A"))
 print(paste('E[P(A)]:', ev))
 
@@ -95,9 +100,11 @@ print(paste('E[P(A)]:', ev))
 distr <- "prior"
 data <- indicative_biscuit[[distr]]
 
+data %>% plot_marginal(c("C"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("C"))
 print(paste('E[P(C)]:', ev))
 
+data %>% plot_marginal(c("A"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("A"))
 print(paste('E[P(A)]:', ev))
 
@@ -109,9 +116,11 @@ print(paste('E[P(A)]:', ev))
 distr <- "LL"
 data <- indicative_biscuit[[distr]]
 
+data %>% plot_marginal(c("C"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("C"))
 print(paste('E[P(C)]:', ev))
 
+data %>% plot_marginal(c("A"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("A"))
 print(paste('E[P(A)]:', ev))
 ```
@@ -123,9 +132,11 @@ print(paste('E[P(A)]:', ev))
 distr <- "PL"
 data <- indicative_biscuit[[distr]]
 
+data %>% plot_marginal(c("C"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("C"))
 print(paste('E[P(C)]:', ev))
 
+data %>% plot_marginal(c("A"), distr, density_graph = TRUE)
 ev <- data %>% expected_val(c("A"))
 print(paste('E[P(A)]:', ev))
 

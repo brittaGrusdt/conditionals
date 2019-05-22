@@ -10,21 +10,23 @@ data <- tribble(~id, ~bias, ~save_as, ~utterance, ~model_fn,
                 5, "", "sundowners", "R > -S", "sundowners")
 
 # Set parameters --------------------------------------------------------------
-
-model_id <- 5
-
-seed <- "123"
-n_tables <- 1000
-noise <- 0.03
+model_id <- 1
 verbose <- TRUE
 
+# table parameters
+n_tables_per_cn <- 1000
+noise_param <- 20
+
+# noisy-or parameters
+# noisy_or_beta = 0.1
+# noisy_or_theta = 0.9
+noisy_or_beta = NA
+noisy_or_theta = NA
 
 # Setup -------------------------------------------------------------------
 df <- data %>% filter(id==model_id)
 model_path <- file.path(".", "model", paste(df$model_fn, "wppl", sep="."),
                         fsep = .Platform$file.sep)
-
-main_folder <- get_target_folder(seed, noise, n_tables)
 
 # Load saved tables, utterances and causal networks
 if(df$model_fn == "skiing" || df$model_fn== "sundowners"){
@@ -34,18 +36,23 @@ if(df$model_fn == "skiing" || df$model_fn== "sundowners"){
   target_dir <- file.path(".", "data", "results", fsep = .Platform$file.sep)
 } else {
   fn_utts <- paste("utterances-", df$bias, ".rds", sep="")
-  data_dir <- file.path(".", "data", "precomputations", df$model_fn, main_folder,
+  data_dir <- file.path(".", "data", "precomputations", df$model_fn,
                         fsep = .Platform$file.sep)
   
-  path_tables <- file.path(data_dir, "tables.rds", fsep = .Platform$file.sep)
+  path_tables <- file.path(data_dir, "tables-all.rds", fsep = .Platform$file.sep)
   path_cns <- file.path(data_dir, "cns.rds", fsep = .Platform$file.sep)
-  
   path_utterances <- file.path(data_dir, fn_utts, fsep = .Platform$file.sep)
   
-  tables <- read_rds(path_tables)
+  tables <- read_rds(path_tables) %>% filter(n_tables==n_tables_per_cn &
+                                             noise_v==noise_param)
+  if(is.na(noisy_or_beta)){
+    tables <- tables %>% filter(is.na(beta) & is.na(theta))
+  } else {
+    tables <- tables %>% filter(beta==noisy_or_beta & theta==noisy_or_theta)
+  }
   causal_nets <- read_rds(path_cns)
   utterances <- read_rds(path_utterances)
-  target_dir <- file.path(".", "data", "results", df$model_fn, main_folder,
+  target_dir <- file.path(".", "data", "results", df$model_fn,
                           fsep = .Platform$file.sep)
 }
 
@@ -54,9 +61,10 @@ dir.create(target_dir, recursive = TRUE, showWarnings = FALSE)
 target_path <- file.path(target_dir, paste(df$save_as, ".rds", sep=""),
                          fsep = .Platform$file.sep)
 # Model params
+tables_to_wppl <- tables %>% select(ps, vs)
 params <- list(utt=df$utterance,
                bias=df$bias,
-               tables=tables,
+               tables=tables_to_wppl,
                utterances=utterances,
                cns=causal_nets,
                verbose=verbose) 
@@ -66,13 +74,16 @@ params <- list(utt=df$utterance,
 posterior <- webppl(program_file = model_path,
                     data = params,
                     data_var = "data")  %>% 
-             map(function(x){as_tibble(x)})
-
-
-
+             map(function(x){
+                as_tibble(x) %>% add_column(beta=noisy_or_beta,
+                                            theta=noisy_or_theta,
+                                            n_tables=n_tables_per_cn,
+                                            noise_v=noise_param)
+               })
 
 posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
-
+                     
 # samples <- posterior %>%  map(function(x){get_samples(x, 1000000)})
 write_rds(posterior_tibbles, target_path)
 print(paste('saved results to:', target_path))
+

@@ -4,8 +4,9 @@ var verbose = data["verbose"][0]
 var bias = data["bias"][0]
 
 var tables = map(function(obj){
-  Categorical({"vs": obj[0].vs, "ps": obj[0].ps})
+  Categorical({"vs": obj["vs"], "ps": obj["ps"]})
 }, tables_list)
+if(verbose){ display('# tables: ' + tables.length)}
 
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
 var vars = [["A", "-A"], ["C", "-C"]]
