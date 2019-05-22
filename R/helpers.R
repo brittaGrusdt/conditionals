@@ -51,7 +51,8 @@ plot_cns <- function(data, distribution_str){
   data %>% spread(key = cell, value = val) %>% 
   ggplot() + 
     geom_bar(mapping = aes(x=cn, y=bn_probs), stat="identity") + 
-    labs(title = distribution_str, y="probability")
+    labs(title = distribution_str, y="probability") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
 }
 
 plot_bn_table <- function(data, id, distribution_str){
@@ -68,11 +69,10 @@ plot_marginal <- function(data, vars, distribution_str, density_graph = FALSE){
    
   vars_str <- paste(vars, collapse = "")
   if(density_graph){
-    # mit samples von rwebppl::get_samples machen!
-    # p <-  ggplot(data=df_marginal, aes(marginal)) +
-    #         geom_density() +
-    #         labs(x = paste('P(', vars_str, ')'),  y = "density",
-    #              title = distribution_str)
+    p <-  ggplot(data=df_marginal, aes(x=marginal, color=marginal)) +
+            geom_freqpoly(bins=10) +
+            labs(x = paste('P(', vars_str, ')'),  y = "density",
+                 title = distribution_str)
   }else{
     marginals <- df_marginal %>% spread(key = cell, value = val) %>%
                  mutate(marginal=as.character(marginal))
@@ -84,6 +84,19 @@ plot_marginal <- function(data, vars, distribution_str, density_graph = FALSE){
   p
 }
 
+# Plot all table distributions for each causal network respectively
+plot_tables <- function(data){
+    cns <- data$cn %>% as.factor() %>% levels()
+    for(causal_net in cns){
+      p <- data %>% filter(cn==causal_net) %>%
+        ggplot(aes(x=val,  color = cell)) +
+            geom_density() +
+            facet_wrap(~cell, scales = "free_y") +
+            labs(title = causal_net)
+      print(p)
+    }
+}
+
 
 # data structures ---------------------------------------------------------
 get_target_folder <- function(seed, noise, n_tables){
@@ -92,3 +105,7 @@ get_target_folder <- function(seed, noise, n_tables){
   return(fn)
 }
 
+save <- function(data, target_path){
+  data %>% write_rds(target_path)
+  print(paste("saved to:", target_path))
+}
