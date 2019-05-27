@@ -15,7 +15,7 @@ verbose <- TRUE
 
 # table parameters
 n_tables_per_cn <- 1000
-noise_param <- 20
+noise_param <- 10
 
 # noisy-or parameters
 # noisy_or_beta = 0.1
@@ -65,6 +65,7 @@ tables_to_wppl <- tables %>% select(ps, vs)
 params <- list(utt=df$utterance,
                bias=df$bias,
                tables=tables_to_wppl,
+               noise_v=noise_param,
                utterances=utterances,
                cns=causal_nets,
                verbose=verbose) 

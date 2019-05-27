@@ -4,6 +4,7 @@ globalStore.thetaCP = 0.05
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
 var verbose = data["verbose"][0]
 var tables_list = data["tables"]
+var noise_v = data["noise_v"][0]
 var utterances = data["utterances"]
 var causal_nets = data["cns"]
 
@@ -13,11 +14,48 @@ var p_ac_ind = {"none": 1/2,
                 "pizza" : 1,
                 "BC-impossible-cons": 1
                 }
+// // measurement: |P(C,A) - P(C) * P(A)|
+// var beta_ind = {
+//   5 : 25,
+//   10 : 30,
+//   20 : 35,
+//   50 : 50,
+//   100 : 70,
+//   250 :110,
+//   500 : 150
+// }
+
+// // measurement: |P(C|A) - P(C|-A)|
+// var beta_ind = {
+//   5 : 3,
+//   10 : 3.5,
+//   20 : 5,
+//   50 : 7,
+//   100 : 10,
+//   250 :15,
+//   500 : 20
+// }
+
+// measurement: |P(C|A) - P(C)|
+var beta_ind = {
+  5 : 8,
+  10 : 9,
+  20 : 15,
+  50 : 20,
+  100 : 25,
+  250 :50,
+  500 : 75
+}
+
+
 
 var tables = map(function(obj){
   Categorical({"vs": obj["vs"], "ps": obj["ps"]})
 }, tables_list)
-if(verbose){ display('# tables: ' + tables.length)}
+if(verbose){
+  display('# tables: ' + tables.length)
+  display('beta param for independent likelihood: ' + beta_ind[noise_v])
+}
 
 // Helper --------------------------------------------------------------------
 var intersect_arrays = function(arrays){
@@ -42,20 +80,30 @@ var marginal = cache(function(table, variables){
   return reduce(function(x, acc){acc + Math.exp(table.score(x))}, 0, xs)
 })
 
+var marginal_probs = cache(function(table){
+  return {"P(C|A)" : marginal(table, ["A", "C"]) / marginal(table, ["A"]),
+          "P(C|-A)": marginal(table, ["-A", "C"]) / marginal(table, ["-A"]),
+          "P(A|C)" : marginal(table, ["A", "C"]) / marginal(table, ["C"]),
+          "P(A|-C)": marginal(table, ["A", "-C"]) / marginal(table, ["-C"])}
+}, 10000)
+
 var cn_to_prob = function(state){
   var cn = state.cn
   var table = state.table
-  cn == "A implies C" ? marginal(table, ["A", "C"]) / marginal(table, ["A"]):
-  cn == "A implies -C" ? marginal(table, ["A", "-C"]) / marginal(table, ["A"]):
-  cn == "-A implies C" ? marginal(table, ["-A", "C"]) / marginal(table, ["-A"]):
-  cn == "-A implies -C" ? marginal(table, ["-A", "-C"])/marginal(table, ["-A"]):
-  cn == "C implies A" ? marginal(table, ["A", "C"]) / marginal(table, ["C"]):
-  cn == "C implies -A" ? marginal(table, ["-A", "C"]) / marginal(table, ["C"]):
-  cn == "-C implies A" ? marginal(table, ["A", "-C"]) / marginal(table, ["-C"]):
-  cn == "-C implies -A" ? marginal(table, ["-A", "-C"])/marginal(table, ["-C"]):
-  cn == "A || C" ? Math.abs(marginal(table, ["A", "C"]) -
-                              (marginal(table, ["A"]) * marginal(table, ["C"]))
-                            ) :
+  var probs = marginal_probs(table)
+  return cn == "A implies C" ? [probs["P(C|A)"], probs["P(C|-A)"]] :
+         cn == "A implies -C" ? [1 - probs["P(C|A)"], 1 - probs["P(C|-A)"]] :
+         cn == "-A implies C" ? [probs["P(C|-A)"], probs["P(C|A)"]] :
+         cn == "-A implies -C" ? [1 - probs["P(C|-A)"], 1 - probs["P(C|A)"]] :
+         cn == "C implies A" ? [probs["P(A|C)"], probs["P(A|-C)"]] :
+         cn == "C implies -A" ? [1 - probs["P(A|C)"], 1 - probs["P(A|-C)"]] :
+         cn == "-C implies A" ? [probs["P(A|-C)"], probs["P(A|C)"]] :
+         cn == "-C implies -A" ? [1 - probs["P(A|-C)"], 1 - probs["P(A|C)"]] :
+         cn == "A || C" ? Math.abs(probs["P(C|A)"] - probs["P(C|-A)"]) :
+
+         // Math.abs(marginal(table, ["A", "C"]) -
+                              // (marginal(table, ["A"]) * marginal(table, ["C"]))
+                                  // ) :
   error('unknown network: ' + cn)
 }
 
@@ -69,11 +117,11 @@ var cn_prior = function(bias) {
 
 var log_likelihood = function(state){
   var p = cn_to_prob(state)
-  return state.cn == "A || C" ? Beta({a:1, b:10}).score(p) :
-                                Beta({a:10, b:1}).score(p)
+  return state.cn == "A || C" ? Beta({a:1, b: beta_ind[noise_v]}).score(p)
+                              : (Beta({a:10, b:1}).score(p[0])) // +
+                                 // Beta({a:1, b:10}).score(p[1]))
   // (p==0 ? -Math.log(as_if_zero) : -Math.log(p))
   // (p == 0 ? Math.log(1/(10*as_if_zero)) : Math.log(1/(10*p)))
-
 }
 
 var state_prior = cache(function(bias){
@@ -138,7 +186,8 @@ var costs = function(utt){
   var c2 = (utt.split(' and ').length - 1) * 0.25
   var c3 = (utt.split('-').length - 1) * 0.125
   var c4 = utt.includes('maybe') ? 0.1 : 0
-  return c1 + c2 + c3 + c4
+  return 0
+  // return c1 + c2 + c3 + c4
 }
 
 var speaker = cache(function(bn, bias, displayU){
