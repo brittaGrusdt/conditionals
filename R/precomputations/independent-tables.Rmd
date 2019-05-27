@@ -77,28 +77,23 @@ also P(C|A),  the dependence-score for network A->C.
 ```{r }
 tables_tidy <- tables %>% select(ps, vs, rowid, noise_v, cn) %>%
                 unnest() %>% spread(key=vs, value=ps) %>%
-               mutate(C=`AC`+`-AC`, A=`AC`+`A-C`, #p=abs(`AC`-(C*A)),
+               mutate(p_c=`AC`+`-AC`, p_a=`AC`+`A-C`, #p=abs(`AC`-(C*A)),
                       p_c_a=`AC` / (`AC` + `A-C`),
                       p_c_na=`-AC` / (`-AC` + `-A-C`),
-                      p=abs(p_c_a - C)) %>% 
+                      p1=abs(p_c_a - p_c), 
+                      p2=abs(p_c_a - p_c_na),
+                      p3=abs(`AC`-(p_c*p_a))) %>% 
                gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", value="val")
 
-tables_wide <- tables_tidy %>%  spread(key=cell, value=val)
+tables_wide <- tables_tidy %>%  spread(key=cell, value=val) %>% 
+               gather(p1,p2,p3, p_c_a, p_c_na, key="metric", value="metric_val") %>% 
+               mutate(metric=as.factor(metric))
 
-means_p <- tables_wide %>% group_by(noise_v, cn) %>%
-            summarize(mean_p=mean(p, na.rm = TRUE),
-                      median_p=median(p, na.rm = TRUE),
-                      min_p=min(p, na.rm = TRUE), max_p=max(p, na.rm = TRUE),
-                      
-                      mean_p_c_a=mean(p_c_a, na.rm = TRUE),
-                      median_p_c_a=median(p_c_a, na.rm = TRUE),
-                      min_p_c_a=min(p_c_a, na.rm = TRUE),
-                      max_p_c_a=max(p_c_a, na.rm = TRUE),
-                      
-                      mean_p_c_na=mean(p_c_na, na.rm = TRUE),
-                      median_p_c_na=median(p_c_na, na.rm = TRUE),
-                      min_p_c_na=min(p_c_na, na.rm = TRUE),
-                      max_p_c_na=max(p_c_na, na.rm = TRUE),
+means_p <- tables_wide %>% group_by(noise_v, cn, metric) %>%
+            summarize(mean_metric=mean(`metric_val`, na.rm = TRUE),
+                      median_metric=median(metric_val, na.rm = TRUE),
+                      min_metric=min(metric_val, na.rm = TRUE),
+                      max_metric=max(metric_val, na.rm = TRUE)
                       )
 means_p
 ```
@@ -106,8 +101,8 @@ means_p
 Plot distributions of p (independence measure) for different noise parameters $v$.
 
 ```{r}
-plot_p <- tables_wide %>% filter(cn=="A || C") %>%
-            ggplot(aes(x=p,  color = noise_v)) +
+plot_p <- tables_wide %>% filter(cn=="A || C" & metric=="p2") %>%
+            ggplot(aes(x=metric_val,  color = noise_v)) +
               geom_density()  +
               facet_wrap(~noise_v, scales="free")
 plot_p 
@@ -117,10 +112,17 @@ Use beta distributions (with different parameters for different noise parameter)
 to approximate distributions of p (independence measure).
 
 ```{r, echo=FALSE}
+m <- "p2"
+
 noise_vals <- tables_tidy$noise_v %>% as.factor() %>%  levels() %>% as.double()
-# params_beta <- c(25, 30, 35, 50, 70, 110, 150) # for p=|P(A,C)- P(A)*P(C))
-# params_beta <- c(3, 3.5, 5, 7, 10, 15, 20) # for p=|P(C|A)-P(C|-A)|
-params_beta <- c(8, 9, 15, 20, 25, 50, 75) # for p=|P(C|A)-P(C))|
+if(m=="p1"){
+  params_beta <- c(8, 9, 15, 20, 25, 50, 75) # for p1=|P(C|A)-P(C))|
+} else if(m=="p2"){
+  params_beta <- c(3, 3.5, 5, 7, 10, 15, 20) # for p2=|P(C|A)-P(C|-A)|
+} else {
+  params_beta <- c(25, 30, 35, 50, 70, 110, 150) # for p3=|P(A,C)- P(A)*P(C))
+}
+
 models <- list()
 i<-1
 for(noise in noise_vals){
@@ -130,9 +132,9 @@ for(noise in noise_vals){
 }
 beta_pdfs <- bind_rows(models)
 
-mean_vals <- means_p %>% filter(cn=="A || C")
+mean_vals <- means_p %>% filter(cn=="A || C" & metric==m)
 plot_p +
-  geom_vline(aes(xintercept=mean_p), data=mean_vals, linetype="dashed") +
+  geom_vline(aes(xintercept=mean_metric), data=mean_vals, linetype="dashed") +
   geom_density(aes(x=approx, color=noise_v), data=beta_pdfs, color="green") +
   facet_wrap(~noise_v, scales="free")
 
@@ -141,11 +143,14 @@ plot_p +
 Compute mean squared error between actual and approximated values.
 
 ```{r}
+m <- "p2"
 tibbles <- list()
 i <- 1
-tables_ind <- tables_wide %>% filter(cn=="A || C")
+tables_ind <- tables_wide %>% filter(cn=="A || C" & metric==m)
 for(noise in noise_vals){
-  data <- tables_ind %>% filter(noise_v==noise & !is.na(p)) %>% pull(p) %>% density()
+  data <- tables_ind %>% filter(noise_v==noise & !is.na(metric_val)) %>%
+    group_by(metric) %>% 
+    pull(metric_val) %>% density()
   t <- tibble(x=data$x, y=data$y, noise_v=noise) %>% filter(x>=0)
   tibbles[[i]] <- t
   i <- i + 1
@@ -171,32 +176,33 @@ for network A->C) for all networks.
 ```{r}
 noise <- 100
 mean_vals <- means_p %>% filter(noise_v==noise)
+metrics <- levels(tables_wide$metric)
 
-tables_wide %>% filter(noise_v==noise) %>% 
-  ggplot() + geom_density(aes(x=p,color=cn)) + facet_wrap(~cn, scales="free") +
-  geom_vline(aes(xintercept=mean_p), data=mean_vals, linetype="dashed") +
-  geom_vline(aes(xintercept=median_p), data=mean_vals, linetype="dotted",
-             color="red") +
-  # labs(title = "p=|P(A,C) - P(A) * P(C)|")
-  labs(title = "p=|P(C|A) - P(C|-A)|")
-
-tables_wide %>% filter(noise_v==noise) %>% 
-  ggplot() + geom_density(aes(x=p_c_a, color=cn)) +
-  facet_wrap(~cn, scales="free") +
-  geom_vline(aes(xintercept=mean_p_c_a), data=mean_vals, linetype="dashed") +
-  geom_vline(aes(xintercept=median_p_c_a), data=mean_vals, linetype="dotted",
-             color="red") +
-  labs(title = "P(C|A)")
-
-
-tables_wide %>% filter(noise_v==noise) %>% 
-  ggplot() + geom_density(aes(x=p_c_na, color=cn)) +
-  facet_wrap(~cn, scales="free") +
-  geom_vline(aes(xintercept=mean_p_c_na), data=mean_vals, linetype="dashed") +
-  geom_vline(aes(xintercept=median_p_c_na), data=mean_vals, linetype="dotted",
-             color="red") +
-  labs(title = "P(C|-A)")
-
+for(i in seq(1, length(metrics))){
+  data <- tables_wide %>% filter(noise_v==noise & metric==metrics[[i]])
+  mean_data <- mean_vals %>% filter(noise_v==noise & metric==metrics[[i]])
+  
+  if(metrics[[i]]=="p1"){
+     t <- "|P(C|A) - P(C)|"
+  } else if(metrics[[i]]=="p2"){
+    t <- "|P(C|A) - P(C|-A)|"
+  } else if(metrics[[i]]=="p_c_a"){
+    t <- "P(C|A)"
+  } else if(metrics[[i]]=="p_c_na"){
+    t <- "P(C|-A)"
+  } else{
+    t <- "|P(A,C) - P(A)*P(C)|"
+  }                    
+  
+  pl <- data %>% 
+    ggplot() + geom_density(aes(x=metric_val,color=cn)) +
+              facet_wrap(~cn, scales="free") +
+    geom_vline(aes(xintercept=mean_metric), data=mean_data, linetype="dashed") +
+    geom_vline(aes(xintercept=median_metric), data=mean_data, linetype="dotted",
+               color="red")  +
+    labs(title = t)
+  print(pl)
+}
 ```
 
 
