@@ -1,0 +1,154 @@
+---
+title: "Likelihood"
+author: "Britta Grusdt"
+date: "5/27/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(file.path("..", "helpers.R", fsep = .Platform$file.sep))
+
+```
+
+Load tables generated with particular beta/theta from noisy or model:
+$P(C|A)=\theta + \beta * \theta - \beta, P(C|\neg A)=\beta$ and
+$P(A)\sim beta(1,1)$; or if beta/theta=NA, 
+$P(C|A)\sim beta(10,1), P(C|\neg A)\sim beta(1,10)$ and $P(A)\sim beta(1,1)$.
+
+```{r}
+param_theta <- NA
+param_beta <- NA
+
+target_dir <- file.path("..", "..", "data", "precomputations", "model-general",
+                        sep="")
+
+tables <- read_rds(paste(target_dir,"tables-all.rds",sep=""))
+if(is.na(param_theta)){
+    tables <- tables %>% filter(is.na(beta) & is.na(theta))
+} else {
+    tables <- tables %>% filter(beta==param_beta & theta==param_theta)
+}
+tables_independent <- tables %>% filter(cn=="A || C")
+
+assert(unique(tables_independent$theta) %>% length() == 1)
+assert(unique(tables_independent$beta) %>% length() == 1)
+```
+
+Compute mean/median/max/min for indpendence-score p: |P(A,C)-P(A)*P(C)| and 
+also P(C|A),  the dependence-score for network A->C.
+
+```{r }
+tables_tidy <- tables %>% select(ps, vs, rowid, noise_v, cn) %>%
+                unnest() %>% spread(key=vs, value=ps) %>%
+               mutate(p_c=`AC`+`-AC`, p_a=`AC`+`A-C`, #p=abs(`AC`-(C*A)),
+                      p_c_a=`AC` / (`AC` + `A-C`),
+                      p_c_na=`-AC` / (`-AC` + `-A-C`),
+                      p1=abs(p_c_a - p_c), 
+                      p2=abs(p_c_a - p_c_na),
+                      p3=abs(`AC`-(p_c*p_a))) %>% 
+               gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", value="val")
+
+tables_wide <- tables_tidy %>%  spread(key=cell, value=val) %>% 
+               gather(p1,p2,p3, p_c_a, p_c_na, key="metric", value="metric_val") %>% 
+               mutate(metric=as.factor(metric))
+
+means_p <- tables_wide %>% group_by(noise_v, cn, metric) %>%
+            summarize(mean_metric=mean(`metric_val`, na.rm = TRUE),
+                      median_metric=median(metric_val, na.rm = TRUE),
+                      min_metric=min(metric_val, na.rm = TRUE),
+                      max_metric=max(metric_val, na.rm = TRUE)
+                      )
+means_p
+```
+
+
+Plot the distributions of p (independence measure) and of P(C|A) (dependence measure
+for network A->C) for all networks.
+
+
+```{r}
+noise <- 100
+mean_vals <- means_p %>% filter(noise_v==noise)
+metrics <- levels(tables_wide$metric)
+
+for(i in seq(1, length(metrics))){
+  data <- tables_wide %>% filter(noise_v==noise & metric==metrics[[i]])
+  mean_data <- mean_vals %>% filter(noise_v==noise & metric==metrics[[i]])
+  
+  if(metrics[[i]]=="p1"){
+     t <- "|P(C|A) - P(C)|"
+  } else if(metrics[[i]]=="p2"){
+    t <- "|P(C|A) - P(C|-A)|"
+  } else if(metrics[[i]]=="p_c_a"){
+    t <- "P(C|A)"
+  } else if(metrics[[i]]=="p_c_na"){
+    t <- "P(C|-A)"
+  } else{
+    t <- "|P(A,C) - P(A)*P(C)|"
+  }                    
+  
+  pl <- data %>% 
+    ggplot() + geom_density(aes(x=metric_val,color=cn)) +
+              facet_wrap(~cn, scales="free") +
+    geom_vline(aes(xintercept=mean_metric), data=mean_data, linetype="dashed") +
+    geom_vline(aes(xintercept=median_metric), data=mean_data, linetype="dotted",
+               color="red")  +
+    labs(title = t)
+  print(pl)
+}
+```
+
+
+
+```{r, echo=FALSE}
+# Set parameters --------------------------------------------------------------
+args <- list(n_tables_per_cn=1000,
+             noise_param=250,
+             noisy_or_beta=NA, #0.1
+             noisy_or_theta=NA, #0.9
+             verbose=TRUE
+             )
+
+model_path <- "log_likelihood.wppl"
+data_dir <- file.path("..", "..", "data", "precomputations", "model-general",
+                      fsep = .Platform$file.sep)
+path_cns <- file.path(data_dir, "cns.rds", fsep = .Platform$file.sep)
+
+if(is.na(args$noisy_or_beta)){
+  tables_used <- tables %>% filter(is.na(beta) & is.na(theta))
+} else {
+  tables_used <- tables %>% filter(beta==args$noisy_or_beta & 
+                                theta==args$noisy_or_theta)
+}
+tables_used <- tables_used %>% filter(noise_v==args$noise_param & 
+                                      cn=="A || C") %>%
+               select(ps,vs)
+causal_nets <- read_rds(path_cns)
+
+posteriors <- list()
+i <- 1
+for(cn in causal_nets){
+  params <- list(bias="none",
+                 tables=tables_used,
+                 noise_v=args$noise_param,
+                 cns=causal_nets,
+                 verbose=TRUE,
+                 cn=cn
+                 ) 
+    
+  posteriors[[i]] <- webppl(program_file = model_path,
+                    data = params,
+                    data_var = "data")  %>% as_tibble() %>% 
+              add_column("real_cn"=cn)
+  i <- i + 1
+}
+
+results <- bind_rows(posteriors) %>% mutate(cn=as.factor(cn), real_cn=as.factor(real_cn))
+
+results %>% filter(real_cn=="A || C") %>% ggplot(aes(x=logL), cn) +
+              geom_density()  +
+              facet_wrap(~cn, scales="free")
+  
+```
+
