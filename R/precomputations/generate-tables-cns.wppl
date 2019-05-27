@@ -4,7 +4,7 @@ var n_tables = data["n_tables"][0]
 var verbose = data["verbose"][0]
 var param_beta = data["beta"][0]
 var param_theta = data["theta"][0]
-var d = 7
+var rounded_digits = 7
 
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
 
@@ -16,7 +16,7 @@ var negate = function(x){
 }
 
 var roundToN = cache(function(x){
-  var n = d
+  var n = rounded_digits
   var m = Math.pow(10,n)
   return Math.round(x*m)/m
 }, 10000)
