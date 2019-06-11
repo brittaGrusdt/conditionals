@@ -1,0 +1,18 @@
+var x = {"A": 0.4,
+         "B": 0.5,
+         "C": 0.7
+       }
+var keys = ["A", "B", "C"]
+
+var f = Infer({model: function(){
+  var s = sample(RandomInteger({n:3}))
+  var k = keys[s]
+  return Infer({model:function(){categorical({"vs": [k, "-" + k],
+                                              "ps": [x[k], 1-x[k]]}
+                                            )
+                                }
+              })
+}})
+
+var distr = {"d": f}
+distr
