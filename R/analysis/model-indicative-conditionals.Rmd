@@ -15,13 +15,6 @@ library(ggplot2)
 source(file.path("..", "helpers.R", fsep = .Platform$file.sep))
 ```
 
-Specify parameters of model to plot
-
-```{r}
-seed <- 123
-noise_param <- 20
-n_tables <- 1000
-```
 
 Geta Data
 
@@ -33,8 +26,8 @@ fn_biscuits <- file.path(result_dir, "biscuit-conditionals.rds")
 fn_cp <- file.path(result_dir, "cp-conditionals.rds")
 
 indicative_no_bias <- read_rds(fn_no_bias) 
-indicative_biscuit <- read_rds(fn_biscuits) 
-indicative_cp <- read_rds(fn_cp) 
+indicative_biscuit <- read_rds(fn_biscuits)
+indicative_cp <- read_rds(fn_cp)
 ```
 
 # Interpretation of simple indicative conditionals
