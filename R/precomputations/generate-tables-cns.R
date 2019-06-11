@@ -18,8 +18,7 @@ beta <- NA
 # fn <- "tables-independent"
 fn <- "tables"
 
-# noise_params <- c(5,10,20,50,100,250,500)
-noise_params <- c(100, 500)
+noise_params <- c(5, 10, 50, 250, 500)
 
 # Helpers
 convert_data <- function(data_tables){
