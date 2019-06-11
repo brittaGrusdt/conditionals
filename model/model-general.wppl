@@ -7,6 +7,7 @@ var tables_list = data["tables"]
 var noise_v = data["noise_v"][0]
 var utterances = data["utterances"]
 var causal_nets = data["cns"]
+var level_max = data["level_max"][0]
 
 var vars = [["A", "-A"], ["C", "-C"]]
 var p_ac_ind = {"none": 1/2,
@@ -26,27 +27,27 @@ var p_ac_ind = {"none": 1/2,
 // }
 
 // // measurement: |P(C|A) - P(C|-A)|
+var params_noise_ind = {
+  5 : [1, 3],
+  10 : [1, 3.5],
+  20 : [1, 5],
+  50 : [1, 7],
+  100 : [1, 11.05],
+  250 : [1, 15],
+  500 : [0.93, 21.84]
+}
+// measurement: |P(C|A) - P(C)|
 // var beta_ind = {
-//   5 : 3,
-//   10 : 3.5,
-//   20 : 5,
-//   50 : 7,
-//   100 : 10,
-//   250 :15,
-//   500 : 20
+//   5 : 8,
+//   10 : 9,
+//   20 : 15,
+//   50 : 20,
+//   100 : 25,
+//   250 :50,
+//   500 : 75
 // }
 
-// measurement: |P(C|A) - P(C)|
-var beta_ind = {
-  5 : 8,
-  10 : 9,
-  20 : 15,
-  50 : 20,
-  100 : 25,
-  250 :50,
-  500 : 75
-}
-
+var params_ind = params_noise_ind[noise_v]
 
 
 var tables = map(function(obj){
@@ -54,9 +55,9 @@ var tables = map(function(obj){
 }, tables_list)
 if(verbose){
   display('# tables: ' + tables.length)
-  display('beta param for independent likelihood: ' + beta_ind[noise_v])
+  display('beta param for independent likelihood: ' + params_ind)
 }
-
+display('table distributions generated.')
 // Helper --------------------------------------------------------------------
 var intersect_arrays = function(arrays){
   return filter(function(m){
@@ -117,11 +118,9 @@ var cn_prior = function(bias) {
 
 var log_likelihood = function(state){
   var p = cn_to_prob(state)
-  return state.cn == "A || C" ? Beta({a:1, b: beta_ind[noise_v]}).score(p)
-                              : (Beta({a:10, b:1}).score(p[0])) // +
-                                 // Beta({a:1, b:10}).score(p[1]))
-  // (p==0 ? -Math.log(as_if_zero) : -Math.log(p))
-  // (p == 0 ? Math.log(1/(10*as_if_zero)) : Math.log(1/(10*p)))
+  return state.cn == "A || C" ?
+          Beta({a:params_ind[0], b: params_ind[1]}).score(p) :
+          (Beta({a:10, b:1}).score(p[0])+Beta({a:1, b:10}).score(p[1]))
 }
 
 var state_prior = cache(function(bias){
@@ -236,37 +235,13 @@ if(verbose){
   display('# states: ' + all_states.length)
 }
 
-// var x = literal_listener("maybe A", bias)
-// var distr = {"ll": x}
-// distr
-
-
-// var x = map(function(bn){
-//   var ps = map(function(u){
-//     literal_listener(u, bias).score(bn)
-//   }, utterances)
-//   if(!any(function(p){p!=Infinity}, ps)){
-//     display(u)
-//     display(bn)
-//     error('stop')
-//   }
-// }, prior.support())
-
-// var x = map(function(bn){
-//   display(bn)
-//   var sp = speaker(bn, bias, false)
-//   return sp.score(u)
-// }, prior.support())
-
-// var xf = filter(function(i){i==Infinity}, x)
-// display(xf.length)
-// xf
-
-var ll = run("LL")
-var pl = run("PL")
-
+var distributions = level_max == "prior" ? {prior} :
+                    level_max == "LL" ? {"prior": prior, "LL": run("LL")} :
+                    {"prior": prior, "LL": run("LL"), "PL": run("PL")}
 // object to return
-// var distributions = {"prior": prior, "LL": ll}
-var distributions = {"prior": prior, "LL": ll, "PL": pl}
-
 distributions
+// var pl = distributions["PL"]
+// var pc = marginalize(pl, function(d){return Math.exp(d.score("AC")) +
+// Math.exp(d.score("-AC"))})
+//
+// viz(pc)

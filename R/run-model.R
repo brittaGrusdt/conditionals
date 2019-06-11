@@ -10,21 +10,15 @@ data <- tribble(~id, ~bias, ~save_as, ~utterance, ~model_fn,
                 5, "", "sundowners", "R > -S", "sundowners")
 
 # Set parameters --------------------------------------------------------------
-model_id <- 1
-verbose <- TRUE
-
-# table parameters
-n_tables_per_cn <- 1000
-noise_param <- 10
-
-# noisy-or parameters
-# noisy_or_beta = 0.1
-# noisy_or_theta = 0.9
-noisy_or_beta = NA
-noisy_or_theta = NA
-
-# Setup -------------------------------------------------------------------
-df <- data %>% filter(id==model_id)
+args <- list(n_tables_per_cn=500,
+             noise_param=100,
+             noisy_or_beta=NA, #0.1,
+             noisy_or_theta=NA, #0.9, 
+             verbose=TRUE,
+             model_id=3, 
+             level_max="PL")
+# RUN -------------------------------------------------------------------
+df <- data %>% filter(id==args$model_id)
 model_path <- file.path(".", "model", paste(df$model_fn, "wppl", sep="."),
                         fsep = .Platform$file.sep)
 
@@ -43,12 +37,13 @@ if(df$model_fn == "skiing" || df$model_fn== "sundowners"){
   path_cns <- file.path(data_dir, "cns.rds", fsep = .Platform$file.sep)
   path_utterances <- file.path(data_dir, fn_utts, fsep = .Platform$file.sep)
   
-  tables <- read_rds(path_tables) %>% filter(n_tables==n_tables_per_cn &
-                                             noise_v==noise_param)
-  if(is.na(noisy_or_beta)){
+  tables <- read_rds(path_tables) %>% filter(n_tables==args$n_tables_per_cn &
+                                               noise_v==args$noise_param)
+  if(is.na(args$noisy_or_beta)){
     tables <- tables %>% filter(is.na(beta) & is.na(theta))
   } else {
-    tables <- tables %>% filter(beta==noisy_or_beta & theta==noisy_or_theta)
+    tables <- tables %>% filter(beta==args$noisy_or_beta & 
+                                  theta==args$noisy_or_theta)
   }
   causal_nets <- read_rds(path_cns)
   utterances <- read_rds(path_utterances)
@@ -65,25 +60,26 @@ tables_to_wppl <- tables %>% select(ps, vs)
 params <- list(utt=df$utterance,
                bias=df$bias,
                tables=tables_to_wppl,
-               noise_v=noise_param,
+               noise_v=args$noise_param,
                utterances=utterances,
                cns=causal_nets,
-               verbose=verbose) 
+               verbose=args$verbose,
+               level_max=args$level_max) 
 
 # Run and save model ------------------------------------------------------
 
 posterior <- webppl(program_file = model_path,
                     data = params,
                     data_var = "data")  %>% 
-             map(function(x){
-                as_tibble(x) %>% add_column(beta=noisy_or_beta,
-                                            theta=noisy_or_theta,
-                                            n_tables=n_tables_per_cn,
-                                            noise_v=noise_param)
-               })
+  map(function(x){
+    as_tibble(x) %>% add_column(beta=args$noisy_or_beta,
+                                theta=args$noisy_or_theta,
+                                n_tables=args$n_tables_per_cn,
+                                noise_v=args$noise_param)
+  })
 
 posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
-                     
+
 # samples <- posterior %>%  map(function(x){get_samples(x, 1000000)})
 write_rds(posterior_tibbles, target_path)
 print(paste('saved results to:', target_path))
