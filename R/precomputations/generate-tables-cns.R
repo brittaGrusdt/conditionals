@@ -4,7 +4,7 @@ library(ggplot2)
 source(file.path("R", "helpers.R", fsep = .Platform$file.sep))
 
 # Parameters --------------------------------------------------------------
-n_tables <- 1000
+n_tables <- 500
 seed <- 123
 verbose <- TRUE
 model <- "model-general"
@@ -18,8 +18,31 @@ beta <- NA
 # fn <- "tables-independent"
 fn <- "tables"
 
-noise_params <- c(5,10,20,50,100,250,500)
-noise_params <- c(20)
+# noise_params <- c(5,10,20,50,100,250,500)
+noise_params <- c(100, 500)
+
+# Helpers
+convert_data <- function(data_tables){
+  data_tables <- data_tables %>% 
+    as_tibble() %>%
+    mutate("V1" = as.numeric(V1),
+           "V2" = as.numeric(V2),
+           "V3" = as.numeric(V3),
+           "V4" = as.numeric(V4),
+    ) %>%
+    rowid_to_column() %>%
+    gather("V1", "V2", "V3", "V4", key="cell", value="val")
+  
+  data_tables <- data_tables %>%
+    mutate(V5 = as.factor(V5), cell = as.factor(cell),
+           cell = fct_recode(cell, `AC`="V1", `A-C`="V2", `-AC`="V3", `-A-C`="V4")
+    ) %>% 
+    rename(cn=V5)
+  return(data_tables)
+}
+
+
+
 # Setup -------------------------------------------------------------------
 tables_all <- list()
 for(idx in seq(1, length(noise_params))) {
@@ -43,34 +66,30 @@ for(idx in seq(1, length(noise_params))) {
                  data_var = "data",
                  random_seed=seed)
   
+  data %>%  map(function(x){tibble(x)})
+  
   causal_nets <- data$cns
-  data_tables <- data$tables %>%
-    matrix(n_tables * 9, 5) %>%
-    as_tibble() %>%
-    mutate("V1" = as.numeric(V1),
-           "V2" = as.numeric(V2),
-           "V3" = as.numeric(V3),
-           "V4" = as.numeric(V4),
-    ) %>%
-    rowid_to_column() %>%
-    gather("V1", "V2", "V3", "V4", key="cell", value="val")
+  tables <- data$tables
   
-  data_tables <- data_tables %>%
-  mutate(V5 = as.factor(V5), cell = as.factor(cell),
-         cell = fct_recode(cell, `AC`="V1", `A-C`="V2", `-AC`="V3", `-A-C`="V4")
-        ) %>% 
-  rename(cn=V5)
-  
+  tables <- tables %>%  map(function(x){
+      matrix(x, nrow(x), 5) %>% convert_data() %>% unite(cn_id, cn, rowid)
+    })
+  data_tables <- bind_rows(tables) %>% spread(key=cell, value = val) %>% 
+                  group_by(cn_id) %>% rowid_to_column("bn_id") %>% 
+                  separate(cn_id, into=c("cn", "table_id"), sep="_") %>% 
+                  select(-table_id) %>%  gather(AC,`A-C`, `-AC`, `-A-C`,
+                                                key=cell, value=val)
   # plot tables 
   plot_tables(data_tables)
   
   # Restructure tables -------------------------------------------------
   tables <- data_tables %>%
-    spread(key=cell, value = val) %>%
-    group_by(rowid) %>%
-    transmute(ps=list(c(`AC`, `A-C`, `-AC`, `-A-C`)),
-              vs=list(c("AC", "A-C", "-AC", "-A-C")),
-              cn=cn) %>%
+            spread(key=cell, value = val) %>%
+            rowid_to_column("id") %>% 
+            group_by(id) %>%
+            transmute(ps=list(c(`AC`, `A-C`, `-AC`, `-A-C`)),
+                      vs=list(c("AC", "A-C", "-AC", "-A-C")),
+                      cn=cn) %>%
     add_column(theta=theta,beta=beta,noise_v=noise,n_tables=n_tables,seed=seed) 
   
   tables_all[[idx]] <- tables

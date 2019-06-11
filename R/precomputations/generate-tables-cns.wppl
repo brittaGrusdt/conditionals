@@ -148,9 +148,11 @@ var make_tables = cache(function(cn){
                       cn.startsWith("A") || cn.startsWith("-A") ?
                         build_table_functions["A/-A implies"] :
                         build_table_functions["C/-C implies"]
+  var n = cn=="A || C" ? n_tables * 8 : n_tables
+  // var n = n_tables
 
   var table_distributions =
-    Infer({method:'forward', samples:n_tables, model:function(){
+    Infer({method:'forward', samples:n, model:function(){
 
       var child_p = param_beta  ?
                       param_theta + param_beta * param_theta - param_beta :
