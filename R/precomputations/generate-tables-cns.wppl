@@ -87,32 +87,6 @@ var p_ac_ind = {"none": 1/2,
                 "BC-impossible-cons": 1
                 }
 
-var cn_to_prob = cache(function(state){
-  var cn = state.cn
-  var table = state.table
-  cn == "A implies C" ?
-      marginal(table, ["A", "C"]) / marginal(table, ["A"]) :
-  cn == "A implies -C" ?
-      marginal(table, ["A", "-C"]) / marginal(table, ["A"]) :
-  cn == "-A implies C" ?
-      marginal(table, ["-A", "C"]) / marginal(table, ["-A"]):
-  cn == "-A implies -C" ?
-      marginal(table, ["-A", "-C"])/marginal(table, ["-A"]):
-  cn == "C implies A" ?
-      marginal(table, ["A", "C"]) / marginal(table, ["C"]) :
-  cn == "C implies -A" ?
-      marginal(table, ["-A", "C"]) / marginal(table, ["C"]) :
-  cn == "-C implies A" ?
-      marginal(table, ["A", "-C"]) / marginal(table, ["-C"]):
-  cn == "-C implies -A" ?
-      marginal(table, ["-A", "-C"])/marginal(table, ["-C"]):
-  cn == "A || C" ?
-      Math.abs(marginal(table, ["A", "C"]) -
-                (marginal(table, ["A"]) * marginal(table, ["C"]))
-              ) :
-  error('unknown network: ' + cn)
-}, 10000)
-
 // States --------------------------------------------------------------------
 var build_table_functions = {
   "A/-A implies" : cache(function(c_a, c_na, a){
@@ -154,10 +128,9 @@ var make_tables = cache(function(cn){
   var table_distributions =
     Infer({method:'forward', samples:n, model:function(){
 
-      var child_p = param_beta  ?
-                      param_theta + param_beta * param_theta - param_beta :
-                      beta(10,1)
-      var child_np = param_beta ? param_beta : beta(1,10)
+      var child_p = !param_beta  ? beta(10,1) :
+                      param_theta + param_beta * param_theta - param_beta
+      var child_np = !param_beta ? beta(1,10) : param_beta
       var parent = beta(1, 1)
 
       var probs =
