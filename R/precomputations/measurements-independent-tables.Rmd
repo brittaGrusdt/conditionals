@@ -1,0 +1,108 @@
+---
+title: "Measurements correlating with log likelihood of independent tables"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tibble)
+```
+
+Read data
+
+```{r}
+measurements <- readRDS("../../data/precomputations/wiggled-tibbles-measurements.rds")
+noise_params <- measurements$noise_v
+```
+
+Plot distribution of measurements
+
+* x1: P(A,C) - P(A) * P(C)
+* x2: P(C|A) - P(C|-A)
+* x3: P(C|A) - P(C)
+
+```{r}
+for(i in seq(1, nrow(measurements))){
+  data <- measurements[i,]$table_measurements[[1]]
+  p2 <- data %>%
+          ggplot() +
+            geom_density(aes(x=strength, color=measurement)) +
+            facet_wrap(~measurement, scales="free_y") +
+            ggtitle(paste("noise_v:", noise_params[[i]]))
+  print(p2)
+  
+  # p1 <- data %>% 
+  #       ggplot() +
+  #         geom_density(aes(x=abs(strength),color=measurement)) + 
+  #         facet_wrap(~measurement, scales="free_y") +
+  #         ggtitle(paste("noise_v:", noise_params[[i]]))
+  # 
+  # print(p1)
+  # 
+}
+```
+
+Plot relation between log likelihood and measurements 
+
+```{r}
+for(i in seq(1, nrow(measurements))){
+  v <- noise_params[[i]]
+  
+  new_tables <- measurements[i,]$table_measurements[[1]]
+  
+  metrics <- new_tables %>%
+                select(measurement, strength, table_id, wiggle_id) 
+  
+  # p1 <- new_tables  %>% 
+  #       ggplot(mapping=aes(x=strength, y=logLik)) + 
+  #       geom_bin2d(bins = 50) +
+  #       facet_wrap(~measurement, scales="free") +
+  #       theme(axis.text.x = element_text(angle=90)) +
+  #       ggtitle(paste("noise param v:", v))
+  # 
+  # 
+  # print(p1)
+  
+  p2 <- new_tables  %>% mutate(strength_abs=abs(strength)) %>%
+        ggplot(aes(x=strength_abs, y=logLik)) +
+        geom_bin2d(bins=50) +
+        scale_x_continuous(trans='log2') +
+        facet_wrap(~measurement, scales="free") +
+        theme(axis.text.x = element_text(angle=90)) +
+        ggtitle(paste("noise param v:", v))
+  print(p2)
+  
+} 
+
+```
+
+
+
+```{r, echo=FALSE}
+# all_data <- list()
+# idx <- 1
+# for(m in c("x_1", "x_2", "x_3")){
+#   print(paste('measurement:', m))
+#   mses <- list()
+#   for(i in seq(1, nrow(measurements))){
+#     v <- noise_params[[i]]
+#     print(paste('...model for noise_v:', v))
+#     df <- measurements[i,]$table_measurements[[1]] %>% filter(measurement==m)
+#     
+#     model <- lm(logLik ~ strength, data=df)
+#     mses[[i]] <- mean(model$residuals^2)
+#   }
+#   data <- tibble(mse=mses, noise_v=noise_params, measurement=m)
+#   all_data[[idx]] <- data
+#   idx <- idx + 1
+# }
+# data <- bind_rows(all_data) %>% unnest()
+# data
+```
+
+
+
+
