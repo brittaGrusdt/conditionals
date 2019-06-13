@@ -23,18 +23,35 @@ args <- list(n_tables_per_cn=500,
 # run model ---------------------------------------------------------------
 
 # check P(cn=A||C) for various parameters
-params <- tribble(~beta, ~theta,
-                  NA, NA,
-                  0.1, 0.9,
-                  0.05, 0.95)
+params <- tribble(~theta, ~beta,
+                           NA, NA,
+                           0.85, 0.15,
+                           0.9, 0.1,
+                           0.95, 0.05,
+                           0.8, 0.2,
+                           0.85, 0.1
+                  )
 
+priors <- list()
+marginals <- list()
 for(i in seq(1, nrow(params))){
   args$noisy_or_beta <- params[i,]$beta
   args$noisy_or_theta <- params[i,]$theta
   
   data <- run_model(DATA, args)
   prior <- data$prior %>% spread(key = cell, value = val)  
+  priors[[i]] <- prior
+
+  
+  marginal <- prior %>% group_by(cn) %>% summarize(p=sum(bn_probs)) 
+  marginal <- marginal %>%
+              spread(key=cn, value=p) %>%
+              add_column(theta=params[i,]$theta, beta=params[i,]$beta)
+  marginals[[i]] <- marginal
 }
+
+
+
 
 
 # check utterance cost
