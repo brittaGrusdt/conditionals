@@ -15,40 +15,13 @@ var p_ac_ind = {"none": 1/2,
                 "pizza" : 1,
                 "BC-impossible-cons": 1
                 }
-// // measurement: |P(C,A) - P(C) * P(A)|
-// var beta_ind = {
-//   5 : 25,
-//   10 : 30,
-//   20 : 35,
-//   50 : 50,
-//   100 : 70,
-//   250 :110,
-//   500 : 150
-// }
 
 // // measurement: |P(C|A) - P(C|-A)|
 var params_noise_ind = {
-  5 : [1, 3],
-  10 : [1, 3.5],
-  20 : [1, 5],
-  50 : [1, 7],
-  100 : [1, 11.05],
-  250 : [1, 15],
-  500 : [0.93, 21.84]
+  250 : [1, 11]
 }
-// measurement: |P(C|A) - P(C)|
-// var beta_ind = {
-//   5 : 8,
-//   10 : 9,
-//   20 : 15,
-//   50 : 20,
-//   100 : 25,
-//   250 :50,
-//   500 : 75
-// }
 
 var params_ind = params_noise_ind[noise_v]
-
 
 var tables = map(function(obj){
   Categorical({"vs": obj["vs"], "ps": obj["ps"]})
@@ -235,13 +208,16 @@ if(verbose){
   display('# states: ' + all_states.length)
 }
 
-var distributions = level_max == "prior" ? {prior} :
+var wrap_speaker = function(bn){
+  speaker(bn, "none", false)
+}
+
+var distributions = level_max == "speaker_all_bns" ?
+                      {"speaker": map(wrap_speaker, prior.support())} :
+                    level_max == "prior" ? {prior} :
                     level_max == "LL" ? {"prior": prior, "LL": run("LL")} :
                     {"prior": prior, "LL": run("LL"), "PL": run("PL")}
-// object to return
+
+
+// object to return to R
 distributions
-// var pl = distributions["PL"]
-// var pc = marginalize(pl, function(d){return Math.exp(d.score("AC")) +
-// Math.exp(d.score("-AC"))})
-//
-// viz(pc)
