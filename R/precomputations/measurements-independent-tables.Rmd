@@ -86,6 +86,21 @@ for(i in seq(1, nrow(measurements))){
 
 
 
+Load optimized paramters to approximate log-likelihood with beta distribution
+
+Given that the computed measurement values (from the wiggled tables) are distributed
+under the model (beta-distribution with optimized parameter),
+the number of values that are greater than X (P(x<=X)=0.95) should be small
+
+
+```{r}
+params <- readRDS("/home/britta/UNI/Osnabrueck/MA-project/conditionals/data/precomputations/best-params-v-250.rds")
+params
+```
+
+
+
+
 ```{r, echo=FALSE}
 # all_data <- list()
 # idx <- 1
