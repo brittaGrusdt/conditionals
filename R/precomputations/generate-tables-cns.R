@@ -10,14 +10,15 @@
   model <- "model-general"
   
   
-  noisy_or_params <- tribble(~theta, ~beta,
-                             NA, NA,
-                             0.85, 0.15,
-                             0.9, 0.1,
-                             0.95, 0.05,
-                             0.8, 0.2,
-                             0.85, 0.1
-                             )
+  noisy_or_params <-  tribble(~theta, ~beta,
+                              NA, NA,
+                              0.85, 0.15,
+                              0.9, 0.15,
+                              0.9, 0.1,
+                              0.95, 0.05,
+                              0.8, 0.2,
+                              0.85, 0.1
+                              )
   # fn <- "tables-independent"
   fn <- "tables"
   
