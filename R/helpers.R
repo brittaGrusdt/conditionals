@@ -110,7 +110,7 @@ save <- function(data, target_path){
 }
 
 # run webppl model --------------------------------------------------------
-run_model <- function(data, args){
+load_data <- function(data, args){
   df <- data %>% filter(id==args$model_id)
   model_path <- file.path(".", "model", paste(df$model_fn, "wppl", sep="."),
                           fsep = .Platform$file.sep)
@@ -150,34 +150,60 @@ run_model <- function(data, args){
                            fsep = .Platform$file.sep)
   # Model params
   tables_to_wppl <- tables %>% select(ps, vs)
-  params <- list(utt=df$utterance,
+  params <- list(utt=args$utt,
                  bias=df$bias,
                  tables=tables_to_wppl,
                  noise_v=args$noise_param,
                  utterances=utterances,
                  cns=causal_nets,
                  verbose=args$verbose,
-                 level_max=args$level_max) 
-  
+                 level_max=args$level_max,
+                 cost_conditional=args$cost_conditional,
+                 target_path=target_path,
+                 model_path=model_path)
+  return(params)
+}
+
+run_webppl <- function(model_args){
   # Run and save model ------------------------------------------------------
-  posterior <- webppl(program_file = model_path,
-                      data = params,
-                      data_var = "data")  %>% 
+  posterior <- webppl(program_file = model_args$model_path,
+                      data = model_args,
+                      data_var = "data")
+  return(posterior)
+}
+
+structure_model_data <- function(posterior, model_args, params){
+  posterior <- posterior %>% 
     map(function(x){
-      as_tibble(x) %>% add_column(beta=args$noisy_or_beta,
-                                  theta=args$noisy_or_theta,
-                                  n_tables=args$n_tables_per_cn,
-                                  noise_v=args$noise_param)
+      as_tibble(x) %>% add_column(beta=params$noisy_or_beta,
+                                  theta=params$noisy_or_theta,
+                                  n_tables=params$n_tables_per_cn,
+                                  noise_v=params$noise_param)
     })
   
   posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
   
   # samples <- posterior %>%  map(function(x){get_samples(x, 1000000)})
   if(args$save){
-    write_rds(posterior_tibbles, target_path)
-    print(paste('saved results to:', target_path))
+    write_rds(posterior_tibbles, model_args$target_path)
+    print(paste('saved results to:', model_args$target_path))
   }
   return(posterior_tibbles)
+}
+
+run_model <- function(model_args, params){
+  posterior <- run_webppl(model_args)
+  
+  if(model_args$level_max=="speaker_all_bns"){
+    df <- posterior %>% map(function(x){as_tibble(x)})
+    df <- df$speaker %>% unnest() 
+    result <- df %>% group_by(support) %>% summarize(p_mean=mean(probs)) %>%
+      filter(support==model_args$utt) %>% pull(p_mean)
+    
+  }else{
+    result <- structure_model_data(posterior, model_args, params)
+  }
+  return(result)
 }
 
 

@@ -17,15 +17,21 @@ args <- list(n_tables_per_cn=500,
              verbose=TRUE,
              model_id=1, 
              level_max="prior",
-             save=FALSE)
+             cost_conditional=0,
+             save=FALSE,
+             target_path="")
+
+utt <- DATA %>% filter(id==args$model_id) %>% pull(utterance)
+args$utt <- utt
 
 
-# run model ---------------------------------------------------------------
 
-# check P(cn=A||C) for various parameters
+#----------------------------------------------------------------------------#
+# check P(cn=A||C) for various parameters ------------------------------------
 params <- tribble(~theta, ~beta,
                            NA, NA,
                            0.85, 0.15,
+                           0.9, 0.15,
                            0.9, 0.1,
                            0.95, 0.05,
                            0.8, 0.2,
@@ -49,16 +55,60 @@ for(i in seq(1, nrow(params))){
               add_column(theta=params[i,]$theta, beta=params[i,]$beta)
   marginals[[i]] <- marginal
 }
+marginals <- marginals %>% bind_rows() 
+
+saveRDS(marginals, "./data/precomputations/model-general/prior-cns.rds")
+marginals
 
 
-
-
-
-# check utterance cost
-args$noisy_or_beta <- 
-args$noisy_or_theta <-
+# check utterance cost ----------------------------------------------------
+utterances <- readRDS("./data/precomputations/model-general/utterances-none.rds")
+args$noisy_or_beta <- NA
+args$noisy_or_theta <- NA
 args$level_max <- "speaker_all_bns"
-speaker <- run_model(DATA, args)
+
+# costs_conditional <- seq(0, 1, 2)
+costs_conditional <- seq(1.1, 1.5, by = 0.1)
+data <- list()
+i <- 1
+for(cc in costs_conditional){
+  print(paste('cost conditionals', cc))
+  for(utt in utterances){
+    args$utt <- utt
+    args$cost_conditional <- cc
+    p_mean_utt <- run_model(DATA, args)
+    res <- tibble(utt=utt, p_mean=p_mean_utt, cost_if=cc)
+    data[[i]] <- res
+    i <- i + 1
+  }
+}
+  
+data_utts <- bind_rows(data)
+data_utts <- data_utts %>% spread(key=utt, value=p_mean)
+saveRDS(data_utts, "./data/precomputations/model-general/utt-cost.rds")
 
 
+
+# run model ---------------------------------------------------------------
+model_ids <- c(1,2,3)
+
+args <- list(n_tables_per_cn=500,
+             noise_param=250,
+             noisy_or_beta=NA, 
+             noisy_or_theta=NA, 
+             verbose=TRUE,
+             model_id=1, 
+             level_max="PL",
+             cost_conditional=0,
+             save=TRUE,
+             target_path="")
+utt <- DATA %>% filter(id==args$model_id) %>% pull(utterance)
+args$utt <- utt
+
+
+for(i in model_ids){
+  args$model_id <- i
+  model_params <- load_data(DATA, args)
+  res <- run_model(model_params, args)
+}
 
