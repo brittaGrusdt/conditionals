@@ -1,0 +1,31 @@
+---
+title: "Utterance cost"
+author: "Britta Grusdt"
+date: "6/14/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Cost of conditional utterance: c
+
+* cost(literal) = 0
+* cost(conjunction) = c/2
+* cost(negation) = c/4
+* cost(maybe) = c/5
+
+Cost for negation is only added once, also when both propositions are negated,
+otherwise *If not A, not C* would be more expensive than *If not A, C* ...
+
+
+The following data shows the mean of the speaker's marginal probabilities to
+utter each utterance - considering all Bayes nets for which that utterance is
+true.
+
+```{r}
+data <- readRDS("../../data/precomputations/model-general/utt-cost.rds")
+data
+```
+

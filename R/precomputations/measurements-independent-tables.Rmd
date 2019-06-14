@@ -24,6 +24,11 @@ Plot distribution of measurements
 * x2: P(C|A) - P(C|-A)
 * x3: P(C|A) - P(C)
 
+
+Shape parameters of the beta distributions for wiggling independent tables
+* $\alpha=cell * noise_v$
+* $\beta=(1-cell) * noise_v$
+
 ```{r}
 for(i in seq(1, nrow(measurements))){
   data <- measurements[i,]$table_measurements[[1]]
