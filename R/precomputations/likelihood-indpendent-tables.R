@@ -13,7 +13,7 @@ tables <- tibble(`AC`= pa * pc , `A-C`= pa * (1-pc), `-AC` = (1-pa) * pc,
 
 tables <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, value=entry)
 
-# Wiggle tables n times with different noise parameters v ------------------
+# Wiggle tables wiggle_n times with different noise parameters v ------------------
 
 noise_params <- c(10, 50, 100, 250)
 wiggled_all <- list()
