@@ -28,6 +28,7 @@ noise parameter $v$.
 ```{r}
 noise_v <- c(10, 50, 100, 500)
 table <- c(0.7, 0.1, 0.15, 0.05)
+table <- c(0.2, 0.3, 0.2, 0.3)
 
 v <- noise_v[[1]]
 x <- table %>% map(function(p){
@@ -36,7 +37,7 @@ means <- x %>% group_by(cell) %>%  summarize(mean=mean(value))
 
 for(v in noise_v){
   x <- table %>% map(function(p){
-  rbeta(1000, p*v, (1-p)*v) %>% as_tibble()})  %>% bind_rows(.id = "cell")
+  rbeta(10000, p*v, (1-p)*v) %>% as_tibble()})  %>% bind_rows(.id = "cell")
   pl <- x %>% ggplot(aes(x=value, color=cell)) +
                       geom_density() +
                       facet_wrap(~cell, scales = "free_y") + 
