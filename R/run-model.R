@@ -43,8 +43,10 @@ marginals <- list()
 for(i in seq(1, nrow(params))){
   args$noisy_or_beta <- params[i,]$beta
   args$noisy_or_theta <- params[i,]$theta
+  model_params <- load_data(DATA, args)
   
-  data <- run_model(DATA, args)
+  data <- run_model(model_params, args)
+  
   prior <- data$prior %>% spread(key = cell, value = val)  
   priors[[i]] <- prior
 
@@ -76,7 +78,10 @@ for(cc in costs_conditional){
   for(utt in utterances){
     args$utt <- utt
     args$cost_conditional <- cc
-    p_mean_utt <- run_model(DATA, args)
+    model_params <- load_data(DATA, args)
+    
+    p_mean_utt <- run_model(model_params, args)
+    
     res <- tibble(utt=utt, p_mean=p_mean_utt, cost_if=cc)
     data[[i]] <- res
     i <- i + 1
