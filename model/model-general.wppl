@@ -13,7 +13,7 @@ var UTT = data["utt"][0]
 var BIAS = data["bias"][0]
 
 var vars = [["A", "-A"], ["C", "-C"]]
-var p_ac_ind = {"none": 1/2,
+var p_ac_ind = {"none": 0.15,
                 "lawn": 0.1,
                 "pizza" : 1,
                 "BC-impossible-cons": 1
@@ -202,10 +202,8 @@ var run = function(level){
 }
 
 var prior = run("prior")
-if(verbose){
-  var all_states = prior.support()
-  display('# states: ' + all_states.length)
-}
+var all_states = prior.support()
+if(verbose){display('# states: ' + all_states.length)}
 
 var wrap_speaker = function(bn){
   speaker(bn, "none", false)
@@ -214,11 +212,21 @@ var wrap_speaker = function(bn){
 if(LEVEL_MAX == "speaker_all_bns"){
   var bns = filter(function(bn){
     meaning(UTT, bn.table)
-  }, prior.support())
+  }, all_states)
   var distributions = {"speaker": map(wrap_speaker, bns)}
   distributions
-} else{
 
+} else if(LEVEL_MAX == "logLik"){
+
+  var data = map(function(s){
+      var logLik = log_likelihood(s)
+      return {"logL": logLik, "cn": s.cn}
+  }, all_states)
+
+  var distributions = {"logLik": data}
+  distributions
+
+} else{
   var distributions = LEVEL_MAX == "prior" ? {prior} :
                       LEVEL_MAX == "LL" ? {"prior": prior, "LL": run("LL")} :
                       {"prior": prior, "LL": run("LL"), "PL": run("PL")}

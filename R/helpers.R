@@ -200,7 +200,11 @@ run_model <- function(model_args, params){
     result <- df %>% group_by(support) %>% summarize(p_mean=mean(probs)) %>%
       filter(support==model_args$utt) %>% pull(p_mean)
     
-  }else{
+  } else if(model_args$level_max=="logLik"){
+    df <- posterior %>% map(function(x){as_tibble(x)})
+    result <- df$logLik %>% unnest() 
+    
+  } else{
     result <- structure_model_data(posterior, model_args, params)
   }
   return(result)

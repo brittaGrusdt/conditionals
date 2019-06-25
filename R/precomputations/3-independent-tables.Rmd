@@ -231,5 +231,16 @@ mean(ll_y_rep$ll_y_rep >= ll_y)
 ```
 
 
+Plot the distribution of the log likelihoods for each causal network.
 
+```{r}
+logLiks <- readRDS("../../data/precomputations/logLik.rds")
+
+evs <- logLiks %>% group_by(cn) %>% summarize(ev=mean(logL))
+
+logLiks %>% ggplot(aes(x=logL, color=cn)) +
+                    geom_density() +
+                    facet_wrap(~cn) + 
+                    geom_vline(aes(xintercept=ev), data = evs)
+```
 

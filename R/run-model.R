@@ -94,7 +94,7 @@ saveRDS(data_utts, "./data/precomputations/model-general/utt-cost.rds")
 
 
 
-# run model ---------------------------------------------------------------
+# run model for all biases  -------------------------------------------------
 model_ids <- c(1,2,3)
 
 args <- list(n_tables_per_cn=500,
@@ -117,3 +117,21 @@ for(i in model_ids){
   res <- run_model(model_params, args)
 }
 
+
+# run model for log-likelihood --------------------------------------------
+args <- list(n_tables_per_cn=500,
+             noise_param=250,
+             noisy_or_beta=NA, 
+             noisy_or_theta=NA, 
+             verbose=TRUE,
+             model_id=1, 
+             level_max="logLik",
+             cost_conditional=NA,
+             utt=NA,
+             save=FALSE,
+             target_path="")
+
+model_params <- load_data(DATA, args)
+res <- run_model(model_params, args)
+
+saveRDS(res, "./data/precomputations/logLik.rds")
