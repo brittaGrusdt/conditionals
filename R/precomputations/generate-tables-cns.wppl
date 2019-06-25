@@ -16,8 +16,7 @@ var negate = function(x){
 }
 
 var roundToN = cache(function(x){
-  var n = rounded_digits
-  var m = Math.pow(10,n)
+  var m = Math.pow(10, rounded_digits)
   return Math.round(x*m)/m
 }, 10000)
 
@@ -123,14 +122,14 @@ var make_tables = cache(function(cn){
                         build_table_functions["A/-A implies"] :
                         build_table_functions["C/-C implies"]
   var n = cn=="A || C" ? n_tables * 8 : n_tables
-  // var n = n_tables
 
   var table_distributions =
     Infer({method:'forward', samples:n, model:function(){
+      var beta_i = !param_beta ? beta(1,10) : param_beta
+      var theta_i = !param_theta ? beta(10,1) : param_theta
 
-      var child_p = !param_beta  ? beta(10,1) :
-                      param_theta + param_beta * param_theta - param_beta
-      var child_np = !param_beta ? beta(1,10) : param_beta
+      var child_p = theta_i + beta_i - (beta_i * theta_i)
+      var child_np = beta_i
       var parent = beta(1, 1)
 
       var probs =
