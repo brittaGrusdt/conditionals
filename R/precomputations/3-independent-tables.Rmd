@@ -41,7 +41,7 @@ rbeta(10000, p*noise_v, (1-p)*noise_v) %>% as_tibble()})  %>% bind_rows(.id = "c
 
 pw <- x %>% ggplot(aes(x=value, color=cell)) +
                     geom_density() +
-                    facet_wrap(~cell, scales = "free_x") + 
+                    facet_wrap(~cell) + 
                     labs(title =  paste("noise_v=", noise_v))
 
 pw

@@ -11,19 +11,19 @@
   
   
   noisy_or_params <-  tribble(~theta, ~beta,
-                              NA, NA,
-                              0.85, 0.15,
-                              0.9, 0.15,
-                              0.9, 0.1,
-                              0.95, 0.05,
-                              0.8, 0.2,
-                              0.85, 0.1
+                              NA, NA
+                              # 0.85, 0.15,
+                              # 0.9, 0.15,
+                              # 0.9, 0.1,
+                              # 0.95, 0.05,
+                              # 0.8, 0.2,
+                              # 0.85, 0.1
                               )
   # fn <- "tables-independent"
   fn <- "tables"
   
   # noise_params <- c(10, 50, 100, 250)
-  noise_params <- c(250)
+  noise_params <- c(100, 250, 500)
   
   # Helpers
   convert_data <- function(data_tables){
