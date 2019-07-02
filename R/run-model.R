@@ -94,7 +94,7 @@ saveRDS(data_utts, "./data/precomputations/model-general/utt-cost.rds")
 
 
 
-# run model for all biases  -------------------------------------------------
+# run general model for all biases  ------------------------------------------
 model_ids <- c(1,2,3)
 
 args <- list(n_tables_per_cn=500,
@@ -116,6 +116,26 @@ for(i in model_ids){
   model_params <- load_data(DATA, args)
   res <- run_model(model_params, args)
 }
+
+# run sundowners/skiing model ------------------------------------------------
+skiing_id <- 4
+sundowners_id <- 5
+
+args <- list(n_tables_per_cn=500,
+             noise_param=250,
+             noisy_or_beta=NA, 
+             noisy_or_theta=NA, 
+             verbose=TRUE,
+             model_id=sundowners_id, 
+             level_max="PL",
+             cost_conditional=0,
+             save=TRUE,
+             target_path="")
+utt <- DATA %>% filter(id==args$model_id) %>% pull(utterance)
+args$utt <- utt
+
+model_params <- load_data(DATA, args)
+res <- run_model(model_params, args)
 
 
 # run model for log-likelihood --------------------------------------------
