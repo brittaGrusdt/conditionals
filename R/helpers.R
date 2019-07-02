@@ -121,6 +121,7 @@ load_data <- function(data, args){
     tables <- NULL
     causal_nets <- NULL
     target_dir <- file.path(".", "data", "results", fsep = .Platform$file.sep)
+    tables_to_wppl <- NULL
   } else {
     fn_utts <- paste("utterances-", df$bias, ".rds", sep="")
     data_dir <- file.path(".", "data", "precomputations", df$model_fn,
@@ -142,6 +143,7 @@ load_data <- function(data, args){
     utterances <- read_rds(path_utterances)
     target_dir <- file.path(".", "data", "results", df$model_fn,
                             fsep = .Platform$file.sep)
+    tables_to_wppl <- tables %>% select(ps, vs)
   }
   
   # Target files
@@ -149,7 +151,6 @@ load_data <- function(data, args){
   target_path <- file.path(target_dir, paste(df$save_as, ".rds", sep=""),
                            fsep = .Platform$file.sep)
   # Model params
-  tables_to_wppl <- tables %>% select(ps, vs)
   params <- list(utt=args$utt,
                  bias=df$bias,
                  tables=tables_to_wppl,
