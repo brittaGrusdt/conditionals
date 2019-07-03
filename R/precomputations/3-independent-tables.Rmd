@@ -244,3 +244,16 @@ logLiks %>% ggplot(aes(x=logL, color=cn)) +
                     geom_vline(aes(xintercept=ev), data = evs)
 ```
 
+
+The expected value of the log likelihood for the independent tables is much greater than it is for the dependent networks.
+
+```{r}
+ll_ind <- evs %>% filter(cn=="A || C") %>% pull(ev)
+ev <- evs %>% pull(ev)
+
+evs <- evs %>% mutate(greater_ind=ev/ll_ind)
+evs
+evs %>% filter(cn != "A || C") %>% summarize(mean=mean(greater_ind))
+```
+
+
