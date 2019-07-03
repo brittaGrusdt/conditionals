@@ -11,20 +11,18 @@ DATA <- tribble(~id, ~bias, ~save_as, ~utterance, ~model_fn,
 
 # Set parameters --------------------------------------------------------------
 args <- list(n_tables_per_cn=500,
-             noise_param=250,
+             noise_v=250,
              noisy_or_beta=NA, 
              noisy_or_theta=NA, 
+             param_nor_beta=10,
+             param_nor_theta=10,
+             alpha=5,
              verbose=TRUE,
              model_id=1, 
-             level_max="prior",
+             level_max="PL",
              cost_conditional=0,
-             save=FALSE,
-             target_path="")
-
-utt <- DATA %>% filter(id==args$model_id) %>% pull(utterance)
-args$utt <- utt
-
-
+             save=FALSE
+             )
 
 #----------------------------------------------------------------------------#
 # check P(cn=A||C) for various parameters ------------------------------------
@@ -45,7 +43,7 @@ for(i in seq(1, nrow(params))){
   args$noisy_or_theta <- params[i,]$theta
   model_params <- load_data(DATA, args)
   
-  data <- run_model(model_params, args)
+  data <- run_model(model_params)
   
   prior <- data$prior %>% spread(key = cell, value = val)  
   priors[[i]] <- prior
@@ -80,7 +78,7 @@ for(cc in costs_conditional){
     args$cost_conditional <- cc
     model_params <- load_data(DATA, args)
     
-    p_mean_utt <- run_model(model_params, args)
+    p_mean_utt <- run_model(model_params)
     
     res <- tibble(utt=utt, p_mean=p_mean_utt, cost_if=cc)
     data[[i]] <- res
@@ -98,23 +96,22 @@ saveRDS(data_utts, "./data/precomputations/model-general/utt-cost.rds")
 model_ids <- c(1,2,3)
 
 args <- list(n_tables_per_cn=500,
-             noise_param=250,
+             noise_v=250,
              noisy_or_beta=NA, 
              noisy_or_theta=NA, 
+             param_nor_beta=10,
+             param_nor_theta=10,
+             alpha=5,
              verbose=TRUE,
              model_id=1, 
-             level_max="PL",
+             level_max="prior",
              cost_conditional=0,
-             save=TRUE,
-             target_path="")
-utt <- DATA %>% filter(id==args$model_id) %>% pull(utterance)
-args$utt <- utt
-
+             save=TRUE)
 
 for(i in model_ids){
   args$model_id <- i
   model_params <- load_data(DATA, args)
-  res <- run_model(model_params, args)
+  res <- run_model(model_params)
 }
 
 # run sundowners/skiing model ------------------------------------------------
@@ -122,36 +119,40 @@ skiing_id <- 4
 sundowners_id <- 5
 
 args <- list(n_tables_per_cn=500,
-             noise_param=250,
+             noise_v=250,
              noisy_or_beta=NA, 
              noisy_or_theta=NA, 
+             param_nor_beta=10,
+             param_nor_theta=10,
+             alpha=5,
              verbose=TRUE,
              model_id=sundowners_id, 
              level_max="PL",
              cost_conditional=0,
-             save=TRUE,
-             target_path="")
-utt <- DATA %>% filter(id==args$model_id) %>% pull(utterance)
-args$utt <- utt
+             save=TRUE
+             )
 
 model_params <- load_data(DATA, args)
-res <- run_model(model_params, args)
+res <- run_model(model_params)
 
 
 # run model for log-likelihood --------------------------------------------
 args <- list(n_tables_per_cn=500,
-             noise_param=250,
+             noise_v=250,
              noisy_or_beta=NA, 
              noisy_or_theta=NA, 
+             param_nor_beta=10,
+             param_nor_theta=10,
+             alpha=NA,
              verbose=TRUE,
              model_id=1, 
              level_max="logLik",
              cost_conditional=NA,
              utt=NA,
-             save=FALSE,
-             target_path="")
+             save=FALSE
+            )
 
 model_params <- load_data(DATA, args)
-res <- run_model(model_params, args)
+res <- run_model(model_params)
 
 saveRDS(res, "./data/precomputations/logLik.rds")

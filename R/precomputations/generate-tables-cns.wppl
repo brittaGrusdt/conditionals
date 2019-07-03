@@ -2,8 +2,10 @@
 var noise_v = data["noise"][0]
 var n_tables = data["n_tables"][0]
 var verbose = data["verbose"][0]
-var param_beta = data["beta"][0]
-var param_theta = data["theta"][0]
+var noisy_or_beta = data["noisy_or_beta"][0]
+var noisy_or_theta = data["noisy_or_theta"][0]
+var param_nor_beta = data["param_nor_beta"][0]
+var param_nor_theta = data["param_nor_theta"][0]
 var rounded_digits = 7
 
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
@@ -80,12 +82,6 @@ var marginal = cache(function(table, variables){
   return reduce(function(x, acc){acc + Math.exp(table.score(x))}, 0, xs)
 })
 
-var p_ac_ind = {"none": 1/2,
-                "lawn": 0.1,
-                "pizza" : 1,
-                "BC-impossible-cons": 1
-                }
-
 // States --------------------------------------------------------------------
 var build_table_functions = {
   "A/-A implies" : cache(function(c_a, c_na, a){
@@ -125,8 +121,8 @@ var make_tables = cache(function(cn){
 
   var table_distributions =
     Infer({method:'forward', samples:n, model:function(){
-      var beta_i = !param_beta ? beta(1,10) : param_beta
-      var theta_i = !param_theta ? beta(10,1) : param_theta
+      var beta_i = !noisy_or_beta ? beta(1, param_nor_beta) : noisy_or_beta
+      var theta_i = !noisy_or_theta ? beta(param_nor_theta, 1) : noisy_or_theta
 
       var child_p = theta_i + beta_i - (beta_i * theta_i)
       var child_np = beta_i

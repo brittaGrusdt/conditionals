@@ -38,6 +38,27 @@ expected_val <- function(data, vars){
   return(sum(df$val*df$bn_probs))
 }
 
+compute_cond_prob <- function(distr_wide, prob){
+  if(prob=="P(C|A)"){
+    distr <- distr_wide %>% mutate(cond=`AC`/(`AC`+`A-C`))
+  }else if(prob=="P(-C|-A)"){
+    distr <- distr_wide %>% mutate(cond=`-A-C`/(`-AC`+`-A-C`))
+  }else if(prob=="P(A|C)"){
+    distr <- distr_wide %>% mutate(cond=`AC`/(`-AC`+`AC`))
+  }else if(prob=="P(-A|-C)"){
+    distr <- distr_wide %>% mutate(cond=`-A-C`/(`A-C`+`-A-C`))
+  }else{
+    stop("not implemented.")
+  }
+  return(distr)
+}
+
+
+ev_conditional_prob <- function(distr_wide, prob){
+  df <- compute_cond_prob(distr_wide, prob)
+  sum(df$bn_probs * df$cond)
+}
+
 # Plotting ----------------------------------------------------------------------------------------
 plot_bns <- function(data, distribution_str){
   data %>% spread(key = cell, value = val) %>% 
@@ -132,13 +153,19 @@ load_data <- function(data, args){
     path_utterances <- file.path(data_dir, fn_utts, fsep = .Platform$file.sep)
     
     tables <- read_rds(path_tables) %>% filter(n_tables==args$n_tables_per_cn &
-                                                 noise_v==args$noise_param)
+                                                 noise_v==args$noise_v)
     if(is.na(args$noisy_or_beta)){
-      tables <- tables %>% filter(is.na(beta) & is.na(theta))
+      tables <- tables %>% filter(is.na(noisy_or_beta) & is.na(noisy_or_theta))
     } else {
-      tables <- tables %>% filter(beta==args$noisy_or_beta & 
-                                    theta==args$noisy_or_theta)
+      tables <- tables %>% filter(noisy_or_beta==args$noisy_or_beta & 
+                                  noisy_or_theta==args$noisy_or_theta)
     }
+    if(!is.na(args$param_nor_beta)){
+      tables <- tables %>% filter(param_nor_beta==args$param_nor_beta &
+                                  param_nor_theta==args$param_nor_theta)
+    }
+    
+    
     causal_nets <- read_rds(path_cns)
     utterances <- read_rds(path_utterances)
     target_dir <- file.path(".", "data", "results", df$model_fn,
@@ -148,68 +175,128 @@ load_data <- function(data, args){
   
   # Target files
   dir.create(target_dir, recursive = TRUE, showWarnings = FALSE)
-  target_path <- file.path(target_dir, paste(df$save_as, ".rds", sep=""),
-                           fsep = .Platform$file.sep)
+
   # Model params
-  params <- list(utt=args$utt,
-                 bias=df$bias,
-                 tables=tables_to_wppl,
-                 noise_v=args$noise_param,
-                 utterances=utterances,
-                 cns=causal_nets,
-                 verbose=args$verbose,
-                 level_max=args$level_max,
-                 cost_conditional=args$cost_conditional,
-                 target_path=target_path,
-                 model_path=model_path)
+  model_params <- list(utt=df$utterance,
+                       bias=df$bias,
+                       tables=tables_to_wppl,
+                       utterances=utterances,
+                       cns=causal_nets,
+                       target_dir=target_dir,
+                       target_fn=df$save_as,
+                       model_path=model_path)
+  params <- c(args, model_params)
   return(params)
 }
 
-run_webppl <- function(model_args){
+run_webppl <- function(params){
   # Run and save model ------------------------------------------------------
-  posterior <- webppl(program_file = model_args$model_path,
-                      data = model_args,
+  posterior <- webppl(program_file = params$model_path,
+                      data = params,
                       data_var = "data")
   return(posterior)
 }
 
-structure_model_data <- function(posterior, model_args, params){
+structure_model_data <- function(posterior, params){
   posterior <- posterior %>% 
     map(function(x){
-      as_tibble(x) %>% add_column(beta=params$noisy_or_beta,
-                                  theta=params$noisy_or_theta,
+      as_tibble(x) %>% add_column(noisy_or_beta=params$noisy_or_beta,
+                                  noisy_or_theta=params$noisy_or_theta,
                                   n_tables=params$n_tables_per_cn,
-                                  noise_v=params$noise_param)
+                                  noise_v=params$noise_v)
     })
   
   posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
   
   # samples <- posterior %>%  map(function(x){get_samples(x, 1000000)})
-  if(args$save){
-    write_rds(posterior_tibbles, model_args$target_path)
-    print(paste('saved results to:', model_args$target_path))
+  if(params$save){
+    target_path <- file.path(params$target_dir,
+                             paste(params$target_fn, ".rds", sep=""),
+                             fsep = .Platform$file.sep)
+    
+    save(posterior_tibbles, target_path)
+    # write_rds(posterior_tibbles, target_path)
+    # print(paste('saved results to:', target_path))
   }
   return(posterior_tibbles)
 }
 
-run_model <- function(model_args, params){
-  posterior <- run_webppl(model_args)
+run_model <- function(params){
+  posterior <- run_webppl(params)
   
-  if(model_args$level_max=="speaker_all_bns"){
+  if(params$level_max=="speaker_all_bns"){
     df <- posterior %>% map(function(x){as_tibble(x)})
     df <- df$speaker %>% unnest() 
     result <- df %>% group_by(support) %>% summarize(p_mean=mean(probs)) %>%
-      filter(support==model_args$utt) %>% pull(p_mean)
+      filter(support==params$utt) %>% pull(p_mean)
     
-  } else if(model_args$level_max=="logLik"){
+  } else if(params$level_max=="logLik"){
     df <- posterior %>% map(function(x){as_tibble(x)})
     result <- df$logLik %>% unnest() 
     
   } else{
-    result <- structure_model_data(posterior, model_args, params)
+    result <- structure_model_data(posterior, params)
   }
   return(result)
 }
 
 
+# Data transformtions -----------------------------------------------------
+convert_data <- function(data_tables){
+  data_tables <- data_tables %>% 
+    as_tibble() %>%
+    mutate("V1" = as.numeric(V1),
+           "V2" = as.numeric(V2),
+           "V3" = as.numeric(V3),
+           "V4" = as.numeric(V4),
+    ) %>%
+    rowid_to_column() %>%
+    gather("V1", "V2", "V3", "V4", key="cell", value="val")
+  
+  data_tables <- data_tables %>%
+    mutate(V5 = as.factor(V5), cell = as.factor(cell),
+           cell = fct_recode(cell, `AC`="V1", `A-C`="V2", `-AC`="V3", `-A-C`="V4")
+    ) %>% 
+    rename(cn=V5)
+  return(data_tables)
+}
+
+
+# values-of-interest ------------------------------------------------------
+
+# theta <= P(C) <= 1-theta where theta is threshold at which utterances count as true
+get_speaker_uncertainty <- function(distr, threshold){
+  pc <- marginalize(distr, c("C"))
+  pc_intervals <- pc %>% filter(marginal>=threshold |
+                                marginal<=1-threshold) %>% 
+                  spread(key = cell, value = val)
+  
+  value <- sum(pc_intervals$bn_probs)
+  return(value)
+}
+
+get_cp_values <- function(distr){
+  distr_wide <- distr %>% spread(key = cell, value = val)
+  # causal nets
+  p_cns <- distr %>% spread(key = cell, value = val) %>% select(bn_probs, bn_id, cn)
+  marginal <- p_cns %>% group_by(cn) %>% summarize(marginal=sum(bn_probs))
+  marginal <- marginal %>% mutate(marginal_cp=case_when(cn=="A implies C" ~ 0.25,
+                                                    cn=="-A implies -C" ~ 0.25,
+                                                    cn=="C implies A" ~ 0.25,
+                                                    cn=="-C implies -A" ~ 0.25,
+                                                    TRUE ~ 0
+                                                    ))
+  
+  value1 <- hellinger(x = marginal$marginal, y=marginal$marginal_cp)
+  
+  # expected values of corresponding conditional probabilities
+  p1 <- ev_conditional_prob(distr_wide, c("P(C|A)")) 
+  p2 <- ev_conditional_prob(distr_wide, c("P(-C|-A)"))
+  p3 <- ev_conditional_prob(distr_wide, c("P(A|C)"))
+  p4 <- ev_conditional_prob(distr_wide, c("P(-A|-C)"))
+  
+  value2 <- p1 + p2 + p3 + p4  
+  vals <- tibble(cp_cns_hellinger=value1, cp_probs_ev=value2)
+  return(vals)
+}
 

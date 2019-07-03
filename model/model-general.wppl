@@ -1,10 +1,10 @@
 // Parameters ----------------------------------------------------------------
-globalStore.alpha = 5
 globalStore.thetaCP = 0.05
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
 var verbose = data["verbose"][0]
 var tables_list = data["tables"]
 var noise_v = data["noise_v"][0]
+var ALPHA = data["alpha"][0]
 var UTTERANCES = data["utterances"]
 var CAUSAL_NETS = data["cns"]
 var LEVEL_MAX = data["level_max"][0]
@@ -38,15 +38,15 @@ if(verbose){
   display('# tables: ' + tables.length)
   display('beta param for independent likelihood: ' + params_ind)
 }
-display('table distributions generated.')
+
 // Helper --------------------------------------------------------------------
-var intersect_arrays = function(arrays){
+var intersect_arrays = cache(function(arrays){
   return filter(function(m){
           var m_in_all_lists = map(function(idx){arrays[idx].includes(m)},
                                   _.range(1,arrays.length))
           return sum(m_in_all_lists)==m_in_all_lists.length
     }, arrays[0])
-}
+},10000)
 
 // Probabilities ------------------------------------------------------------
 var marginal = cache(function(table, variables){
@@ -69,12 +69,12 @@ var conditional_probs = cache(function(table){
           "P(A|-C)": marginal(table, ["A", "-C"]) / marginal(table, ["-C"])}
 }, 10000)
 
-var value_approx_likelihood = function(table){
+var value_approx_likelihood = cache(function(table){
     Math.abs(marginal(table, ["A", "C"]) - (marginal(table, ["C"]) *
                                             marginal(table, ["A"])))
-  }
+  }, 10000)
 
-var cn_to_prob = function(state){
+var cn_to_prob = cache(function(state){
   var cn = state.cn
   var table = state.table
   var probs = conditional_probs(table)
@@ -88,12 +88,14 @@ var cn_to_prob = function(state){
          cn == "-C implies -A" ? [1 - probs["P(A|-C)"], 1 - probs["P(A|C)"]] :
          cn == "A || C" ? value_approx_likelihood(table) :
   error('unknown network: ' + cn)
-}
+}, 10000)
 
 // State prior  --------------------------------------------------------------
 var cn_prior = function(bias) {
   var p_ind = p_ac_ind[bias]
   var p_dep = (1 - p_ind) / (CAUSAL_NETS.length-1)
+  // var p_ind = 1 / CAUSAL_NETS.length
+  // var p_dep = 1 / CAUSAL_NETS.length
   var ps = map(function(cn){cn=="A || C" ?  p_ind : p_dep}, CAUSAL_NETS)
   return categorical({vs: CAUSAL_NETS, ps: ps})
 }
@@ -161,24 +163,24 @@ var literal_listener = cache(function(utterance, bias){
   }})
 }, 10000)
 
-var costs = function(utt){
+var costs = cache(function(utt){
   if(!UTTERANCES.includes(utt)){error('unknown utterance ' + utt)}
   var c1 = utt.includes(' > ') ? COST_CONDITIONAL : 0
   var c2 = (utt.split(' and ').length - 1) * (COST_CONDITIONAL/2)
   var c3 = utt.split('-').length > 1 ?  (COST_CONDITIONAL/4) : 0
   var c4 = utt.includes('maybe') ? (COST_CONDITIONAL/5) : 0
   return c1 + c2 + c3 + c4
-}
+}, 10000)
 
 var speaker = cache(function(bn, bias, displayU){
   return Infer({method:'enumerate', model: function(){
     var utterance = uniformDraw(UTTERANCES)
     var LL = literal_listener(utterance, bias)
     var utility = LL.score(bn)
-    if(displayU && utility!=-Infinity){
-      display(utterance + utility)
-    }
-    factor(globalStore.alpha * (utility - costs(utterance)))
+    // if(displayU && utility!=-Infinity){
+    //   display(utterance + utility)
+    // }
+    factor(ALPHA * (utility - costs(utterance)))
     return utterance
   }
  })
