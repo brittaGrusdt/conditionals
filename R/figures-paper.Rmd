@@ -1,0 +1,50 @@
+---
+title: "Figures Paper"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r helpers, echo = FALSE}
+library(tidyverse)
+library(ggplot2)
+source("helpers.R")
+```
+
+
+```{r data}
+result_dir <- file.path("..", "..", "data", "results", "model-general", fsep = .Platform$file.sep)
+fn_no_bias <- file.path(result_dir, "indicative-conditionals.rds")
+fn_biscuits <- file.path(result_dir, "biscuit-conditionals.rds")
+# fn_cp <- file.path(result_dir, "cp-conditionals.rds")
+
+indicative_no_bias <- read_rds(fn_no_bias) 
+indicative_biscuit <- read_rds(fn_biscuits)
+# indicative_cp <- read_rds(fn_cp)
+```
+
+
+
+```{r epistemic-speaker-uncertainty}
+data_prior <- indicative_no_bias$prior
+data_ll <- indicative_no_bias$ll
+data_pl <- indicat
+
+
+data  %>% plot_cns(distr)
+
+
+```
+
+
+```{r biscuit-conditionals}
+```
+
+
+```{r conditional-perfection}
+
+```
+

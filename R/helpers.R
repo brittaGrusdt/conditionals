@@ -241,7 +241,7 @@ run_model <- function(params){
 }
 
 
-# Data transformtions -----------------------------------------------------
+# Data transformations -----------------------------------------------------
 convert_data <- function(data_tables){
   data_tables <- data_tables %>% 
     as_tibble() %>%
@@ -259,6 +259,17 @@ convert_data <- function(data_tables){
     ) %>% 
     rename(cn=V5)
   return(data_tables)
+}
+
+join_model_levels <- function(data){
+  data_prior <- data$prior %>% add_column(level="prior")
+  data_ll <- data$ll %>% add_column(level="ll")
+  data_pl <- data$pl %>% add_column(level="pl")
+  predictions <- bind_rows(data_prior, data_ll, data_pl)
+  predictions <- predictions %>% spread(key=cell, val=val) %>%
+                  
+  predictions %>% group_by(bn_id, bn_probs, level) %>% nest() %>%
+    rename(prob=bn_probs, support=data)
 }
 
 
