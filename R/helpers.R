@@ -22,14 +22,13 @@ webppl_distrs_to_tibbles <- function(posterior){
 marginalize <- function(data, vars){
   for(var in vars){
     if(str_detect(var, "^-")){
-      data <- data %>% group_by(bn_id) %>% filter(str_detect(cell, var))
+      data <- data %>% filter(str_detect(cell, var))
     } else {
       token <- paste("-", var, sep="")
-      data <- data %>% group_by(bn_id) %>% filter(!str_detect(cell, token))
+      data <- data %>% filter(!str_detect(cell, token))
     }
   }
-  # data <- data %>% group_by(bn_id) %>% summarise(marginal = sum(val))
-  data <- data %>% group_by(bn_id) %>% mutate(marginal = sum(val))
+  data <- data %>% group_by(bn_id, level, cn) %>% mutate(p = sum(val))
   return(data)
 }
 
@@ -40,13 +39,13 @@ expected_val <- function(data, vars){
 
 compute_cond_prob <- function(distr_wide, prob){
   if(prob=="P(C|A)"){
-    distr <- distr_wide %>% mutate(cond=`AC`/(`AC`+`A-C`))
+    distr <- distr_wide %>% mutate(p=`AC`/(`AC`+`A-C`))
   }else if(prob=="P(-C|-A)"){
-    distr <- distr_wide %>% mutate(cond=`-A-C`/(`-AC`+`-A-C`))
+    distr <- distr_wide %>% mutate(p=`-A-C`/(`-AC`+`-A-C`))
   }else if(prob=="P(A|C)"){
-    distr <- distr_wide %>% mutate(cond=`AC`/(`-AC`+`AC`))
+    distr <- distr_wide %>% mutate(p=`AC`/(`-AC`+`AC`))
   }else if(prob=="P(-A|-C)"){
-    distr <- distr_wide %>% mutate(cond=`-A-C`/(`A-C`+`-A-C`))
+    distr <- distr_wide %>% mutate(p=`-A-C`/(`A-C`+`-A-C`))
   }else{
     stop("not implemented.")
   }
@@ -263,13 +262,12 @@ convert_data <- function(data_tables){
 
 join_model_levels <- function(data){
   data_prior <- data$prior %>% add_column(level="prior")
-  data_ll <- data$ll %>% add_column(level="ll")
-  data_pl <- data$pl %>% add_column(level="pl")
+  data_ll <- data$LL %>% add_column(level="LL")
+  data_pl <- data$PL %>% add_column(level="PL")
   predictions <- bind_rows(data_prior, data_ll, data_pl)
   predictions <- predictions %>% spread(key=cell, val=val) %>%
-                  
-  predictions %>% group_by(bn_id, bn_probs, level) %>% nest() %>%
-    rename(prob=bn_probs, support=data)
+    group_by(bn_id, bn_probs, level) %>% rename(prob=bn_probs)
+  return(predictions)
 }
 
 

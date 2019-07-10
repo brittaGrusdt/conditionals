@@ -104,7 +104,7 @@ args <- list(n_tables_per_cn=500,
              alpha=5,
              verbose=TRUE,
              model_id=1, 
-             level_max="prior",
+             level_max="PL",
              cost_conditional=0,
              save=TRUE)
 
