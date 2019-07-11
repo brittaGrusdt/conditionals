@@ -4,43 +4,56 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 
-```{r helpers, echo = FALSE}
+```{r helpers, include=FALSE}
 library(tidyverse)
 library(ggplot2)
 source("helpers.R")
 source("plot-functions.R")
 ```
 
+## Data
 
-```{r data}
+```{r data, echo=TRUE}
 result_dir <- file.path("..", "data", "results", "model-general", fsep = .Platform$file.sep)
 fn_no_bias <- file.path(result_dir, "indicative-conditionals.rds")
 fn_biscuits <- file.path(result_dir, "biscuit-conditionals.rds")
 # fn_cp <- file.path(result_dir, "cp-conditionals.rds")
 
-indicative_no_bias <- read_rds(fn_no_bias) 
-indicative_biscuit <- read_rds(fn_biscuits)
-# indicative_cp <- read_rds(fn_cp)
+data_no_bias <- read_rds(fn_no_bias) %>% join_model_levels() 
+data_biscuit <- read_rds(fn_biscuits) %>% join_model_levels()
+# data_cp <- read_rds(fn_cp) %>% join_model_levels()
 ```
 
-
+## Speaker epistemic uncertainty
 
 ```{r epistemic-speaker-uncertainty}
-data <- join_model_levels(indicative_no_bias)
+data_long <- data_no_bias %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
 
-data %>% filter(level=="prior") %>% select(prob, support) %>% get_samples(10)
+evs_pc <- data_long %>% expected_val(c("C"))
+evs_pa <- data_long %>% expected_val(c("A"))
+bind_rows(evs_pc, evs_pa)
 
-# data  %>% plot_cns(distr)
+plot_marginal_prob(data_no_bias, c("A"), evs=evs_pa)
+plot_marginal_prob(data_no_bias, c("C"), evs=evs_pc)
 
-
+plot_marginal_prob(data_no_bias, "cns")
 ```
 
 
+## Biscuit conditionals
+
 ```{r biscuit-conditionals}
+data_long <- data_biscuit %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
+
+evs_pc <- data_long %>% expected_val(c("C"))
+evs_pa <- data_long %>% expected_val(c("A"))
+bind_rows(evs_pc, evs_pa)
+
+plot_marginal_prob(data_biscuit, c("C"), evs=evs_pc)
 ```
 
 

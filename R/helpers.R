@@ -14,12 +14,14 @@ webppl_distrs_to_tibbles <- function(posterior){
                       as_tibble() %>% 
                       left_join(bn_probs, by = "bn_id") %>% 
                       mutate("bn_id" = as.character(bn_id)) %>% 
-                      rename(bn_probs=probs, val=table.probs, cell=table.support)
+                      rename(prob=probs, val=table.probs, cell=table.support)
       return(data_tibble)             
     })
 }
   
 marginalize <- function(data, vars){
+  # data must be in long format, such that cell is one column and marginals can
+  # be computed for any cell entries
   for(var in vars){
     if(str_detect(var, "^-")){
       data <- data %>% filter(str_detect(cell, var))
@@ -28,13 +30,19 @@ marginalize <- function(data, vars){
       data <- data %>% filter(!str_detect(cell, token))
     }
   }
-  data <- data %>% group_by(bn_id, level, cn) %>% mutate(p = sum(val))
-  return(data)
+  df <- data %>% group_by(bn_id, level) %>% mutate(p = sum(val))
+  # now data must be wide again, each bn_id should appear only once per level
+  df <- df %>% spread(key=cell, val=val)
+  return(df)
 }
 
 expected_val <- function(data, vars){
+  # data must be in long format
   df <- marginalize(data, vars)
-  return(sum(df$val*df$bn_probs))
+  p <- paste(vars, collapse="")
+  evs <- df %>% mutate(ev_prod=p * prob) %>% group_by(level) %>%
+          summarize(ev=sum(ev_prod)) %>% add_column(p=p)
+  return(evs)
 }
 
 compute_cond_prob <- function(distr_wide, prob){
@@ -88,15 +96,15 @@ plot_marginal <- function(data, vars, distribution_str, density_graph = FALSE){
    
   vars_str <- paste(vars, collapse = "")
   if(density_graph){
-    p <-  ggplot(data=df_marginal, aes(x=marginal, color=marginal)) +
+    p <-  ggplot(data=df_marginal, aes(x=p, color=p)) +
             geom_freqpoly(bins=10) +
             labs(x = paste('P(', vars_str, ')'),  y = "density",
                  title = distribution_str)
   }else{
     marginals <- df_marginal %>% spread(key = cell, value = val) %>%
-                 mutate(marginal=as.character(marginal))
+                 mutate(p=as.character(p))
     p <- ggplot(data = marginals) +
-          geom_bar(mapping = aes(x=marginal, y=bn_probs), stat="identity") +
+          geom_bar(mapping = aes(x=p, y=prob), stat="identity") +
           labs(x = paste('P(', vars_str, ')'),  y = "probability",
                title = distribution_str)
   }
@@ -266,7 +274,7 @@ join_model_levels <- function(data){
   data_pl <- data$PL %>% add_column(level="PL")
   predictions <- bind_rows(data_prior, data_ll, data_pl)
   predictions <- predictions %>% spread(key=cell, val=val) %>%
-    group_by(bn_id, bn_probs, level) %>% rename(prob=bn_probs)
+    group_by(bn_id, level)
   return(predictions)
 }
 
