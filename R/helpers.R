@@ -5,18 +5,20 @@ library(rwebppl)
 
 # Probabilities -----------------------------------------------------------
 webppl_distrs_to_tibbles <- function(posterior){
-  posterior_tibbles <- posterior %>%
-    map(function(x){
-      x <- x %>% rowid_to_column("bn_id") 
-      bn_probs <- x %>% select("probs", "bn_id")
-      data_tibble <- x$support %>% rowid_to_column("bn_id") %>% 
-                      unnest() %>%
-                      as_tibble() %>% 
-                      left_join(bn_probs, by = "bn_id") %>% 
-                      mutate("bn_id" = as.character(bn_id)) %>% 
-                      rename(prob=probs, val=table.probs, cell=table.support)
-      return(data_tibble)             
-    })
+  posterior_tibbles <- map2(posterior, names(posterior), function(x, y){
+                        x <- x %>% rowid_to_column("bn_id") 
+                        bn_probs <- x %>% select("probs", "bn_id")
+                        data_tibble <- x$support %>% rowid_to_column("bn_id") %>% 
+                          unnest() %>%
+                          as_tibble() %>% 
+                          left_join(bn_probs, by = "bn_id") %>% 
+                          mutate("bn_id" = as.character(bn_id)) %>%
+                          add_column(level=y) %>% 
+                          rename(prob=probs, val=table.probs, cell=table.support)
+                        return(data_tibble)             
+                      })
+  
+  return(bind_rows(posterior_tibbles))
 }
   
 marginalize <- function(data, vars){
@@ -36,12 +38,9 @@ marginalize <- function(data, vars){
   return(df)
 }
 
-expected_val <- function(data, vars){
-  # data must be in long format
-  df <- marginalize(data, vars)
-  p <- paste(vars, collapse="")
-  evs <- df %>% mutate(ev_prod=p * prob) %>% group_by(level) %>%
-          summarize(ev=sum(ev_prod)) %>% add_column(p=p)
+expected_val <- function(df_wide, value_str){
+  evs <- df_wide %>% mutate(ev_prod=p * prob) %>% group_by(level) %>%
+          summarize(ev=sum(ev_prod)) %>% add_column(p=value_str)
   return(evs)
 }
 
@@ -61,9 +60,13 @@ compute_cond_prob <- function(distr_wide, prob){
 }
 
 
-ev_conditional_prob <- function(distr_wide, prob){
-  df <- compute_cond_prob(distr_wide, prob)
-  sum(df$bn_probs * df$cond)
+# ev_conditional_prob <- function(distr_wide, prob){
+#   df <- compute_cond_prob(distr_wide, prob)
+#   sum(df$bn_probs * df$cond)
+# }
+
+hellinger <- function(p, q){
+  (1/sqrt(2)) * sqrt(sum((sqrt(p)-sqrt(q))^2))
 }
 
 # Plotting ----------------------------------------------------------------------------------------
@@ -215,15 +218,12 @@ structure_model_data <- function(posterior, params){
   
   posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
   
-  # samples <- posterior %>%  map(function(x){get_samples(x, 1000000)})
   if(params$save){
     target_path <- file.path(params$target_dir,
                              paste(params$target_fn, ".rds", sep=""),
                              fsep = .Platform$file.sep)
     
     save(posterior_tibbles, target_path)
-    # write_rds(posterior_tibbles, target_path)
-    # print(paste('saved results to:', target_path))
   }
   return(posterior_tibbles)
 }
@@ -284,36 +284,74 @@ join_model_levels <- function(data){
 # theta <= P(C) <= 1-theta where theta is threshold at which utterances count as true
 get_speaker_uncertainty <- function(distr, threshold){
   pc <- marginalize(distr, c("C"))
-  pc_intervals <- pc %>% filter(marginal>=threshold |
-                                marginal<=1-threshold) %>% 
-                  spread(key = cell, value = val)
+  pc_intervals <- pc %>% filter(p>=threshold |
+                                p<=1-threshold)
   
-  value <- sum(pc_intervals$bn_probs)
-  return(value)
+  evs <- pc_intervals %>% group_by(level) %>% summarize(value=sum(prob)) %>% 
+          add_column(key="sp-uncertainty")
+  return(evs)
 }
 
+
+
+
 get_cp_values <- function(distr){
+  # Expected value of the minimum of the hellinger distances
+  # a: 0 1  and b: 1 0
+  #    1 0         0 1
+  # and each Bayes net: f(bn) = min(hellinger(a, bn), helling(b, bn)) weighted
+  # by P(bn)
   distr_wide <- distr %>% spread(key = cell, value = val)
   # causal nets
-  p_cns <- distr %>% spread(key = cell, value = val) %>% select(bn_probs, bn_id, cn)
-  marginal <- p_cns %>% group_by(cn) %>% summarize(marginal=sum(bn_probs))
-  marginal <- marginal %>% mutate(marginal_cp=case_when(cn=="A implies C" ~ 0.25,
-                                                    cn=="-A implies -C" ~ 0.25,
-                                                    cn=="C implies A" ~ 0.25,
-                                                    cn=="-C implies -A" ~ 0.25,
-                                                    TRUE ~ 0
-                                                    ))
+  p_cns <- distr_wide %>% select(prob, bn_id, cn, level)
+  marginal <- p_cns %>% group_by(cn, level) %>% summarize(marginal=sum(prob))
   
-  value1 <- hellinger(x = marginal$marginal, y=marginal$marginal_cp)
+  marginal <- marginal %>%
+                mutate(marginal_cp1=case_when(cn=="A implies C" ~ 0.25,
+                                              cn=="-A implies -C" ~ 0.25,
+                                              cn=="C implies A" ~ 0.25,
+                                              cn=="-C implies -A" ~ 0.25,
+                                              TRUE ~ 0
+                                              ), 
+                       marginal_cp2=case_when(cn=="A implies -C" ~ 0.25,
+                                              cn=="-A implies C" ~ 0.25,
+                                              cn=="C implies -A" ~ 0.25,
+                                              cn=="-C implies A" ~ 0.25,
+                                              TRUE ~ 0
+                       ))
+  
+  values <- marginal %>% group_by(level) %>%
+              summarize(hellinger_ac=hellinger(marginal, marginal_cp1),
+                        hellinger_anc=hellinger(marginal, marginal_cp2),
+                        hel_min_val=min(hellinger_ac, hellinger_anc),
+                        hel_min_dir=case_when(hellinger_ac == hellinger_anc ~ "eq",
+                                              hellinger_ac < hellinger_anc ~ "AC",
+                                              TRUE ~ "A-C")) %>% 
+              unite("dir_val", hel_min_dir, hel_min_val)
+  voi_cns <- values %>% select(level, dir_val) %>%
+              rename(value=dir_val) %>% add_column(key="cp-cns")
+  
   
   # expected values of corresponding conditional probabilities
-  p1 <- ev_conditional_prob(distr_wide, c("P(C|A)")) 
-  p2 <- ev_conditional_prob(distr_wide, c("P(-C|-A)"))
-  p3 <- ev_conditional_prob(distr_wide, c("P(A|C)"))
-  p4 <- ev_conditional_prob(distr_wide, c("P(-A|-C)"))
+  values <- distr_wide %>%
+              mutate(hellinger_anc=hellinger(c(`AC`, `A-C`, `-AC`, `-A-C`), 
+                                             c(0, 1, 0, 1)),
+                     hellinger_ac=hellinger(c(`AC`, `A-C`, `-AC`, `-A-C`), 
+                                            c(1, 0, 1, 0))
+                     ) %>% group_by(level) %>%
+              summarize(ev_hel_ac=sum(prob*hellinger_ac),
+                        ev_hel_anc=sum(prob*hellinger_anc))
   
-  value2 <- p1 + p2 + p3 + p4  
-  vals <- tibble(cp_cns_hellinger=value1, cp_probs_ev=value2)
-  return(vals)
+  voi_bns <- values %>%
+              mutate(dir=case_when(ev_hel_ac == ev_hel_anc ~ "eq",
+                                   ev_hel_ac < ev_hel_anc ~ "AC",
+                                   TRUE ~ "A-C"),
+                     val=case_when(ev_hel_ac < ev_hel_anc ~ ev_hel_ac,
+                                   TRUE ~ ev_hel_anc)) %>%
+              unite("dir_val", dir, val) %>%
+              rename(value=dir_val) %>%
+              select(level, value) %>% add_column(key="cp-bns") 
+  
+  return(bind_rows(voi_bns, voi_cns))
 }
 

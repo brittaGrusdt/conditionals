@@ -27,8 +27,9 @@ args <- list(n_tables_per_cn=500,
              )
 
 # parameter sweep over cost + alpha + table parameters
-alphas <- seq(1, 10)
-costs_conditional <- seq(0, 0.5, by=0.05)
+alphas <- c(1, 5, 10)
+costs_conditional <- c(0, 0.1, 0.5)
+# costs_conditional <- seq(0, 0.5, by=0.05)
 
 # Load tables ----------------------------------------------------------------
 target_dir <- file.path(".", "data", "precomputations", "model-general",
@@ -37,6 +38,9 @@ tables_all <- readRDS(file.path(target_dir, "tables-all.rds", fsep=.Platform$fil
 
 param_nor_betas <- tables_all$param_nor_beta %>% unique()
 param_nor_thetas <- tables_all$param_nor_theta %>% unique()
+
+param_nor_betas <- c(10)
+param_nor_thetas <- c(10)
 
 model_ids <- c(1,2)
 n_iter <- length(model_ids) * length(param_nor_betas) * length(param_nor_thetas) *
@@ -62,43 +66,29 @@ for(m in model_ids){
           model_params$cost_conditional <- c
           model_params$alpha <- a
           model_results <- run_model(model_params)
-          results <- tibble(param_nor_beta=param_beta,
-                            param_nor_theta=param_theta,
-                            cost=c, alpha=a, model_id=m)
           # extract single value to be saved
-          # no bias
-          no_bias_pl <- results %>% mutate(key="epistemic_uncertainty",
-                                           value=get_speaker_uncertainty(model_results$PL, args$threshold),
-                                           level="PL")
-          no_bias_ll <- results %>%  mutate(key="epistemic_uncertainty",
-                                            value=get_speaker_uncertainty(model_results$LL, args$threshold),
-                                            level="LL")
+          val_no_bias <- get_speaker_uncertainty(model_results, args$threshold) %>% 
+                          mutate(key="epistemic_uncertainty",
+                                 cost=c, alpha=a, model_id=m,
+                                 param_nor_beta=param_beta,
+                                 param_nor_theta=param_theta,
+                                 value=as.character(value))
           
-          # biscuit conditionals
-          biscuits_pl <- results %>% mutate(key="biscuits_pc",
-                                            value=expected_val(model_results$PL, c("C")),
-                                            level="PL")
-          biscuits_ll <- results %>% mutate(key="biscuits_pc",
-                                            value=expected_val(model_results$LL, c("C")),
-                                            level="LL")
+          val_biscuits <- marginalize(model_results, c("C")) %>%
+                            expected_val("C") %>% select(-p) %>%
+                            rename(value=ev) %>% 
+                            mutate(key="biscuits_pc",
+                                   cost=c, alpha=a, model_id=m,
+                                   param_nor_beta=param_beta,
+                                   param_nor_theta=param_theta,
+                                   value=as.character(value))
           
-          # conditional perfection
-          cp_df_pl <- get_cp_values(model_results$PL) %>%
-            gather(cp_cns_hellinger, cp_probs_ev, key="key", value="value") %>% 
-            add_column(level="PL")
-          cp_df_ll <- get_cp_values(model_results$LL) %>%
-            gather(cp_cns_hellinger, cp_probs_ev, key="key", value="value") %>%
-            add_column(level="PL")
+          val_cp <- get_cp_values(model_results) %>% 
+                      mutate(cost=c, alpha=a, model_id=m,
+                             param_nor_beta=param_beta,
+                             param_nor_theta=param_theta)
           
-          cp_pl1 <- bind_cols(results, cp_df_pl[1,]) 
-          cp_pl2 <- bind_cols(results, cp_df_pl[2,]) 
-          cp_ll1 <- bind_cols(results, cp_df_ll[1,])
-          cp_ll2 <- bind_cols(results, cp_df_ll[2,])
-          
-          results <- bind_rows(no_bias_ll, no_bias_pl,
-                               biscuits_ll, biscuits_pl,
-                               cp_pl1, cp_pl2, cp_ll1, cp_ll2)
-          
+          results <- bind_rows(val_no_bias, val_biscuits, val_cp)
           
           all_results[[idx]] <- results
           idx <- idx + 1

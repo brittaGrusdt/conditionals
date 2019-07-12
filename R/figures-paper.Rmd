@@ -33,8 +33,8 @@ data_biscuit <- read_rds(fn_biscuits) %>% join_model_levels()
 ```{r epistemic-speaker-uncertainty}
 data_long <- data_no_bias %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
 
-evs_pc <- data_long %>% expected_val(c("C"))
-evs_pa <- data_long %>% expected_val(c("A"))
+evs_pc <- marginalize(data_long, c("C")) %>% expected_val("C")
+evs_pa <- marginalize(data_long, c("A")) %>% expected_val("A")
 bind_rows(evs_pc, evs_pa)
 
 plot_marginal_prob(data_no_bias, c("A"), evs=evs_pa)
@@ -49,8 +49,8 @@ plot_marginal_prob(data_no_bias, "cns")
 ```{r biscuit-conditionals}
 data_long <- data_biscuit %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
 
-evs_pc <- data_long %>% expected_val(c("C"))
-evs_pa <- data_long %>% expected_val(c("A"))
+evs_pc <- marginalize(data_long, c("C")) %>% expected_val(c("C"))
+evs_pa <- marginalize(data_long, c("A")) %>% expected_val(c("A"))
 bind_rows(evs_pc, evs_pa)
 
 plot_marginal_prob(data_biscuit, c("C"), evs=evs_pc)
