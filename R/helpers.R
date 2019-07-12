@@ -203,7 +203,8 @@ run_webppl <- function(params){
   # Run and save model ------------------------------------------------------
   posterior <- webppl(program_file = params$model_path,
                       data = params,
-                      data_var = "data")
+                      data_var = "data",
+                      random_seed = params$seed)
   return(posterior)
 }
 
@@ -333,12 +334,13 @@ get_cp_values <- function(distr){
   
   
   # expected values of corresponding conditional probabilities
-  values <- distr_wide %>%
+  values <- distr_wide %>% group_by(bn_id, level) %>% 
               mutate(hellinger_anc=hellinger(c(`AC`, `A-C`, `-AC`, `-A-C`), 
-                                             c(0, 1, 0, 1)),
+                                             c(0, 0.5, 0, 0.5)),
                      hellinger_ac=hellinger(c(`AC`, `A-C`, `-AC`, `-A-C`), 
-                                            c(1, 0, 1, 0))
-                     ) %>% group_by(level) %>%
+                                            c(0.5, 0, 0.5, 0))
+                     ) 
+  values <- values %>% group_by(level) %>%
               summarize(ev_hel_ac=sum(prob*hellinger_ac),
                         ev_hel_anc=sum(prob*hellinger_anc))
   

@@ -23,13 +23,13 @@ args <- list(n_tables_per_cn=500,
              cost_conditional=0, # altered in loop
              alpha=5, # altered in loop
              threshold=0.89,
-             threshold_maybe=0.49
+             threshold_maybe=0.49,
+             seed=123
              )
 
 # parameter sweep over cost + alpha + table parameters
-alphas <- c(1, 5, 10)
-costs_conditional <- c(0, 0.1, 0.5)
-# costs_conditional <- seq(0, 0.5, by=0.05)
+alphas <- c(0.5, 1, 2, 3, 5, 10)
+costs_conditional <- c(0, 0.01, 0.1, 0.5)
 
 # Load tables ----------------------------------------------------------------
 target_dir <- file.path(".", "data", "precomputations", "model-general",
@@ -42,7 +42,7 @@ param_nor_thetas <- tables_all$param_nor_theta %>% unique()
 param_nor_betas <- c(10)
 param_nor_thetas <- c(10)
 
-model_ids <- c(1,2)
+model_ids <- c(1,2,3)
 n_iter <- length(model_ids) * length(param_nor_betas) * length(param_nor_thetas) *
   length(costs_conditional) * length(alphas)
 
@@ -88,7 +88,8 @@ for(m in model_ids){
                              param_nor_beta=param_beta,
                              param_nor_theta=param_theta)
           
-          results <- bind_rows(val_no_bias, val_biscuits, val_cp)
+          results <- bind_rows(val_no_bias, val_biscuits, val_cp) %>%
+                      add_column(seed=model_params$seed)
           
           all_results[[idx]] <- results
           idx <- idx + 1
@@ -99,12 +100,26 @@ for(m in model_ids){
   }
   result_data_model <- all_results[idx_model_start:idx]
   df_save <- result_data_model %>% bind_rows()
-  df_save %>% save(file.path(model_params$target_dir, 
-                            paste(model_params$target_fn, "-model_id-", m, ".rds", sep="")))
+  
+  fp <- file.path(model_params$target_dir, 
+                  paste(model_params$target_fn, "-model_id-", m, ".rds", sep=""))
+  
+  if(file.exists(fp)){
+    df_old <- readRDS(fp)
+    df_save <- bind_rows(df_old, df_save)
+  }
+  df_save %>%
+    save(file.path(model_params$target_dir, paste(model_params$target_fn,
+                                                  "-model_id-", m, ".rds", sep="")))
 }
 
 # save all results
 values_all <- all_results %>% bind_rows() 
+
+if(file.exists("./data/results/model-general-all.rds")){
+  values_all_old <- readRDS("./data/results/model-general-all.rds")
+  values_all <- bind_rows(values_all_old, values_all)
+}
 values_all %>% save("./data/results/model-general-all.rds")
   
   
