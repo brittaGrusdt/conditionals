@@ -18,46 +18,109 @@ source("plot-functions.R")
 ## Data
 
 ```{r data, echo=TRUE}
-result_dir <- file.path("..", "data", "results", "model-general", fsep = .Platform$file.sep)
-fn_no_bias <- file.path(result_dir, "indicative-conditionals.rds")
-fn_biscuits <- file.path(result_dir, "biscuit-conditionals.rds")
-# fn_cp <- file.path(result_dir, "cp-conditionals.rds")
+result_dir <- file.path("..", "data", "results", fsep = .Platform$file.sep)
+fn_no_bias <- file.path(result_dir, "model-general", "indicative-conditionals.rds")
+fn_biscuits <- file.path(result_dir, "model-general", "biscuit-conditionals.rds")
+fn_cp <- file.path(result_dir, "model-general", "cp-conditionals.rds")
 
-data_no_bias <- read_rds(fn_no_bias) %>% join_model_levels() 
-data_biscuit <- read_rds(fn_biscuits) %>% join_model_levels()
-# data_cp <- read_rds(fn_cp) %>% join_model_levels()
+data_no_bias <- read_rds(fn_no_bias)
+data_biscuit <- read_rds(fn_biscuits) 
+data_cp <- read_rds(fn_cp)
 ```
 
 ## Speaker epistemic uncertainty
 
-```{r epistemic-speaker-uncertainty}
-data_long <- data_no_bias %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
+```{r epistemic-speaker-uncertainty-data}
+data_wide <- data_no_bias %>% spread(key=cell, val=val)
+evs_pc <- marginalize(data_no_bias, c("C")) %>% expected_val("C")
+evs_pa <- marginalize(data_no_bias, c("A")) %>% expected_val("A")
 
-evs_pc <- marginalize(data_long, c("C")) %>% expected_val("C")
-evs_pa <- marginalize(data_long, c("A")) %>% expected_val("A")
-bind_rows(evs_pc, evs_pa)
+evs_all <- bind_rows(evs_pc, evs_pa) %>% add_column(bias="none")
+evs_all
 
-plot_marginal_prob(data_no_bias, c("A"), evs=evs_pa)
-plot_marginal_prob(data_no_bias, c("C"), evs=evs_pc)
+```
 
-plot_marginal_prob(data_no_bias, "cns")
+```{r epistemic-speaker-uncertainty, message=FALSE}
+plot_marginal_prob(data_wide, c("A"), evs=evs_pa, save_as=file.path(result_dir, "figs", "no-bias-pa.png"))
+plot_marginal_prob(data_wide, c("C"), evs=evs_pc, save_as=file.path(result_dir, "figs", "no-bias-pc.png"))
+
+plot_marginal_prob(data_wide, "cns", save_as=file.path(result_dir, "figs", "no-bias-cns.png"))
 ```
 
 
 ## Biscuit conditionals
 
-```{r biscuit-conditionals}
-data_long <- data_biscuit %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
+```{r biscuit-conditionals-data}
+data_wide <- data_biscuit %>% spread(key=cell, val=val)
+evs_pc <- marginalize(data_biscuit, c("C")) %>% expected_val(c("C"))
+evs_pa <- marginalize(data_biscuit, c("A")) %>% expected_val(c("A"))
+evs <- bind_rows(evs_pc, evs_pa) %>% add_column(bias="biscuits")
+evs
 
-evs_pc <- marginalize(data_long, c("C")) %>% expected_val(c("C"))
-evs_pa <- marginalize(data_long, c("A")) %>% expected_val(c("A"))
-bind_rows(evs_pc, evs_pa)
-
-plot_marginal_prob(data_biscuit, c("C"), evs=evs_pc)
+evs_all <- bind_rows(evs_all, evs) 
 ```
 
 
-```{r conditional-perfection}
+```{r biscuit-conditionals, message=FALSE}
+plot_marginal_prob(data_wide, c("C"), evs=evs_pc, save_as=file.path(result_dir, "figs", "biscuit-pc.png"))
+```
+
+
+```{r conditional-perfection-data}
+data_wide <- data_cp %>% spread(key=cell, val=val)
+evs_pc <- marginalize(data_cp, c("C")) %>% expected_val(c("C"))
+evs_pa <- marginalize(data_cp, c("A")) %>% expected_val(c("A"))
+evs <- bind_rows(evs_pc, evs_pa) %>% add_column(bias="cp")
+evs
+
+evs_all <- bind_rows(evs_all, evs) 
+```
+
+
+```{r conditional-perfection, message=FALSE}
+plot_marginal_prob(data_wide, c("A"), evs=evs_pa, save_as=file.path(result_dir, "figs", "cp-pa.png"))
+plot_marginal_prob(data_wide, c("C"), evs=evs_pc, save_as=file.path(result_dir, "figs", "cp-pc.png"))
+
+plot_marginal_prob(data_wide, "cns", save_as=file.path(result_dir, "figs", "cp-cns.png"))
+```
+
+
+```{r evs-pc, message=FALSE}
+plot_evs(evs_all, marginal="C", save_as=file.path(result_dir, "figs", "evs-pc.png"))
+plot_evs(evs_all, marginal="A", save_as=file.path(result_dir, "figs", "evs-pa.png"))
+```
+
+
+
+## Values of interest depending on combination of alpha and cost
+
+```{r param-sweep-data}
+data <- readRDS(file.path("..", "data", "results", "model-general-all.rds"))
+```
+
+```{r param-sweep, message=FALSE}
+plot_voi_alpha_cost(data, 1, "epistemic_uncertainty", "PL")
+
+plot_voi_alpha_cost(data, 2, "biscuits_pc", "LL")
+plot_voi_alpha_cost(data, 2, "biscuits_pc", "PL")
+
+df <- data %>% filter(key=="cp-cns" | key=="cp-bns") %>%
+        filter(model_id == 1 | model_id == 3) %>%
+        separate(value, c("dir", "value"), sep="_")
+
+# value of interest considering causal nets
+plot_voi_alpha_cost(df, 1, "cp-cns", "LL")
+plot_voi_alpha_cost(df, 1, "cp-cns", "PL")
+
+plot_voi_alpha_cost(df, 3, "cp-cns", "LL")
+plot_voi_alpha_cost(df, 3, "cp-cns", "PL")
+
+# value of interest considering bayes nets
+plot_voi_alpha_cost(df, 1, "cp-bns", "LL")
+plot_voi_alpha_cost(df, 1, "cp-bns", "PL")
+
+plot_voi_alpha_cost(df, 3, "cp-bns", "LL")
+plot_voi_alpha_cost(df, 3, "cp-bns", "PL")
 
 ```
 

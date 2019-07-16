@@ -55,11 +55,12 @@ plot_density <- function(df, xlab, level, evs){
   return(p)
 }
 
-plot_marginal_prob <- function(data, val_marginal, level=NULL, evs=NULL){
+plot_marginal_prob <- function(data_wide, val_marginal, level=NULL, evs=NULL, 
+                               save_as="plot-marginal.png"){
   if(val_marginal == "cns"){
-    plot_cns(data, level)
+    p <- plot_cns(data_wide, level)
   } else {
-    df <- data %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
+    df <- data_wide %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
     df <- marginalize(df, val_marginal)
     
     samples <- list()
@@ -70,11 +71,49 @@ plot_marginal_prob <- function(data, val_marginal, level=NULL, evs=NULL){
     }
     data_marginal <- bind_rows(samples)
     xlab <- paste("P(", paste(val_marginal, collapse = ","), ")", sep="")
-    plot_density(data_marginal, xlab, level, evs)
+    p <- plot_density(data_marginal, xlab, level, evs)
   }
+  ggsave(save_as, p)
+  return(p)
 }
 
 plot_conditional_prob <- function(data, p, level=NULL, evs=NULL){
   df <- compute_cond_prob(data, p)
   plot_density(df, p, level, evs)
+}
+
+
+plot_voi_alpha_cost <- function(data, model, key, level){
+  df <- data %>% filter(model_id==model & key==(!! key) & level== (!! level)) %>% 
+    mutate(value=as.numeric(value), cost=as.factor(cost))
+  
+  p <-  df %>% ggplot(aes(x=alpha, y=value, col=cost)) +
+          geom_point() +
+          scale_x_continuous(breaks = data$alpha %>% unique()) +
+          ylab(key) +
+          ggtitle(paste("model:", model, level))
+  
+  if(startsWith(key, "cp")){
+    p <- p + facet_wrap(~dir)
+  }
+  print(p)
+  
+  # df %>% ggplot(aes(x=alpha, y=value, col=cost)) +
+  #         geom_point() +
+  #         scale_x_continuous(breaks = data$alpha %>% unique()) +
+  #         ylab(key) +
+  #         ggtitle(level)
+}
+
+
+plot_evs <- function(data, marginal, save_as){
+  df <- data %>% filter(p==marginal) 
+    p <- df %>% 
+      ggplot() + 
+      geom_bar(mapping = aes(x=bias, y=ev, fill=level),
+               stat="identity", position="dodge") + 
+      # facet_wrap(~level) + 
+      labs(x="biases", y=paste("E[P(", marginal, ")]", sep=""))
+    ggsave(save_as, p)
+    return(p)
 }
