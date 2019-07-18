@@ -4,8 +4,8 @@ library(ggplot2)
 source(file.path("R", "helpers.R", fsep = .Platform$file.sep))
 
 # Parameters --------------------------------------------------------------
-n_tables <- 500
-seed <- 123
+n_tables <- 1000
+seed <- 1234
 verbose <- TRUE
 model <- "model-general"
 
@@ -24,27 +24,6 @@ fn <- "tables"
 
 # noise_params <- c(10, 50, 100, 250)
 noise_params <- c(100, 250, 500)
-
-# Helpers
-convert_data <- function(data_tables){
-  data_tables <- data_tables %>% 
-    as_tibble() %>%
-    mutate("V1" = as.numeric(V1),
-           "V2" = as.numeric(V2),
-           "V3" = as.numeric(V3),
-           "V4" = as.numeric(V4),
-    ) %>%
-    rowid_to_column() %>%
-    gather("V1", "V2", "V3", "V4", key="cell", value="val")
-  
-  data_tables <- data_tables %>%
-    mutate(V5 = as.factor(V5), cell = as.factor(cell),
-           cell = fct_recode(cell, `AC`="V1", `A-C`="V2", `-AC`="V3", `-A-C`="V4")
-    ) %>% 
-    rename(cn=V5)
-  return(data_tables)
-}
-
 
 # Setup -------------------------------------------------------------------
 for(idx_noisy_or in seq(1, nrow(noisy_or_params))){
