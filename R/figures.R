@@ -28,9 +28,45 @@ data_dir <- file.path(".", "data", "precomputations", "model-general",
                       fsep = .Platform$file.sep)
 
 path_tables <- file.path(data_dir, "tables-all.rds", fsep = .Platform$file.sep)
-tables <- read_rds(path_tables) %>% filter(n_tables==500 & noise_v==500)
+tables <- read_rds(path_tables) %>%
+            filter(n_tables==500 & noise_v==250 & param_nor_beta==10 & param_nor_theta==10) %>% 
+            select(ps, vs) %>% unnest() %>%  rename(cell=vs, val=ps, bn_id=id) %>% 
+            add_column(level="prior")
+  
+df1 <- marginalize(tables, c("A")) %>% ungroup() %>% select(bn_id, p) %>%
+        mutate(pna=1-p) %>% rename(pa=p) %>% gather(pa, pna, key=val, val=p)
+df2 <- marginalize(tables, c("C")) %>% ungroup() %>% select(bn_id, p) %>% 
+        mutate(pnc=1-p) %>% rename(pc=p) %>% gather(pc, pnc, key=val, val=p)
 
-fn_utts <- paste("utterances-none.rds", sep="")
-path_utterances <- file.path(data_dir, fn_utts, fsep = .Platform$file.sep)
-utterances <- read_rds(path_utterances)
+df3 <- marginalize(tables, c("A", "C")) %>% ungroup() %>% select(bn_id, p) %>% add_column(val="pac")
+df4 <- marginalize(tables, c("A", "-C")) %>% ungroup() %>% select(bn_id, p) %>% add_column(val="panc")
+df5 <- marginalize(tables, c("-A", "C")) %>% ungroup() %>% select(bn_id, p) %>% add_column(val="pnac")
+df6 <- marginalize(tables, c("-A", "-C")) %>% ungroup() %>% select(bn_id, p) %>% add_column(val="pnanc")
+marginals <- bind_rows(df1,df2, df3, df4, df5, df6)
+
+tables_wide <- tables %>% spread(key=cell, val=val)
+df7 <- tables_wide %>% compute_cond_prob("P(C|A)") %>% ungroup() %>% select(bn_id, p) %>% 
+  mutate(pnc_a=1-p) %>% rename(pc_a=p) %>% gather(pc_a, pnc_a, key=val, val=p)
+df8 <- tables_wide %>% compute_cond_prob("P(-C|-A)") %>% ungroup() %>% select(bn_id, p) %>% 
+  mutate(pc_na=1-p) %>% rename(pnc_na=p) %>% gather(pc_na, pnc_na, key=val, val=p)
+df9 <- tables_wide %>% compute_cond_prob("P(A|C)") %>% ungroup() %>% select(bn_id, p) %>% 
+  mutate(pna_c=1-p) %>% rename(pa_c=p) %>% gather(pa_c, pna_c, key=val, val=p)
+df10 <- tables_wide %>% compute_cond_prob("P(-A|-C)") %>% ungroup() %>% select(bn_id, p) %>%
+  mutate(pa_nc=1-p) %>% rename(pna_nc=p) %>% gather(pa_nc, pna_nc, key=val, val=p)
+
+conditionals <- bind_rows(df7, df8, df9, df10) 
+
+data <- bind_rows(conditionals, marginals)
+data <- data %>% mutate(u_holds=case_when(p>=0.9 ~ TRUE,
+                                          TRUE ~ FALSE),
+                        u_maybe=case_when(p>=0.5 ~ TRUE,
+                                          TRUE  ~ FALSE))
+summary <- data %>% group_by(val) %>% summarize(s=sum(u_holds))
+
+data %>% filter(val=="pc_a" | val=="pc") %>%  group_by(bn_id) %>% summarize(both=sum(u_holds)==2) -> s2 
+
+
+# fn_utts <- paste("utterances-none.rds", sep="")
+# path_utterances <- file.path(data_dir, fn_utts, fsep = .Platform$file.sep)
+# utterances <- read_rds(path_utterances)
                                              

@@ -66,7 +66,7 @@ plot_marginal_prob <- function(data_wide, val_marginal, level=NULL, evs=NULL,
     samples <- list()
     for(lev in unique(df$level)){
       d <- df %>% filter(level==lev)
-      s <- get_samples(tibble(support=d$p, prob=d$prob), 2000000)
+      s <- get_samples(tibble(support=d$p, prob=d$prob), 5000000)
       samples[[`lev`]] <- s %>% add_column(level=lev)
     }
     data_marginal <- bind_rows(samples)
@@ -104,7 +104,6 @@ plot_voi_alpha_cost <- function(data, model, key, level){
   #         ylab(key) +
   #         ggtitle(level)
 }
-
 
 plot_evs <- function(data, marginal, save_as){
   df <- data %>% filter(p==marginal) 

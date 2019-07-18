@@ -91,12 +91,19 @@ plot_evs(evs_all, marginal="A", save_as=file.path(result_dir, "figs", "evs-pa.pn
 ```
 
 
-
-## Values of interest depending on combination of alpha and cost
+## Values of interest compared across PL/LL/prior
 
 ```{r param-sweep-data}
 data <- readRDS(file.path("..", "data", "results", "model-general-all.rds"))
 ```
+
+
+```{r values-of-interest}
+df <- data %>% filter(param_nor_beta==10 & param_nor_theta==10 & model_id==1 & cost==0 & alpha==5)
+```
+
+
+## Values of interest depending on combination of alpha and cost
 
 ```{r param-sweep, message=FALSE}
 plot_voi_alpha_cost(data, 1, "epistemic_uncertainty", "PL")

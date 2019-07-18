@@ -269,6 +269,7 @@ convert_data <- function(data_tables){
   return(data_tables)
 }
 
+# not needed anymore!?
 join_model_levels <- function(data){
   data_prior <- data$prior %>% add_column(level="prior")
   data_ll <- data$LL %>% add_column(level="LL")
