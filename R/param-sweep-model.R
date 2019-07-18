@@ -29,7 +29,7 @@ args <- list(n_tables_per_cn=500,
 
 # parameter sweep over cost + alpha + table parameters
 alphas <- c(0.5, 1, 2, 3, 5, 10)
-costs_conditional <- c(0, 0.01, 0.1, 0.5)
+costs_conditional <- c(0, 0.01, 0.05, 0.1, 0.25, 0.5)
 
 # Load tables ----------------------------------------------------------------
 target_dir <- file.path(".", "data", "precomputations", "model-general",
@@ -94,6 +94,7 @@ for(m in model_ids){
           all_results[[idx]] <- results
           idx <- idx + 1
         }
+        print(paste(idx, "from", n_iter, "done"))
       }
       print(paste(idx, "from", n_iter, "done"))
     }
