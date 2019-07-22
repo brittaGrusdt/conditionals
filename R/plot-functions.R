@@ -60,12 +60,11 @@ plot_marginal_prob <- function(data_wide, val_marginal, level=NULL, evs=NULL,
   if(val_marginal == "cns"){
     p <- plot_cns(data_wide, level)
   } else {
-    df <- data_wide %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
-    df <- marginalize(df, val_marginal)
-    
+    # df <- data_wide %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
+    # df <- marginalize(df, val_marginal)
     samples <- list()
-    for(lev in unique(df$level)){
-      d <- df %>% filter(level==lev)
+    for(lev in unique(data_wide$level)){
+      d <- data_wide %>% filter(level==lev)
       s <- get_samples(tibble(support=d$p, prob=d$prob), 5000000)
       samples[[`lev`]] <- s %>% add_column(level=lev)
     }
@@ -81,6 +80,33 @@ plot_conditional_prob <- function(data, p, level=NULL, evs=NULL){
   df <- compute_cond_prob(data, p)
   plot_density(df, p, level, evs)
 }
+
+
+plot_marginal_bar <- function(data, val_marginal_str, level=NULL, save_as="plot-marginal-bar.png", title=""){
+  xlab <- paste("P(", paste(val_marginal_str, collapse = ","), ")", sep="")
+  df <- data %>% group_by(level, p) %>% summarize(prob=sum(prob))
+  if(is.null(level)){
+    p <- df %>% 
+      ggplot() + 
+      geom_bar(mapping = aes(x=p, y=prob, fill=level),
+               stat="identity", position="dodge") + 
+      # facet_wrap(~level) + 
+      labs(x=xlab, y="probability", title=title) +
+      theme(axis.text.x = element_text(angle = 90))
+  }else{
+    col <- level2color %>% filter(level== (!!level)) %>% pull(col)
+    p <- df %>% filter(level==(!! level)) %>% 
+      ggplot() + 
+      geom_bar(mapping = aes(x=p, y=prob), fill=col, stat="identity") + 
+      labs(x=xlab, y="probability", title=level) +
+      theme(axis.text.x = element_text(angle = 90))
+  }
+  if(!is.null(save_as)){
+    ggsave(save_as, p)
+  }
+  return(p)
+}
+
 
 
 plot_voi_alpha_cost <- function(data, model, key, level){
