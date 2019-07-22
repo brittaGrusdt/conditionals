@@ -88,7 +88,16 @@ for(m in model_ids){
                              param_nor_beta=param_beta,
                              param_nor_theta=param_theta)
           
-          results <- bind_rows(val_no_bias, val_biscuits, val_cp) %>%
+          val_pa <- marginalize(model_results, c("A")) %>% 
+                      expected_val("A") %>% select(-p) %>% 
+                      rename(value=ev) %>% 
+                      mutate(key="pa",
+                             cost=c, alpha=a, model_id=m,
+                             param_nor_beta=param_beta,
+                             param_nor_theta=param_theta,
+                             value=as.character(value))
+          
+          results <- bind_rows(val_no_bias, val_biscuits, val_cp, val_pa) %>%
                       add_column(seed=model_params$seed)
           
           all_results[[idx]] <- results
