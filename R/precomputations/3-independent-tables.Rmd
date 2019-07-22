@@ -35,9 +35,11 @@ One particular table and particular parameter noise_v
 table <- c(0.4, 0.3, 0.1, 0.2)
 table <- tibble(AC=0.4, `A-C`=0.3, `-AC`=0.1, `-A-C`=0.2) %>%
             gather(`AC`, `A-C`,`-AC`, `-A-C`, key=cell, value=p)
-noise_v <- 250
+#noise_v <- 2000
+noise_v <- 0.01
 x <- table$p %>% map(function(p){
-rbeta(10000, p*noise_v, (1-p)*noise_v) %>% as_tibble()})  %>% bind_rows(.id = "cell")
+  # rbeta(10000, p*noise_v, (1-p)*noise_v) %>% as_tibble()})  %>% bind_rows(.id = "cell")
+  rnorm(10000, mean=p, sd = 0.001) %>% as_tibble()}) %>% bind_rows(.id = "cell")
 
 pw <- x %>% ggplot(aes(x=value, color=cell)) +
                     geom_density() +
@@ -46,6 +48,27 @@ pw <- x %>% ggplot(aes(x=value, color=cell)) +
 
 pw
 ```
+
+
+Check difference between P(C|A) and P(C) for independent tables to see how the difference is distributed.
+
+```{r}
+# param_beta=10 and param_theta=10
+tables <- readRDS("/net/store/cogmod/users/brgrusdt/MA-project/conditionals/data/precomputations/model-general/tables-config-19.rds")
+tables_ind <- tables %>% filter(cn=="A || C") %>% select(ps,vs) %>% unnest()
+tables_wide <- tables_ind %>% spread(key=vs, val=ps)
+pc_a <- compute_cond_prob(tables_wide, "P(C|A)")
+
+tables <- tables_ind %>% rename(cell=vs, val=ps, bn_id=id) %>% add_column(level="prior")
+pc <- marginalize(tables, c("C"))
+sum(pc$bn_id == pc_a$id) == nrow(pc)
+
+probs <- pc %>% rename(pc=p) %>% add_column(pc_a=pc_a$p) %>% select(-`AC`, -`-AC`) %>% mutate(diff=pc-pc_a)
+ggplot(probs) + geom_density(aes(x=diff))
+
+
+```
+
 
 
 **Step 2: Log likelihood**
@@ -129,15 +152,15 @@ for(i in seq(1, nrow(measurements))){
               select(measurement, strength, logLik, table_id, wiggle_id) %>% 
               mutate(strength_abs=abs(strength)) 
   
-  # p1 <- new_tables  %>% 
-  #       ggplot(mapping=aes(x=strength, y=logLik)) + 
-  #       geom_bin2d(bins = 50) +
-  #       facet_wrap(~measurement, scales="free") +
-  #       theme(axis.text.x = element_text(angle=90)) +
-  #       ggtitle(paste("noise param v:", v))
-  # 
-  # 
-  # print(p1)
+  p1 <- new_tables  %>%
+        ggplot(mapping=aes(x=strength, y=logLik)) +
+        geom_bin2d(bins = 50) +
+        facet_wrap(~measurement, scales="free") +
+        theme(axis.text.x = element_text(angle=90)) +
+        ggtitle(paste("noise param v:", v))
+
+
+  print(p1)
   
   p2 <- metrics  %>%
         ggplot(aes(x=strength_abs, y=logLik)) +
@@ -175,7 +198,7 @@ $|P(A)\cdot P(C) - P(A,C)|$.
 Load optimized paramters of beta distribution used to approximate log-likelihood.
 
 ```{r}
-path_data <- "/home/britta/UNI/Osnabrueck/MA-project/conditionals/data/precomputations/best-params.rds"
+path_data <- "../../data/precomputations/best-params.rds"
 params <- readRDS(path_data)
 params
 ```
@@ -191,8 +214,6 @@ beta <- params$beta_hat
 data <- measurements %>% filter(noise_v==params$noise_v) %>%
   pull(table_measurements)
 data <- data[[1]] %>% filter(measurement == params$value_m)
-
-n <- data %>% nrow()
 
 # log likelihood of data under model
 ll_y <- sum(dbeta(abs(data$strength), alpha, beta))
