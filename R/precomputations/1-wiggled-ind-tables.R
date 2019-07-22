@@ -14,19 +14,21 @@ tables <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, value=entry)
 
 # Wiggle tables wiggle_n times with different noise parameters v ------------------
 # noise_params <- c(10, 50, 100, 250, 500)
-noise_params <- c(100, 250, 500)
+# noise_params <- c(100, 250, 500)
+noise_params <- c(0.001, 0.01, 0.1)
 wiggled_all <- list()
 wiggle_n <- 500
 idx_v <- 1
 for(v in noise_params){
   print(paste('wiggle tables with noise_v=', v))
-  tables_new <- tables %>% mutate(alpha=entry*v, beta=(1-entry)*v)
-  
+  # tables_new <- tables %>% mutate(alpha=entry*v, beta=(1-entry)*v)
+  tables_new <- tables %>% mutate(alpha=entry, beta=v)
   # wiggle each of the n tables 100 times
   wiggled_tables <- list()
   for(i in seq(1, wiggle_n)){
     t <- tables_new %>% 
-      mutate(entry_wiggled= round(rbeta(n*4, alpha, beta), 4)) %>% 
+      # mutate(entry_wiggled= round(rbeta(n*4, alpha, beta), 4)) %>% 
+      mutate(entry_wiggled= round(rnorm(n*4, mean=alpha, sd=beta), 4)) %>% 
       group_by(table_id) %>% 
       mutate(c=sum(entry_wiggled), 
              entry_wiggled=entry_wiggled/c,
@@ -49,7 +51,8 @@ for(i in seq(1, nrow(wiggled_tibbles))){
   print(paste('compute measurements for tables with noise_v =', wiggled_tibbles$noise_v[[i]]))
   wiggled <- wiggled_tibbles[i,]$tables[[1]]
   tables <- wiggled %>%
-    mutate(logLik=log(dbeta(entry_wiggled, alpha, beta))) %>% 
+    # mutate(logLik=log(dbeta(entry_wiggled, alpha, beta))) %>% 
+    mutate(logLik=log(dnorm(entry_wiggled, alpha, beta))) %>% 
     group_by(table_id, wiggle_id) %>% 
     mutate(logLik=sum(logLik)) %>% 
     filter(is.finite(logLik))
