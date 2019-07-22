@@ -11,7 +11,7 @@ DATA <- tribble(~id, ~bias, ~save_as, ~utterance, ~model_fn,
                 5, "", "sundowners", "R > -S", "sundowners")
 
 # Parameters  --------------------------------------------------------------
-args <- list(n_tables_per_cn=500,
+args <- list(n_tables_per_cn=800,
              noise_v=250,
              noisy_or_beta=NA,
              noisy_or_theta=NA,
@@ -22,9 +22,9 @@ args <- list(n_tables_per_cn=500,
              save=FALSE,
              cost_conditional=0, # altered in loop
              alpha=5, # altered in loop
-             threshold=0.89,
-             threshold_maybe=0.49,
-             seed=123
+             threshold=0.899,
+             threshold_maybe=0.499,
+             seed=1234
              )
 
 # parameter sweep over cost + alpha + table parameters
@@ -96,9 +96,10 @@ for(m in model_ids){
                              param_nor_beta=param_beta,
                              param_nor_theta=param_theta,
                              value=as.character(value))
-          
+
           results <- bind_rows(val_no_bias, val_biscuits, val_cp, val_pa) %>%
-                      add_column(seed=model_params$seed)
+                      add_column(seed=model_params$seed,
+                                 n_tables=model_params$n_tables_per_cn)
           
           all_results[[idx]] <- results
           idx <- idx + 1
