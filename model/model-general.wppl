@@ -12,6 +12,19 @@ var COST_CONDITIONAL = data["cost_conditional"][0]
 var UTT = data["utt"][0]
 var BIAS = data["bias"][0]
 
+
+display(ALPHA)
+display(UTTERANCES)
+display(CAUSAL_NETS)
+display(COST_CONDITIONAL)
+display(UTT)
+display(BIAS)
+
+
+// map(display, tables_list)
+display(tables_list.length)
+display(tables_list[0])
+
 var vars = [["A", "-A"], ["C", "-C"]]
 var p_ac_ind = {"none": 0.15,
                 "lawn": 0.1,
