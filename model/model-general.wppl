@@ -56,7 +56,7 @@ if(verbose){
 var intersect_arrays = cache(function(arrays){
   return filter(function(m){
           var m_in_all_lists = map(function(idx){arrays[idx].includes(m)},
-                                  _.range(1,arrays.length))
+                                  _.range(1, arrays.length))
           return sum(m_in_all_lists)==m_in_all_lists.length
     }, arrays[0])
 },10000)
