@@ -26,25 +26,49 @@ fn_cp <- file.path(RESULT_DIR, "model-general", "cp-conditionals.rds")
 data_no_bias <- read_rds(fn_no_bias)
 data_biscuit <- read_rds(fn_biscuits) 
 data_cp <- read_rds(fn_cp)
+
+
+adapt_bn_ids <- function(data_wide){
+  # makes sure that bn_ids are identical across levels PL/LL/prior
+  prior <- data_wide %>% filter(level=="prior") %>% arrange(cn, `AC`, `-AC`, `A-C`, `-A-C`)
+  ll <- data_wide %>% filter(level=="LL") %>% arrange(cn, `AC`, `-AC`, `A-C`, `-A-C`)
+  pl <- data_wide %>% filter(level=="PL") %>% arrange(cn, `AC`, `-AC`, `A-C`, `-A-C`)
+  df <- bind_rows(ll, prior)
+  
+  # not all Bayes nets that are in the prior also occur in the literal/pragmatic listener
+  # (but there is no diff btw. those in LL/PL)
+  idx_dups <- df %>% select(-level, -prob, -bn_id) %>% duplicated()
+  duplicates_prior <- df[idx_dups, ] %>%  arrange(cn, `AC`, `AC`, `A-C`, `-AC`, `-A-C`)
+  duplicates_prior$level %>% unique()
+  
+  pl <- pl %>% mutate(bn_id=duplicates_prior$bn_id)
+  ll <- ll %>% mutate(bn_id=duplicates_prior$bn_id)
+
+  df <- bind_rows(prior, ll, pl)
+  return(df)
+}
+
+
+
 ```
 
 ## Speaker epistemic uncertainty
 
 ```{r epistemic-speaker-uncertainty-data}
-data_wide <- data_no_bias %>% spread(key=cell, val=val)
-pc <- marginalize(data_no_bias, c("C")) 
-pa <- marginalize(data_no_bias, c("A"))
+data_wide <- data_no_bias %>% spread(key=cell, val=val) %>% adapt_bn_ids()
+data_long <- data_wide %>% gather(`AC`, `AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
+pc <- marginalize(data_long, c("C")) 
+pa <- marginalize(data_long, c("A"))
 
 evs_all <- bind_rows(pc %>% expected_val("C"), pa %>% expected_val("A")) %>% add_column(bias="none")
 evs_all
-
 ```
 
 ```{r epistemic-speaker-uncertainty, message=FALSE}
-plot_marginal_prob(pa, c("A"), evs=evs_pa, save_as=file.path(RESULT_DIR, "figs", "no-bias-pa.png"))
-plot_marginal_prob(pa, c("C"), evs=evs_pc, save_as=file.path(RESULT_DIR, "figs", "no-bias-pc.png"))
+plot_marginal_prob(pa, c("A"), evs=evs_all %>% filter(p=="A"), save_as=file.path(RESULT_DIR, "figs", "no-bias-pa.png"))
+plot_marginal_prob(pa, c("C"), evs=evs_all %>% filter(p=="C"), save_as=file.path(RESULT_DIR, "figs", "no-bias-pc.png"))
 
-plot_marginal_prob(data_no_bias, "cns", save_as=file.path(RESULT_DIR, "figs", "no-bias-cns.png"))
+plot_marginal_prob(data_wide, "cns", save_as=file.path(RESULT_DIR, "figs", "no-bias-cns.png"))
 ```
 
 
@@ -56,8 +80,6 @@ pc <- marginalize(data_biscuit, c("C"))
 pa <- marginalize(data_biscuit, c("A"))
 evs <- bind_rows(expected_val(pc, c("C")), expected_val(pa, c("A"))) %>% add_column(bias="biscuits")
 evs
-
-evs_all <- bind_rows(evs_all, evs) 
 ```
 
 
@@ -72,8 +94,6 @@ pc <- marginalize(data_cp, c("C"))
 pa <- marginalize(data_cp, c("A")) 
 evs <- bind_rows(expected_val(pc, "C"), expected_val(pa, "A")) %>% add_column(bias="cp")
 evs
-
-evs_all <- bind_rows(evs_all, evs) 
 ```
 
 
@@ -86,8 +106,8 @@ plot_marginal_prob(data_cp, "cns", save_as=file.path(RESULT_DIR, "figs", "cp-cns
 
 
 ```{r evs-pc, message=FALSE}
-plot_evs(evs_all, marginal="C", save_as=file.path(RESULT_DIR, "figs", "evs-pc.png"))
-plot_evs(evs_all, marginal="A", save_as=file.path(RESULT_DIR, "figs", "evs-pa.png"))
+plot_evs(evs, marginal="C", save_as=file.path(RESULT_DIR, "figs", "evs-pc.png"))
+plot_evs(evs, marginal="A", save_as=file.path(RESULT_DIR, "figs", "evs-pa.png"))
 ```
 
 
