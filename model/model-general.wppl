@@ -12,15 +12,6 @@ var COST_CONDITIONAL = data["cost_conditional"][0]
 var UTT = data["utt"][0]
 var BIAS = data["bias"][0]
 
-
-display(ALPHA)
-display(UTTERANCES)
-display(CAUSAL_NETS)
-display(COST_CONDITIONAL)
-display(UTT)
-display(BIAS)
-
-
 // map(display, tables_list)
 display(tables_list.length)
 display(tables_list[0])
@@ -35,7 +26,10 @@ if(verbose){
   display("")
   display('# utterances:' + UTTERANCES.length)
   display("utterance for listeners: " + UTT)
+  display("cost conditional:" + COST_CONDITIONAL)
+  display("cns:" + CAUSAL_NETS)
   display("bias: " + BIAS)
+  display("alpha:" + ALPHA)
   display("")
 }
 
@@ -55,7 +49,7 @@ if(verbose){
 // Helper --------------------------------------------------------------------
 var intersect_arrays = cache(function(arrays){
   return filter(function(m){
-          var m_in_all_lists = map(function(idx){arrays[idx].includes(m)},
+          var m_in_all_lists = map(function(idx){arrays[idx].indexOf(m)!=-1},
                                   _.range(1, arrays.length))
           return sum(m_in_all_lists)==m_in_all_lists.length
     }, arrays[0])
@@ -177,7 +171,7 @@ var literal_listener = cache(function(utterance, bias){
 }, 10000)
 
 var costs = cache(function(utt){
-  if(!UTTERANCES.includes(utt)){error('unknown utterance ' + utt)}
+  if(UTTERANCES.indexOf(utt)== -1){error('unknown utterance ' + utt)}
   var c1 = utt.includes(' > ') ? COST_CONDITIONAL : 0
   var c2 = (utt.split(' and ').length - 1) * (COST_CONDITIONAL/2)
   var c3 = utt.split('-').length > 1 ?  (COST_CONDITIONAL/4) : 0
