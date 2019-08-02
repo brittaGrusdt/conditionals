@@ -12,7 +12,7 @@ negative_log_likelihood <- function(params, data){
 
 # find good starting points for optimization ----------------------------------
 #  for particular noise param and metric
-v <- 250
+v <- 0.01
 m <- "x_1"
 
 measurements <- readRDS("./data/precomputations/wiggled-tibbles-measurements.rds")
@@ -22,13 +22,15 @@ new_tables <- measurements %>% filter(noise_v==v) %>%
 data_value_m <- new_tables[[1]] %>% filter(measurement==m) %>%
                 select(measurement, strength, table_id, wiggle_id) %>% 
                 add_column(noise_v=v)
+n <- data_value_m %>% nrow()
 
 metric_m_log_likelihood <- function(alpha, beta){
   log_likelihood(c(alpha, beta), data_value_m)
 }
 
 models <- tibble(
-  beta=c(10, 50, 100, 120),
+  # beta=c(10, 50, 100, 120),
+  beta=c(170, 180, 200),
   alpha=1
 )
 
@@ -56,7 +58,8 @@ print(p)
 # approximate distribution of measurements ------------------------------------
 # best approximation for particular noise params
 alpha0 <- 1
-beta0 <- 120
+beta0 <- best$beta
+#beta0 <- 120
 
 best_optim_params <- list()
 print(paste('optimize for noise param:', v, 'and metric:', m))
@@ -93,7 +96,7 @@ beta <- best_optim_params$beta_hat
 
 ll_y_rep <- list()
 for(i in seq(1,10**3)){
-  # if(i %% 100 == 0){print(i)}
+  if(i %% 100 == 0){print(i)}
   y_rep <- rbeta(n, alpha, beta)
   ll_y_rep[[i]] <-  sum(dbeta(y_rep, alpha, beta))
 }
