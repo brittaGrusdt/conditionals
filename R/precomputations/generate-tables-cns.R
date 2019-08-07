@@ -4,7 +4,7 @@ library(ggplot2)
 source(file.path("R", "helpers.R", fsep = .Platform$file.sep))
 
 # Parameters --------------------------------------------------------------
-n_tables <- 1000
+n_tables <- 500
 seed <- 1234
 verbose <- TRUE
 model <- "model-general"
@@ -76,7 +76,6 @@ for(idx_noisy_or in seq(1, nrow(noisy_or_params))){
                     separate(cn_id, into=c("cn", "table_id"), sep="_") %>% 
                     select(-table_id) %>%  gather(AC,`A-C`, `-AC`, `-A-C`,
                                                   key=cell, value=val)
-    # plot tables 
     plot_tables(data_tables)
     
     # Restructure tables -------------------------------------------------
@@ -88,11 +87,13 @@ for(idx_noisy_or in seq(1, nrow(noisy_or_params))){
                         vs=list(c("AC", "A-C", "-AC", "-A-C")),
                         cn=cn) %>%
       add_column(noisy_or_theta=noisy_or_theta, noisy_or_beta=noisy_or_beta,
+                 param_nor_beta=webppl_args$param_nor_beta,
+                 param_nor_theta=webppl_args$param_nor_theta,
                  noise_v=noise, n_tables=n_tables, seed=seed) 
     
     tables_all[[idx]] <- tables
     # Save data ---------------------------------------------------------------
-    # tables %>% save(target_tables)
+    tables %>% save(target_tables)
   }
   tables_new <- tables_all %>% bind_rows() 
   
