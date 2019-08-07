@@ -1,0 +1,90 @@
+---
+title: "likelihoods"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../helpers.R")
+library(fitdistrplus)
+library(dplyr)
+library(tidyr)
+```
+
+
+```{r}
+n <- "beta"
+nt <- 800
+nv <- 500
+s <- 1234
+```
+
+
+```{r}
+tables <- readRDS(paste("../../data/precomputations/model-general/tables-", n, "-noise-all.rds", sep=""))
+
+tables_long <- tables %>% filter(noise_v==nv & seed==s & n_tables == nt) %>% unnest()
+tables_long <- tables_long %>% rename(cell=vs, bn_id=id, val=ps) %>% add_column(level="none")
+
+
+tables_wide <- tables_long %>% spread(key=cell, val=val) %>% dplyr::select(-noisy_or_beta, -noisy_or_theta)
+
+tables <- tables_wide %>% compute_cond_prob("P(C|A)") %>% rename(p_c_given_a=p)
+tables <- tables %>% compute_cond_prob("P(-C|-A)") %>% mutate(p_c_given_na=1-p) %>% dplyr::select(-p)
+tables <- tables %>% mutate(pc=`AC`+`-AC`, pa=`AC`+`A-C`)
+
+tables <- tables %>% mutate(x1=p_c_given_a-p_c_given_na,
+                            x2=p_c_given_a-pc,
+                            x3=(pc*pa)-`AC`)
+```
+
+## Plot models (with normal distributions) for distribution of measurements for independent networks
+
+```{r, message=FALSE, print=FALSE,echo=FALSE}
+measures <- tables %>% gather(x1, x2, x3, key=metric, val=p)
+
+measures %>% ggplot() +
+  geom_density(aes(x=p, colour=metric)) +
+  facet_wrap(~cn, scales="free_y")
+
+tables_ind <- tables %>% filter(cn=="A || C")
+# x1
+x1 <- tables_ind %>% filter(!is.na(x1)) %>% pull(x1)
+model1 <- fitdist(x1, "norm")
+plot(model1)
+
+# x2
+x2 <- tables_ind %>% filter(!is.na(x2)) %>% pull(x2)
+model2 <- fitdist(x2, "norm")
+plot(model2)
+
+# x3
+x3 <- tables_ind %>% filter(!is.na(x3)) %>% pull(x3)
+model3 <- fitdist(x3, "norm")
+plot(model3)
+```
+
+## Distributions of log likelihoods
+
+```{r}
+params <- model3$estimate %>% as.list()
+
+ll_ind <- tables %>% mutate(ll_ind=log(dnorm(x3, mean=params$mean, sd=params$sd)))
+
+ll_ind %>% ggplot() +
+  geom_density(aes(x=ll_ind)) +
+  facet_wrap(~cn, scales="free")
+
+ll_ac <- tables %>% mutate(ll_ac=log(dbeta(p_c_given_a, 10, 1)) + log(dbeta(p_c_given_na, 1, 10)))
+
+ll_ac %>% ggplot() +
+  geom_density(aes(x=ll_ac)) +
+  facet_wrap(~cn, scales="free")
+```
+
+
+
+
+
+
+
