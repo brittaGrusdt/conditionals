@@ -118,23 +118,26 @@ for(i in model_ids){
 skiing_id <- 4
 sundowners_id <- 5
 
-args <- list(n_tables_per_cn=500,
-             noise_v=250,
+args <- list(n_tables_per_cn=NA,
+             noise_v=NA,
              noisy_or_beta=NA, 
              noisy_or_theta=NA, 
              param_nor_beta=10,
              param_nor_theta=10,
              alpha=5,
              verbose=TRUE,
-             model_id=sundowners_id, 
-             level_max="PL",
-             cost_conditional=0,
+             # model_id=skiing_id,
+             model_id=sundowners_id,
+             level_max="LL-all-utts",
+             cost_conditional=NA,
              save=TRUE
              )
 
 model_params <- load_data(DATA, args)
 res <- run_model(model_params)
 
+if(args$save){save(res, paste(model_params$target_dir, "/model-", args$model_id,
+                              "-", args$level_max, ".rds", sep=""))}
 
 # run model for log-likelihood --------------------------------------------
 args <- list(n_tables_per_cn=500,

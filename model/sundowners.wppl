@@ -1,4 +1,5 @@
 var thresholds = {theta: 0.899, theta_maybe: 0.499}
+var LEVEL_MAX = data["level_max"][0]
 var alpha = 5
 
 // Causal networks --------------------------------------------------------------
@@ -8,7 +9,7 @@ var prior_cn2 = 0.95
 // Probabilities ----------------------------------------------------------------
 var vars = [["R", "-R"], ["S", "-S"], ["W", "-W"]]
 // var priors_rain = [0.1, 0.5, 0.9]
-var priors_rain = [0.5, 0.6, 0.7, 0.8]
+var priors_rain = [0.6, 0.7, 0.8]
 var p_wedding_inside = {"R": 1, "-R": 0}
 var probabilities = {"cn1": {"p_wi": p_wedding_inside,
                              "p_s": {"W": 0, "-W": 1}},
@@ -94,6 +95,7 @@ var joint_probs = function(token, cn, pr){
   return p_sw * p_wr * p_r
 }
 
+display(combinations)
 var tokens = {"cn1": filter(function(tokens){tokens.length==3}, combinations),
               "cn2": filter(function(tokens){
                 tokens.length==2 && !tokens.includes("W")
@@ -139,6 +141,7 @@ display('# conditionals: ' + conditionals.length)
 var utterances = literals_conjunctions.concat(conditionals.concat(maybes))
 display('# utterances: ' + utterances.length)
 // map(display, utterances)
+display('# utterances:' + utterances.length)
 
 var utterance_probs = cache(function(utterance, state){
   if(conditionals.includes(utterance)){
@@ -236,6 +239,17 @@ var pl = listener(u)
 var ll = literal_listener(u)
 var prior = state_prior
 
-// object to return
-var distributions = {"PL": pl, "LL": ll, "prior": prior}
-distributions
+var wrap_ll = function(u){
+  var obj = {"u": u, "LL": literal_listener(u)}
+  obj
+}
+
+if(LEVEL_MAX == "LL-all-utts"){
+  var distributions = {"LL": map(wrap_ll, utterances)}
+  distributions
+
+} else {
+  var distributions = {"PL": pl, "LL": ll, "prior": prior}
+  distributions
+
+}

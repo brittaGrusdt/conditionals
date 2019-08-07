@@ -122,7 +122,8 @@ plot_tables <- function(data){
         ggplot(aes(x=val,  color = cell)) +
             geom_density() +
             facet_wrap(~cell, scales = "free_y") +
-            labs(title = causal_net)
+            labs(title = causal_net) +
+            theme(legend.position = "none")
       print(p)
     }
 }
@@ -240,8 +241,14 @@ run_model <- function(params){
     
   } else if(params$level_max=="logLik"){
     df <- posterior %>% map(function(x){as_tibble(x)})
-    result <- df$logLik %>% unnest() 
+    result <- df$LL %>% unnest() 
     
+  } else if(params$level_max=="LL-all-utts"){
+    df <- posterior %>%  map(function(x){as_tibble(x)})
+    result <- df$LL %>% unnest() %>% rowid_to_column()
+    result <- result %>% unnest() %>% rename(cell=table.support,
+                                             val=table.probs,
+                                             prob=LL.probs)
   } else{
     result <- structure_model_data(posterior, params)
   }

@@ -17,7 +17,7 @@ display(tables_list.length)
 display(tables_list[0])
 
 var vars = [["A", "-A"], ["C", "-C"]]
-var p_ac_ind = {"none": 0.15,
+var p_ac_ind = {"none": 0.5,
                 "lawn": 0.1,
                 "pizza" : 1,
                 "BC-impossible-cons": 1
@@ -77,8 +77,10 @@ var conditional_probs = cache(function(table){
 }, 10000)
 
 var value_approx_likelihood = cache(function(table){
-    Math.abs(marginal(table, ["A", "C"]) - (marginal(table, ["C"]) *
-                                            marginal(table, ["A"])))
+    // Math.abs(marginal(table, ["A", "C"]) - (marginal(table, ["C"]) *
+    //                                         marginal(table, ["A"])))
+    marginal(table, ["A", "C"]) - (marginal(table, ["C"]) *
+                                            marginal(table, ["A"]))
   }, 10000)
 
 var cn_to_prob = cache(function(state){
@@ -110,7 +112,8 @@ var cn_prior = function(bias) {
 var log_likelihood = function(state){
   var p = cn_to_prob(state)
   return state.cn == "A || C" ?
-          Beta({a:params_ind[0], b: params_ind[1]}).score(p) :
+          // Beta({a:params_ind[0], b: params_ind[1]}).score(p) :
+          Gaussian({mu:0.0000895, sigma:0.06396}).score(p) :
           (Beta({a:10, b:1}).score(p[0])+Beta({a:1, b:10}).score(p[1]))
 }
 
