@@ -3,7 +3,12 @@ globalStore.thetaCP = 0.05
 var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
 var verbose = data["verbose"][0]
 var tables_list = data["tables"]
-var noise_v = data["noise_v"][0]
+
+// parameter for likelihood functions
+var SIGMA = data["indep_sigma"][0]
+var param_nor_theta = data["param_nor_theta"][0]
+var param_nor_beta = data["param_nor_beta"][0]
+
 var ALPHA = data["alpha"][0]
 var UTTERANCES = data["utterances"]
 var CAUSAL_NETS = data["cns"]
@@ -11,10 +16,6 @@ var LEVEL_MAX = data["level_max"][0]
 var COST_CONDITIONAL = data["cost_conditional"][0]
 var UTT = data["utt"][0]
 var BIAS = data["bias"][0]
-
-// map(display, tables_list)
-display(tables_list.length)
-display(tables_list[0])
 
 var vars = [["A", "-A"], ["C", "-C"]]
 var p_ac_ind = {"none": 0.5,
@@ -30,21 +31,13 @@ if(verbose){
   display("cns:" + CAUSAL_NETS)
   display("bias: " + BIAS)
   display("alpha:" + ALPHA)
+  display("# tables:" + tables_list.length)
   display("")
 }
-
-var params_noise_ind = {
-  250 : [1, 132]
-}
-var params_ind = params_noise_ind[noise_v]
 
 var tables = map(function(obj){
   Categorical({"vs": obj["vs"], "ps": obj["ps"]})
 }, tables_list)
-if(verbose){
-  display('# tables: ' + tables.length)
-  display('beta param for independent likelihood: ' + params_ind)
-}
 
 // Helper --------------------------------------------------------------------
 var intersect_arrays = cache(function(arrays){
@@ -76,13 +69,6 @@ var conditional_probs = cache(function(table){
           "P(A|-C)": marginal(table, ["A", "-C"]) / marginal(table, ["-C"])}
 }, 10000)
 
-var value_approx_likelihood = cache(function(table){
-    // Math.abs(marginal(table, ["A", "C"]) - (marginal(table, ["C"]) *
-    //                                         marginal(table, ["A"])))
-    marginal(table, ["A", "C"]) - (marginal(table, ["C"]) *
-                                            marginal(table, ["A"]))
-  }, 10000)
-
 var cn_to_prob = cache(function(state){
   var cn = state.cn
   var table = state.table
@@ -95,7 +81,8 @@ var cn_to_prob = cache(function(state){
          cn == "C implies -A" ? [1 - probs["P(A|C)"], 1 - probs["P(A|-C)"]] :
          cn == "-C implies A" ? [probs["P(A|-C)"], probs["P(A|C)"]] :
          cn == "-C implies -A" ? [1 - probs["P(A|-C)"], 1 - probs["P(A|C)"]] :
-         cn == "A || C" ? value_approx_likelihood(table) :
+         cn == "A || C" ? [marginal(table, ["A"]), marginal(table, ["C"]),
+                           marginal(table, ["A", "C"])] :
   error('unknown network: ' + cn)
 }, 10000)
 
@@ -103,8 +90,6 @@ var cn_to_prob = cache(function(state){
 var cn_prior = function(bias) {
   var p_ind = p_ac_ind[bias]
   var p_dep = (1 - p_ind) / (CAUSAL_NETS.length-1)
-  // var p_ind = 1 / CAUSAL_NETS.length
-  // var p_dep = 1 / CAUSAL_NETS.length
   var ps = map(function(cn){cn=="A || C" ?  p_ind : p_dep}, CAUSAL_NETS)
   return categorical({vs: CAUSAL_NETS, ps: ps})
 }
@@ -112,9 +97,9 @@ var cn_prior = function(bias) {
 var log_likelihood = function(state){
   var p = cn_to_prob(state)
   return state.cn == "A || C" ?
-          // Beta({a:params_ind[0], b: params_ind[1]}).score(p) :
-          Gaussian({mu:0.0000895, sigma:0.06396}).score(p) :
-          (Beta({a:10, b:1}).score(p[0])+Beta({a:1, b:10}).score(p[1]))
+          Gaussian({mu:p[0]*p[1], sigma:SIGMA}).score(p[2]) :
+          (Beta({a:param_nor_theta, b:1}).score(p[0]) +
+           Beta({a:1, b:param_nor_beta}).score(p[1]))
 }
 
 var state_prior = cache(function(bias){

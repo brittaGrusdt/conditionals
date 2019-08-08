@@ -55,7 +55,7 @@ var combine_pairs = function(connective){
   var pairs_list = mapIndexed(function(idx, tokens1){
     var arr = filter(function(tokens){
       all(function(x){
-        !tokens.includes(x) && !tokens.includes(negate(x))
+        tokens.indexOf(x)==-1 && tokens.indexOf(negate(x)) == -1
       }, tokens1)
     }, combinations.slice(idx+1))
 

@@ -71,7 +71,9 @@ var causal_nets = ["A || C"].concat(dependent_nets)
 // Probabilities ------------------------------------------------------------
 var marginal = cache(function(table, variables){
   // computes the probability of P(A) marginalized over all other variables in
-  // support of table with P=table and variables=["A"]
+  // support of table
+  // args: table: distribution over strings, e.g. {support: ["AC", "A-C", ..]}
+  //       variables:list of strings, e.g.["A"]
   var tokens = table.support()
   var all_x = map(function(v){
     v.includes("-") ? filter(function(k){k.includes(v)}, tokens) :

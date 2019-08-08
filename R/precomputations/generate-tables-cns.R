@@ -23,7 +23,7 @@ noisy_or_params <-  tribble(~theta, ~beta,
 fn <- "tables"
 
 # noise_params <- c(10, 50, 100, 250)
-noise_params <- c(100, 250, 500)
+noise_params <- c(500)
 
 # Setup -------------------------------------------------------------------
 for(idx_noisy_or in seq(1, nrow(noisy_or_params))){
@@ -74,7 +74,7 @@ for(idx_noisy_or in seq(1, nrow(noisy_or_params))){
     data_tables <- bind_rows(tables) %>% spread(key=cell, value = val) %>% 
                     group_by(cn_id) %>% rowid_to_column("bn_id") %>% 
                     separate(cn_id, into=c("cn", "table_id"), sep="_") %>% 
-                    select(-table_id) %>%  gather(AC,`A-C`, `-AC`, `-A-C`,
+                    dplyr::select(-table_id) %>%  gather(AC,`A-C`, `-AC`, `-A-C`,
                                                   key=cell, value=val)
     plot_tables(data_tables)
     

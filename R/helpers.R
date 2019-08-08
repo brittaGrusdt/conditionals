@@ -7,7 +7,7 @@ library(rwebppl)
 webppl_distrs_to_tibbles <- function(posterior){
   posterior_tibbles <- map2(posterior, names(posterior), function(x, y){
                         x <- x %>% rowid_to_column("bn_id") 
-                        bn_probs <- x %>% select("probs", "bn_id")
+                        bn_probs <- x %>% dplyr::select("probs", "bn_id")
                         data_tibble <- x$support %>% rowid_to_column("bn_id") %>% 
                           unnest() %>%
                           as_tibble() %>% 
@@ -165,23 +165,29 @@ load_data <- function(data, args){
     
     tables <- read_rds(path_tables) %>% filter(n_tables==args$n_tables_per_cn &
                                                  noise_v==args$noise_v)
-    if(is.na(args$noisy_or_beta)){
-      tables <- tables %>% filter(is.na(noisy_or_beta) & is.na(noisy_or_theta))
+    if(is.na(args$nor_beta)){
+      # sample noisy or parameters, filter for specific parameters of resp. distributions
+      tables <- tables %>% filter(is.na(nor_beta) & is.na(nor_theta) &
+                                  param_nor_beta==args$param_nor_beta &
+                                  param_nor_theta==args$param_nor_theta
+                                  )
+      # if(nrow(tables) == 0){
+      #   tables <- ...
+      # }
     } else {
-      tables <- tables %>% filter(noisy_or_beta==args$noisy_or_beta & 
-                                  noisy_or_theta==args$noisy_or_theta)
+      tables <- tables %>% filter(nor_beta==args$nor_beta &
+                                  nor_theta==args$nor_theta)
     }
-    if(!is.na(args$param_nor_beta)){
-      tables <- tables %>% filter(param_nor_beta==args$param_nor_beta &
-                                  param_nor_theta==args$param_nor_theta)
-    }
-    
+    # if(!is.na(args$param_nor_beta)){
+    #   tables <- tables %>% filter(param_nor_beta==args$param_nor_beta &
+    #                               param_nor_theta==args$param_nor_theta)
+    # }
     
     causal_nets <- read_rds(path_cns)
     utterances <- read_rds(path_utterances)
     target_dir <- file.path(".", "data", "results", df$model_fn,
                             fsep = .Platform$file.sep)
-    tables_to_wppl <- tables %>% select(ps, vs)
+    tables_to_wppl <- tables %>% dplyr::select(ps, vs)
   }
   
   # Target files
@@ -212,10 +218,12 @@ run_webppl <- function(params){
 structure_model_data <- function(posterior, params){
   posterior <- posterior %>% 
     map(function(x){
-      as_tibble(x) %>% add_column(noisy_or_beta=params$noisy_or_beta,
-                                  noisy_or_theta=params$noisy_or_theta,
-                                  n_tables=params$n_tables_per_cn,
-                                  noise_v=params$noise_v)
+      as_tibble(x) %>% add_column(nor_beta=params$nor_beta,
+                                  nor_theta=params$nor_theta,
+                                  param_nor_beta=params$param_nor_beta,
+                                  param_nor_theta=params$param_nor_theta,
+                                  n_tables=params$n_tables,
+                                  indep_sigma=params$indep_sigma)
     })
   
   posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
@@ -239,17 +247,16 @@ run_model <- function(params){
     result <- df %>% group_by(support) %>% summarize(p_mean=mean(probs)) %>%
       filter(support==params$utt) %>% pull(p_mean)
     
-  } else if(params$level_max=="logLik"){
+  }else if(params$level_max=="logLik"){
     df <- posterior %>% map(function(x){as_tibble(x)})
-    result <- df$LL %>% unnest() 
+    result <- df$logLik %>% unnest() 
     
-  } else if(params$level_max=="LL-all-utts"){
+  }else if(params$level_max=="LL-all-utts"){
     df <- posterior %>%  map(function(x){as_tibble(x)})
     result <- df$LL %>% unnest() %>% rowid_to_column()
-    result <- result %>% unnest() %>% rename(cell=table.support,
-                                             val=table.probs,
-                                             prob=LL.probs)
-  } else{
+    result <- result %>% unnest() %>% rename(cell=table.support, val=table.probs, prob=LL.probs)
+  } 
+  else{
     result <- structure_model_data(posterior, params)
   }
   return(result)
@@ -312,7 +319,7 @@ get_cp_values <- function(distr){
   # by P(bn)
   distr_wide <- distr %>% spread(key = cell, value = val)
   # causal nets
-  p_cns <- distr_wide %>% select(prob, bn_id, cn, level)
+  p_cns <- distr_wide %>% dplyr::select(prob, bn_id, cn, level)
   marginal <- p_cns %>% group_by(cn, level) %>% summarize(marginal=sum(prob))
   
   marginal <- marginal %>%
@@ -337,7 +344,7 @@ get_cp_values <- function(distr){
                                               hellinger_ac < hellinger_anc ~ "AC",
                                               TRUE ~ "A-C")) %>% 
               unite("dir_val", hel_min_dir, hel_min_val)
-  voi_cns <- values %>% select(level, dir_val) %>%
+  voi_cns <- values %>% dplyr::select(level, dir_val) %>%
               rename(value=dir_val) %>% add_column(key="cp-cns")
   
   
@@ -360,7 +367,7 @@ get_cp_values <- function(distr){
                                    TRUE ~ ev_hel_anc)) %>%
               unite("dir_val", dir, val) %>%
               rename(value=dir_val) %>%
-              select(level, value) %>% add_column(key="cp-bns") 
+              dplyr::select(level, value) %>% add_column(key="cp-bns") 
   
   return(bind_rows(voi_bns, voi_cns))
 }
