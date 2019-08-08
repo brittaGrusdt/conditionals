@@ -1,0 +1,47 @@
+////////////  SET PARAMETERS  /////////////////
+// in vars specify list of all tokens that shall be combined into causal nets
+var vars = [["A", "-A"], ["C", "-C"]]
+
+// Helper --------------------------------------------------------------------
+var negate = function(x){
+  return x.startsWith("-") ? x.slice(1) : "-" + x
+}
+
+var combinations = Infer({model:function(){
+  var bools = repeat(vars.length, flip)
+  var tokens = mapIndexed(function(idx, b){
+    b ? uniformDraw(vars[idx]) : ""
+  }, bools)
+  return filter(function(t){t.length>0}, tokens)
+}}).support()
+var combinations = filter(function(x){x.length > 0}, combinations)
+
+var combine_pairs = function(connective){
+  var pairs_list = mapIndexed(function(idx, tokens1){
+    var arr = filter(function(tokens){
+      all(function(x){
+        tokens.indexOf(x) == -1 && tokens.indexOf(negate(x)) == -1
+      }, tokens1)
+    }, combinations.slice(idx+1))
+
+    var antecedent = tokens1.join(" and ")
+    var ifs = map(function(tokens2){
+      antecedent + connective + tokens2.join(" and ")
+    }, arr)
+
+    var ifs_rev = map(function(tokens2){
+      tokens2.join(" and ") + connective + antecedent
+    }, arr)
+    return ifs.concat(ifs_rev)
+  }, combinations)
+
+  var pairs = reduce(function(arr, acc){
+    acc.concat(arr)
+  }, [], pairs_list)
+  return pairs
+}
+
+// Causal networks  ----------------------------------------------------------
+var dependent_nets = combine_pairs(" implies ")
+var causal_nets = ["A || C"].concat(dependent_nets)
+causal_nets

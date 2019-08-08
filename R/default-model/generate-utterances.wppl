@@ -1,0 +1,178 @@
+var tables_list = data["tables"]
+var causal_nets = data["cns"]
+var verbose = data["verbose"][0]
+var bias = data["bias"][0]
+
+var tables = map(function(obj){
+  Categorical({"vs": obj["vs"], "ps": obj["ps"]})
+}, tables_list)
+if(verbose){ display('# tables: ' + tables.length)}
+
+var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_maybe : 0.499}
+var vars = [["A", "-A"], ["C", "-C"]]
+
+var p_ac_ind = {"none": 1/2,
+                   "lawn": 0.1,
+                   "pizza" : 1,
+                   "BC-impossible-cons": 1
+                }
+// Helper -------------------------------------------------------------------
+var negate = function(x){
+  return x.startsWith("-") ? x.slice(1) : "-" + x
+}
+
+var intersect_arrays = function(arrays){
+  return filter(function(m){
+          var m_in_all_lists = map(function(idx){arrays[idx].indexOf(m) != -1},
+                                  _.range(1,arrays.length))
+          return sum(m_in_all_lists)==m_in_all_lists.length
+    }, arrays[0])
+}
+
+var combinations = Infer({model:function(){
+  var bools = repeat(vars.length, flip)
+  var tokens = mapIndexed(function(idx, b){
+    b ? uniformDraw(vars[idx]) : ""
+  }, bools)
+  return filter(function(t){t.length>0}, tokens)
+}}).support()
+var combinations = filter(function(x){x.length > 0}, combinations)
+
+var marginal = cache(function(table, variables){
+  // computes the probability of P(A) marginalized over all other variables in
+  // support of table with P=table and variables=["A"]
+  var tokens = table.support()
+  var all_x = map(function(v){
+    v.includes("-") ? filter(function(k){k.includes(v)}, tokens) :
+                      filter(function(k){!k.includes("-"+v)}, tokens)
+  }, variables)
+  var xs = intersect_arrays(all_x)
+
+  return reduce(function(x, acc){acc + Math.exp(table.score(x))}, 0, xs)
+})
+
+var combine_pairs = function(connective){
+  var pairs_list = mapIndexed(function(idx, tokens1){
+    var arr = filter(function(tokens){
+      all(function(x){
+        tokens.indexOf(x)==-1 && tokens.indexOf(negate(x)) == -1
+      }, tokens1)
+    }, combinations.slice(idx+1))
+
+    var antecedent = tokens1.join(" and ")
+    var ifs = map(function(tokens2){
+      antecedent + connective + tokens2.join(" and ")
+    }, arr)
+
+    var ifs_rev = map(function(tokens2){
+      tokens2.join(" and ") + connective + antecedent
+    }, arr)
+    return ifs.concat(ifs_rev)
+  }, combinations)
+
+  var pairs = reduce(function(arr, acc){
+    acc.concat(arr)
+  }, [], pairs_list)
+  return pairs
+}
+
+var cn_prior = function(bias) {
+  var p_ind = p_ac_ind[bias]
+  var p_dep = (1 - p_ind) / (causal_nets.length-1)
+  var ps = map(function(cn){cn=="A || C" ?  p_ind : p_dep}, causal_nets)
+  return categorical({vs: causal_nets, ps: ps})
+}
+
+var as_if_zero = 0.000001
+var log_likelihood = function(state){
+  var p = cn_to_prob(state)
+  return state.cn == "A || C" ? (p == 0 ? -Math.log(as_if_zero) : -Math.log(p))
+                              : Math.exp(Beta({a:10, b:1}).score(p))
+}
+
+var state_prior = cache(function(bias){
+  return Infer({method:'enumerate', model:function(){
+    var state = {"table": uniformDraw(tables),
+                 "cn": cn_prior(bias)}
+    // var association_strength = log_likelihood(state)
+    // factor(association_strength)
+
+    if(bias == 'lawn'){
+      if(Math.exp(state.table.score("-AC")) <= globalStore.thetaCP){
+        factor(-Math.log(thresholds.f))
+      }
+    }else if(bias == "BC-impossible-cons"){
+      condition(marginal(state.table, ["C"]) <= thresholds.f)
+    }
+    return state
+  }})
+})
+
+var all_states = state_prior(bias).support()
+if(verbose){ display('# states: ' + all_states.length)}
+
+// Utterances and meaning ----------------------------------------------------
+var literals_conjunctions = map(function(tokens){
+  tokens.join(" and ")
+}, combinations)
+if(verbose){
+  display('# literals + conjunctions: ' + literals_conjunctions.length)
+}
+
+var literals = filter(function(utt){!utt.includes(" and ")},
+                      literals_conjunctions)
+var maybes = map(function(utt){'maybe ' + utt}, literals)
+if(verbose){ display('# maybe: ' + maybes.length) }
+
+var conditionals = combine_pairs(" > ")
+if(verbose){ display('# conditionals: ' + conditionals.length) }
+
+var utterances = literals_conjunctions.concat(conditionals.concat(maybes))
+if(verbose){
+  display('' + '# all utterances: ' + utterances.length)
+}
+
+var utterance_probs = cache(function(utterance, table){
+  if(conditionals.indexOf(utterance) != -1){
+    var components = utterance.split(" > ")
+    var antecedent = components[0].split(" and ").join("")
+    var consequent = components[1].split(" and ").join("")
+    return marginal(table, [antecedent, consequent]) /
+           marginal(table, [antecedent])
+  }
+  if(literals.indexOf(utterance) != -1){return marginal(table, [utterance])}
+  if(maybes.indexOf(utterance) != -1){
+    var u = utterance.slice("maybe ".length)
+    return marginal(table, [u])
+  }
+  if(literals_conjunctions.indexOf(utterance) != -1){
+    var components = utterance.split(" and ")
+    return marginal(table, components)
+  }
+  else{error("unknown utterance " + utterance)}
+}, 10000)
+
+var meaning = cache(function(utterance, state){
+ var p = utterance_probs(utterance, state.table)
+ var u_applicable = utterance.includes('maybe') ?
+     (p >= thresholds.theta_maybe) : p >= thresholds.theta
+ return u_applicable
+})
+var utts_to_remove = filter(function(u){
+  !any(function(s){meaning(u, s)}, all_states)
+}, utterances)
+
+if(verbose){
+  display("")
+  display('# utts without corresponding state: ' + utts_to_remove.length)
+  map(display, utts_to_remove)
+}
+
+var utterances = filter(function(u){utts_to_remove.indexOf(u)==-1}, utterances)
+if(verbose){
+  display("")
+  display('# included utterances: ' + utterances.length)
+  map(display, utterances)
+}
+
+utterances
