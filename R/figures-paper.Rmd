@@ -37,7 +37,7 @@ adapt_bn_ids <- function(data_wide){
   
   # not all Bayes nets that are in the prior also occur in the literal/pragmatic listener
   # (but there is no diff btw. those in LL/PL)
-  idx_dups <- df %>% select(-level, -prob, -bn_id) %>% duplicated()
+  idx_dups <- df %>% dplyr::select(-level, -prob, -bn_id) %>% duplicated()
   duplicates_prior <- df[idx_dups, ] %>%  arrange(cn, `AC`, `AC`, `A-C`, `-AC`, `-A-C`)
   duplicates_prior$level %>% unique()
   
