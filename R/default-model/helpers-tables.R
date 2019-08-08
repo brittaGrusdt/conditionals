@@ -111,3 +111,8 @@ filter_tables <- function(tables, params){
   }
   return(df)
 }
+
+unnest_tables <- function(tables){
+  tables_long <- tables %>% unnest() %>% rename(cell=vs, val=ps)
+  return(tables_long)
+}
