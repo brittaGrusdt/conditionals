@@ -13,7 +13,7 @@ params <- tibble(n_tables=500,
                  bias="none",
                  verbose=TRUE,
                  alpha=3,
-                 level_max="PL",
+                 level_max="LL-all-utts",
                  cost_conditional=0,
                  utt="A > C",
                  save=TRUE,
@@ -31,7 +31,7 @@ utts_path <- file.path(TARGET_DIR, utts_fn, fsep = .Platform$file.sep)
 utts_wppl_model <- "./R/default-model/generate-utterances.wppl"
 
 tables_path <- file.path(TARGET_DIR, "tables-all.rds", fsep=.Platform$file.sep)
-
+tables_path <- file.path("./data/precomputations/model-general/tables-all.rds", fsep=.Platform$file.sep)
 
 if(!file.exists(tables_path)){
   tables <- create_tables(params, tables_path)
