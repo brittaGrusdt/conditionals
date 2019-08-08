@@ -165,6 +165,8 @@ load_data <- function(data, args){
     
     tables <- read_rds(path_tables) %>% filter(n_tables==args$n_tables_per_cn &
                                                  noise_v==args$noise_v)
+    print("load tables from")
+    print(path_tables)
     if(is.na(args$nor_beta)){
       # sample noisy or parameters, filter for specific parameters of resp. distributions
       tables <- tables %>% filter(is.na(nor_beta) & is.na(nor_theta) &

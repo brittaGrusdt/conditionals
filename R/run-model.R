@@ -12,8 +12,8 @@ DATA <- tribble(~id, ~bias, ~save_as, ~utterance, ~model_fn,
 # Set parameters --------------------------------------------------------------
 args <- list(n_tables_per_cn=500,
              noise_v=250,
-             noisy_or_beta=NA, 
-             noisy_or_theta=NA, 
+             nor_beta=NA, 
+             nor_theta=NA, 
              param_nor_beta=10,
              param_nor_theta=10,
              alpha=5,
@@ -39,8 +39,8 @@ params <- tribble(~theta, ~beta,
 priors <- list()
 marginals <- list()
 for(i in seq(1, nrow(params))){
-  args$noisy_or_beta <- params[i,]$beta
-  args$noisy_or_theta <- params[i,]$theta
+  args$nor_beta <- params[i,]$beta
+  args$nor_theta <- params[i,]$theta
   model_params <- load_data(DATA, args)
   
   data <- run_model(model_params)
@@ -63,8 +63,8 @@ marginals
 
 # check utterance cost ----------------------------------------------------
 utterances <- readRDS("./data/precomputations/model-general/utterances-none.rds")
-args$noisy_or_beta <- NA
-args$noisy_or_theta <- NA
+args$nor_beta <- NA
+args$nor_theta <- NA
 args$level_max <- "speaker_all_bns"
 
 # costs_conditional <- seq(0, 1, 2)
@@ -96,15 +96,15 @@ saveRDS(data_utts, "./data/precomputations/model-general/utt-cost.rds")
 model_ids <- c(1,2,3)
 
 args <- list(n_tables_per_cn=500,
-             noise_v=250,
-             noisy_or_beta=NA, 
-             noisy_or_theta=NA, 
+             noise_v=500,
+             nor_beta=NA, 
+             nor_theta=NA, 
              param_nor_beta=10,
              param_nor_theta=10,
              alpha=5,
              verbose=TRUE,
              model_id=1, 
-             level_max="PL",
+             level_max="prior",
              cost_conditional=0,
              save=TRUE)
 
@@ -120,8 +120,8 @@ sundowners_id <- 5
 
 args <- list(n_tables_per_cn=NA,
              noise_v=NA,
-             noisy_or_beta=NA, 
-             noisy_or_theta=NA, 
+             nor_beta=NA, 
+             nor_theta=NA, 
              param_nor_beta=10,
              param_nor_theta=10,
              alpha=5,
@@ -142,8 +142,8 @@ if(args$save){save(res, paste(model_params$target_dir, "/model-", args$model_id,
 # run model for log-likelihood --------------------------------------------
 args <- list(n_tables_per_cn=500,
              noise_v=250,
-             noisy_or_beta=NA, 
-             noisy_or_theta=NA, 
+             nor_beta=NA, 
+             nor_theta=NA, 
              param_nor_beta=10,
              param_nor_theta=10,
              alpha=NA,
