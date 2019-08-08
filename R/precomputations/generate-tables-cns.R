@@ -53,8 +53,8 @@ for(idx_noisy_or in seq(1, nrow(noisy_or_params))){
     # Run WebPPL --------------------------------------------------------------
     webppl_args <- list(noise=noise,
                         n_tables=n_tables,
-                        noisy_or_beta=noisy_or_beta,
-                        noisy_or_theta=noisy_or_theta,
+                        nor_beta=noisy_or_beta,
+                        nor_theta=noisy_or_theta,
                         param_nor_beta=10,
                         param_nor_theta=10,
                         verbose=verbose)
@@ -86,7 +86,7 @@ for(idx_noisy_or in seq(1, nrow(noisy_or_params))){
               transmute(ps=list(c(`AC`, `A-C`, `-AC`, `-A-C`)),
                         vs=list(c("AC", "A-C", "-AC", "-A-C")),
                         cn=cn) %>%
-      add_column(noisy_or_theta=noisy_or_theta, noisy_or_beta=noisy_or_beta,
+      add_column(nor_theta=noisy_or_theta, nor_beta=noisy_or_beta,
                  param_nor_beta=webppl_args$param_nor_beta,
                  param_nor_theta=webppl_args$param_nor_theta,
                  noise_v=noise, n_tables=n_tables, seed=seed) 
