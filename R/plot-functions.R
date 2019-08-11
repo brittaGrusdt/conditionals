@@ -15,7 +15,7 @@ plot_cns <- function(data, level){
           ggplot() + 
           geom_bar(mapping = aes(x=cn, y=prob, fill=level),
                    stat="identity", position="dodge") + 
-          # facet_wrap(~level) + 
+          facet_wrap(~level) + 
           labs(x="causal nets", y="probability") +
           theme(axis.text.x = element_text(angle = 90))
   }else{
@@ -32,7 +32,8 @@ plot_cns <- function(data, level){
 plot_density <- function(df, xlab, level, evs){
   if(is.null(level)){
       p <- df %>%  ggplot() + 
-                    geom_density(mapping = aes(x=support, col=level)) +
+                    geom_density(mapping = aes(x=support, col=level),
+                                 adjust = 6) +
                     labs(x=xlab, y="density")
       if(!is.null(evs)){
         p <- p + geom_vline(data=evs, aes(xintercept=ev, color=level),
@@ -42,7 +43,7 @@ plot_density <- function(df, xlab, level, evs){
       col <- level2color %>% filter(level == (!!level)) %>% pull(col)
       p <- df %>% filter(level==(!! level)) %>% 
         ggplot() + 
-        geom_density(mapping = aes(x=support, col=col)) + 
+        geom_density(mapping = aes(x=support, col=col),  adjust = 6) + 
         labs(title=level, x=xlab, y="probability") +
         theme(axis.text.x = element_text(angle = 90), legend.position = "none")
       
