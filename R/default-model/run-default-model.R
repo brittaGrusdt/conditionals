@@ -7,13 +7,15 @@ library(tidyverse)
 params <- tibble(n_tables=500,
                  nor_beta=NA,
                  nor_theta=NA,
-                 param_nor_beta=1,
+                 param_nor_beta=10,
                  param_nor_theta=10,
                  indep_sigma=0.001,
                  bias="none",
+                 # bias="pizza",
+                 # bias="lawn",
                  verbose=TRUE,
                  alpha=3,
-                 level_max="LL-all-utts",
+                 level_max="PL",
                  cost_conditional=0,
                  utt="A > C",
                  save=TRUE,
@@ -31,7 +33,6 @@ utts_path <- file.path(TARGET_DIR, utts_fn, fsep = .Platform$file.sep)
 utts_wppl_model <- "./R/default-model/generate-utterances.wppl"
 
 tables_path <- file.path(TARGET_DIR, "tables-all.rds", fsep=.Platform$file.sep)
-tables_path <- file.path("./data/precomputations/model-general/tables-all.rds", fsep=.Platform$file.sep)
 
 if(!file.exists(tables_path)){
   tables <- create_tables(params, tables_path)
@@ -45,11 +46,11 @@ tables_to_wppl <- tables %>% dplyr::select(ps, vs)
 
 if(!file.exists(utts_path)){
   # Run WebPPL program to generate utterances
+  args <- params %>% as.list()
+  args$tables = tables
+  args$cns = CNS
   utterances <- webppl(program_file = utts_wppl_model,
-                       data = list(bias=bias,
-                                   tables=tables,
-                                   cns=CNS,
-                                   verbose=TRUE),
+                       data = args,
                        data_var = "data")
   utterances %>% save(utts_path)
 } else {
@@ -68,4 +69,4 @@ model_params$target_fn=paste("results-", params$bias, sep="")
 
 
 posterior <- run_model(model_params)
-
+posterior
