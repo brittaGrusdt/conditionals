@@ -46,6 +46,7 @@ if(!file.exists(tables_path)){
   tables <- create_tables(params, tables_path)
 } else {
   tables <- readRDS(tables_path) %>% filter_tables(params)
+  print(paste("tables read from:", tables_path))
   if(nrow(tables)==0){
     tables <- create_tables(params, tables_path)
   }
@@ -77,4 +78,5 @@ model_params$target_fn=paste("results-", params$bias, sep="")
 
 
 posterior <- run_model(model_params)
-posterior
+voi <- get_voi(posterior, model_params)
+voi

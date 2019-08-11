@@ -30,7 +30,7 @@ var verbose = data["verbose"][0]
 // -------------- INPUT DATA -----------------------//
 
 var vars = [["A", "-A"], ["C", "-C"]]
-var p_ac_ind = {"none": 1/9,
+var p_ac_ind = {"none": 0.25,
                 "lawn": 0.1,
                 "pizza" : 1,
                 "dutchman" : 1

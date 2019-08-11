@@ -375,8 +375,8 @@ voi_epistemic_uncertainty <- function(posterior, params){
   val_no_bias <- get_speaker_uncertainty(posterior, params$theta) %>% 
     mutate(key="epistemic_uncertainty",
            cost=params$cost_conditional, alpha=params$alpha,
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta,
+           param_nor_beta=params$param_nor_beta,
+           param_nor_theta=params$param_nor_theta,
            value=as.character(value))
   return(val_no_bias)
 }
@@ -387,8 +387,8 @@ voi_pc <- function(posterior, params){
     rename(value=ev) %>% 
     mutate(key="pc",
            cost=params$cost_conditional, alpha=params$alpha, 
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta,
+           param_nor_beta=params$param_nor_beta,
+           param_nor_theta=params$param_nor_theta,
            value=as.character(value))
   return(val_biscuits)
 }
@@ -398,9 +398,9 @@ voi_pa <- function(posterior, params){
     expected_val("A") %>% select(-p) %>% 
     rename(value=ev) %>% 
     mutate(key="pa",
-           cost=c, alpha=a, 
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta,
+           cost=params$cost_conditional, alpha=params$alpha, 
+           param_nor_beta=params$param_nor_beta,
+           param_nor_theta=params$param_nor_theta,
            value=as.character(value))
   return(val_pa)
 }
@@ -408,8 +408,8 @@ voi_pa <- function(posterior, params){
 voi_conditional_perfection <- function(posterior, params){
   val_cp <- get_cp_values(posterior) %>% 
     mutate(cost=params$cost_conditional, alpha=params$alpha,
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta)
+           param_nor_beta=params$param_nor_beta,
+           param_nor_theta=params$param_nor_theta)
   return(val_cp)
 }
 
@@ -422,6 +422,9 @@ get_voi <- function(posterior, params){
   results <- bind_rows(uncertainty, pa, pc, cp) %>%
               add_column(seed=params$seed,
                          n_tables=params$n_tables)
+  
+  name <- file.path(params$target_dir, params$target_fn, fsep=.Platform$file.sep)
+  results %>% save(paste(name, "-voi.rds", sep=""))
   return(results)
 }
 
