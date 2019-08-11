@@ -48,7 +48,8 @@ create_dependent_tables <- function(params){
     }
     
     tables <- probs %>% dplyr::select(-cond1, -cond2, -marginal) %>% rowid_to_column("id") 
-    tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val")
+    tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
+                    mutate(val=round(val, 4))
     tables_wide <- tables_long %>% group_by(id) %>% summarize(ps = list(val)) %>% add_column(cn=(!! cn)) %>% 
       mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
     
@@ -71,7 +72,8 @@ create_independent_tables <- function(params){
   
   tables <- tables %>% add_column(`-A-C`=cell_nanc) %>% mutate(s=sum(`AC`, `-AC`, `A-C`, `-A-C`))
   
-  tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val")
+  tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
+                  mutate(val=round(val, 4))
   tables_wide <- tables_long %>% group_by(id) %>% summarize(ps = list(val)) %>% add_column(cn="A || C") %>% 
     mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
   
@@ -80,14 +82,21 @@ create_independent_tables <- function(params){
 
 create_tables <- function(params, target_path){
   tables_all <- list()
-  tables_ind <- create_independent_tables(params)
-  tables_dep <- create_dependent_tables(params)
+  if(params$bias == "dutchman" || params$bias == "pizza"){
+    params$n_tables <- params$n_tables * 9
+    tables_ind <- create_independent_tables(params)
+    tables_dep <- tibble()
+  } else {
+    tables_ind <- create_independent_tables(params)
+    tables_dep <- create_dependent_tables(params)
+  }
   tables <- bind_rows(tables_ind, tables_dep) %>% rowid_to_column("id") %>% 
               mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,
                      param_nor_theta=params$param_nor_theta,
                      param_nor_beta=params$param_nor_beta,
                      indep_sigma=params$indep_sigma,
                      n_tables=params$n_tables,
+                     bias=params$bias,
                      seed=SEED
               )
   tables_new <- tables
@@ -99,7 +108,6 @@ create_tables <- function(params, target_path){
   return(tables)
 }
 
-
 filter_tables <- function(tables, params){
   if(is.na(params$nor_beta)){
     df <- tables %>% filter(is.na(nor_beta) & is.na(nor_theta) &
@@ -109,10 +117,36 @@ filter_tables <- function(tables, params){
     df <- tables %>% filter(nor_beta == params$nor_beta &
                             nor_theta == params$nor_theta)
   }
+  df <- df %>% filter(n_tables == params$n_tables &
+                      indep_sigma == params$indep_sigma & 
+                      bias == params$bias &
+                      seed == params$seed)
   return(df)
 }
 
 unnest_tables <- function(tables){
+  tables <- tables %>% rowid_to_column()
   tables_long <- tables %>% unnest() %>% rename(cell=vs, val=ps)
   return(tables_long)
 }
+
+adapt_bn_ids <- function(data_wide){
+  # makes sure that bn_ids are identical across levels PL/LL/prior
+  prior <- data_wide %>% filter(level=="prior") %>% arrange(cn, `AC`, `-AC`, `A-C`, `-A-C`)
+  ll <- data_wide %>% filter(level=="LL") %>% arrange(cn, `AC`, `-AC`, `A-C`, `-A-C`)
+  pl <- data_wide %>% filter(level=="PL") %>% arrange(cn, `AC`, `-AC`, `A-C`, `-A-C`)
+  df <- bind_rows(ll, prior)
+  
+  # not all Bayes nets that are in the prior also occur in the literal/pragmatic listener
+  # (but there is no diff btw. those in LL/PL)
+  idx_dups <- df %>% dplyr::select(-level, -prob, -bn_id) %>% duplicated()
+  duplicates_prior <- df[idx_dups, ] %>%  arrange(cn, `AC`, `AC`, `A-C`, `-AC`, `-A-C`)
+  duplicates_prior$level %>% unique()
+  
+  # pl <- pl %>% mutate(bn_id=duplicates_prior$bn_id)
+  ll <- ll %>% mutate(bn_id=duplicates_prior$bn_id)
+  
+  df <- bind_rows(prior, ll, pl)
+  return(df)
+}
+

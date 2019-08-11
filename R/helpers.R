@@ -59,12 +59,6 @@ compute_cond_prob <- function(distr_wide, prob){
   return(distr)
 }
 
-
-# ev_conditional_prob <- function(distr_wide, prob){
-#   df <- compute_cond_prob(distr_wide, prob)
-#   sum(df$bn_probs * df$cond)
-# }
-
 hellinger <- function(p, q){
   (1/sqrt(2)) * sqrt(sum((sqrt(p)-sqrt(q))^2))
 }
@@ -130,12 +124,6 @@ plot_tables <- function(data){
 
 
 # data structures ---------------------------------------------------------
-get_target_folder <- function(seed, noise, n_tables){
-  noise_str <- as.character(noise) %>% str_replace("\\.", "_")
-  fn <- paste("seed-", seed, "-noise-", noise_str, "-tables-", n_tables, sep="")
-  return(fn)
-}
-
 save <- function(data, target_path){
   data %>% write_rds(target_path)
   print(paste("saved to:", target_path))
@@ -285,71 +273,56 @@ convert_data <- function(data_tables){
   return(data_tables)
 }
 
-# not needed anymore!?
-join_model_levels <- function(data){
-  data_prior <- data$prior %>% add_column(level="prior")
-  data_ll <- data$LL %>% add_column(level="LL")
-  data_pl <- data$PL %>% add_column(level="PL")
-  predictions <- bind_rows(data_prior, data_ll, data_pl)
-  predictions <- predictions %>% spread(key=cell, val=val) %>%
-    group_by(bn_id, level)
-  return(predictions)
-}
-
-
 # values-of-interest ------------------------------------------------------
 
-# theta <= P(C) <= 1-theta where theta is threshold at which utterances count as true
-get_speaker_uncertainty <- function(distr, threshold){
-  pc <- marginalize(distr, c("C"))
-  pc_intervals <- pc %>% filter(p>=threshold |
-                                p<=1-threshold)
-  
-  evs <- pc_intervals %>% group_by(level) %>% summarize(value=sum(prob)) %>% 
-          add_column(key="sp-uncertainty")
-  return(evs)
-}
-
-
-
-
-get_cp_values <- function(distr){
-  # Expected value of the minimum of the hellinger distances
-  # a: 0 1  and b: 1 0
-  #    1 0         0 1
-  # and each Bayes net: f(bn) = min(hellinger(a, bn), helling(b, bn)) weighted
-  # by P(bn)
-  distr_wide <- distr %>% spread(key = cell, value = val)
-  # causal nets
+# 1. returns the minimum of the hellinger distances between P(cn) and
+# a) P(A->C)=0.25, P(-A->-C)=0.25, P(C->A)=0.25, P(-C->-A)=0.25
+# b) P(A->-C)=0.25, P(-A->C)=0.25, P(-C->A)=0.25, P(C->-A)=0.25
+# and the direction of minimum
+get_cp_values_cns <- function(distr_wide){
   p_cns <- distr_wide %>% dplyr::select(prob, bn_id, cn, level)
+  # get marginal probabilities for each cn
   marginal <- p_cns %>% group_by(cn, level) %>% summarize(marginal=sum(prob))
   
+  # distributions to compare with
   marginal <- marginal %>%
-                mutate(marginal_cp1=case_when(cn=="A implies C" ~ 0.25,
-                                              cn=="-A implies -C" ~ 0.25,
-                                              cn=="C implies A" ~ 0.25,
-                                              cn=="-C implies -A" ~ 0.25,
-                                              TRUE ~ 0
-                                              ), 
-                       marginal_cp2=case_when(cn=="A implies -C" ~ 0.25,
-                                              cn=="-A implies C" ~ 0.25,
-                                              cn=="C implies -A" ~ 0.25,
-                                              cn=="-C implies A" ~ 0.25,
-                                              TRUE ~ 0
-                       ))
+    mutate(marginal_cp1=case_when(cn=="A implies C" ~ 0.25,
+                                  cn=="-A implies -C" ~ 0.25,
+                                  cn=="C implies A" ~ 0.25,
+                                  cn=="-C implies -A" ~ 0.25,
+                                  TRUE ~ 0
+    ), 
+    marginal_cp2=case_when(cn=="A implies -C" ~ 0.25,
+                           cn=="-A implies C" ~ 0.25,
+                           cn=="C implies -A" ~ 0.25,
+                           cn=="-C implies A" ~ 0.25,
+                           TRUE ~ 0
+    ))
   
   values <- marginal %>% group_by(level) %>%
-              summarize(hellinger_ac=hellinger(marginal, marginal_cp1),
-                        hellinger_anc=hellinger(marginal, marginal_cp2),
-                        hel_min_val=min(hellinger_ac, hellinger_anc),
-                        hel_min_dir=case_when(hellinger_ac == hellinger_anc ~ "eq",
-                                              hellinger_ac < hellinger_anc ~ "AC",
-                                              TRUE ~ "A-C")) %>% 
-              unite("dir_val", hel_min_dir, hel_min_val)
+    summarize(hellinger_ac=hellinger(marginal, marginal_cp1),
+              hellinger_anc=hellinger(marginal, marginal_cp2),
+              hel_min_val=min(hellinger_ac, hellinger_anc),
+              hel_min_dir=case_when(hellinger_ac == hellinger_anc ~ "eq",
+                                    hellinger_ac < hellinger_anc ~ "AC",
+                                    TRUE ~ "A-C")) %>% 
+    unite("dir_val", hel_min_dir, hel_min_val)
+  
   voi_cns <- values %>% dplyr::select(level, dir_val) %>%
               rename(value=dir_val) %>% add_column(key="cp-cns")
-  
-  
+  return(voi_cns)
+}
+
+# 2. for each Bayes net compute the hellinger distance (h) between the joint
+#    distribution of A and C with distribution (a) and distribution (b) 
+# with (a): P(A,C)  = 0.5, P(-A,-C) = 0.5 
+# and  (b): P(A,-C) = 0.5, P(-A,C)  = 0.5
+# compute weighted average of prior probability of Bayes nets weighted by 
+# respective hellinger distance:
+# a) sum_bn P(bn) * h(bn, a)
+# b) sum_bn P(bn) * h(bn, b)
+# returns minimum of both evs and direction 
+get_cp_values_bns <- function(distr_wide){
   # expected values of corresponding conditional probabilities
   values <- distr_wide %>% group_by(bn_id, level) %>% 
     mutate(hellinger_anc=hellinger(c(`AC`, `A-C`, `-AC`, `-A-C`), 
@@ -358,19 +331,91 @@ get_cp_values <- function(distr){
                                   c(0.5, 0, 0, 0.5))
     ) 
   values <- values %>% group_by(level) %>%
-              summarize(ev_hel_ac=sum(prob*hellinger_ac),
-                        ev_hel_anc=sum(prob*hellinger_anc))
+    summarize(ev_hel_ac=sum(prob*hellinger_ac),
+              ev_hel_anc=sum(prob*hellinger_anc))
   
   voi_bns <- values %>%
-              mutate(dir=case_when(ev_hel_ac == ev_hel_anc ~ "eq",
-                                   ev_hel_ac < ev_hel_anc ~ "AC",
-                                   TRUE ~ "A-C"),
-                     val=case_when(ev_hel_ac < ev_hel_anc ~ ev_hel_ac,
-                                   TRUE ~ ev_hel_anc)) %>%
-              unite("dir_val", dir, val) %>%
-              rename(value=dir_val) %>%
-              dplyr::select(level, value) %>% add_column(key="cp-bns") 
-  
+    mutate(dir=case_when(ev_hel_ac == ev_hel_anc ~ "eq",
+                         ev_hel_ac < ev_hel_anc ~ "AC",
+                         TRUE ~ "A-C"),
+           val=case_when(ev_hel_ac < ev_hel_anc ~ ev_hel_ac,
+                         TRUE ~ ev_hel_anc)) %>%
+                unite("dir_val", dir, val) %>%
+                rename(value=dir_val) %>%
+                dplyr::select(level, value) %>% add_column(key="cp-bns")
+  return(voi_bns)
+}
+
+get_cp_values <- function(distr){
+  distr_wide <- distr %>% spread(key = cell, value = val)
+  voi_cns <- get_cp_values_cns(distr_wide)
+  voi_bns <- get_cp_values_bns(distr_wide)
   return(bind_rows(voi_bns, voi_cns))
+}
+
+# theta <= P(C) <= 1-theta where theta is threshold at which utterances count
+# as true
+get_speaker_uncertainty <- function(distr, theta){
+  pc <- marginalize(distr, c("C"))
+  pc_intervals <- pc %>% filter(p>=theta | p<=1-theta)
+  
+  evs <- pc_intervals %>% group_by(level) %>% summarize(value=sum(prob)) %>% 
+    add_column(key="sp-uncertainty")
+  return(evs)
+}
+
+
+voi_epistemic_uncertainty <- function(posterior, params){
+  val_no_bias <- get_speaker_uncertainty(posterior, args$threshold) %>% 
+    mutate(key="epistemic_uncertainty",
+           cost=params$cost_conditional, alpha=params$alpha,
+           param_nor_beta=param_beta,
+           param_nor_theta=param_theta,
+           value=as.character(value))
+  return(val_no_bias)
+}
+
+voi_pc <- function(posterior, params){
+  val_biscuits <- marginalize(posterior, c("C")) %>%
+    expected_val("C") %>% select(-p) %>%
+    rename(value=ev) %>% 
+    mutate(key="biscuits_pc",
+           cost=params$cost_conditional, alpha=params$alpha, 
+           param_nor_beta=param_beta,
+           param_nor_theta=param_theta,
+           value=as.character(value))
+  return(val_biscuits)
+}
+
+voi_pa <- function(posterior, params){
+  val_pa <- marginalize(posterior, c("A")) %>% 
+    expected_val("A") %>% select(-p) %>% 
+    rename(value=ev) %>% 
+    mutate(key="pa",
+           cost=c, alpha=a, model_id=m,
+           param_nor_beta=param_beta,
+           param_nor_theta=param_theta,
+           value=as.character(value))
+  return(val_pa)
+}
+
+voi_conditional_perfection <- function(posterior, params){
+  val_cp <- get_cp_values(posterior) %>% 
+    mutate(cost=params$cost_conditional, alpha=params$alpha,
+           param_nor_beta=param_beta,
+           param_nor_theta=param_theta)
+  return(val_cp)
+}
+
+get_voi <- function(posterior, params){
+  uncertainty <- voi_epistemic_uncertainty(posterior, params)
+  pa <- voi_pa(posterior, params)
+  pc <- voi_pc(posterior, params)
+  cp <- voi_conditional_perfection(posterior, params)
+  
+  results <- bind_rows(uncertainty, pa, pc, cp) %>%
+              add_column(seed=model_params$seed,
+                         n_tables=model_params$n_tables_per_cn)
+  return(results)
 }
 

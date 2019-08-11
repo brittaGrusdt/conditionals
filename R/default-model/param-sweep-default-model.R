@@ -1,4 +1,5 @@
 source("R/default-model/helpers-tables.R")
+source("R/helpers.R")
 library(rwebppl)
 library(tidyverse)
 
@@ -37,60 +38,7 @@ params <- tibble(n_tables=500,
                  seed=1234)
 
 
-voi_epistemic_uncertainty <- function(posterior, params){
-  val_no_bias <- get_speaker_uncertainty(posterior, args$threshold) %>% 
-    mutate(key="epistemic_uncertainty",
-           cost=params$cost_conditional, alpha=params$alpha,
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta,
-           value=as.character(value))
-  return(val_no_bias)
-}
 
-voi_pc <- function(posterior, params){
-  val_biscuits <- marginalize(posterior, c("C")) %>%
-    expected_val("C") %>% select(-p) %>%
-    rename(value=ev) %>% 
-    mutate(key="biscuits_pc",
-           cost=params$cost_conditional, alpha=params$alpha, 
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta,
-           value=as.character(value))
-  return(val_biscuits)
-}
-
-voi_pa <- function(posterior, params){
-  val_pa <- marginalize(posterior, c("A")) %>% 
-    expected_val("A") %>% select(-p) %>% 
-    rename(value=ev) %>% 
-    mutate(key="pa",
-           cost=c, alpha=a, model_id=m,
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta,
-           value=as.character(value))
-  return(val_pa)
-}
-
-voi_conditional_perfection <- function(posterior, params){
-  val_cp <- get_cp_values(posterior) %>% 
-    mutate(cost=params$cost_conditional, alpha=params$alpha,
-           param_nor_beta=param_beta,
-           param_nor_theta=param_theta)
-  return(val_cp)
-}
-
-get_voi <- function(posterior, params){
-  uncertainty <- voi_epistemic_ucnertainty(posterior, params)
-  pa <- voi_pa(posterior, params)
-  pc <- voi_pc(posterior, params)
-  cp <- voi_conditional_perfection(posterior, params)
-  
-  results <- bind_rows(uncertainty, pa, pc, cp) %>%
-    add_column(seed=model_params$seed,
-               n_tables=model_params$n_tables_per_cn)
-  return(results)
-  
-}
 
 run_default_model <- function(tables_to_wppl, params){
   model_params <- params %>% as.list()
