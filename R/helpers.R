@@ -252,6 +252,12 @@ run_model <- function(params){
   return(result)
 }
 
+run_model_voi <- function(params){
+  # params: list
+  posterior <- run_model(params)
+  voi <- get_voi(posterior, params)
+  return(voi)
+}
 
 # Data transformations -----------------------------------------------------
 convert_data <- function(data_tables){
@@ -366,7 +372,7 @@ get_speaker_uncertainty <- function(distr, theta){
 
 
 voi_epistemic_uncertainty <- function(posterior, params){
-  val_no_bias <- get_speaker_uncertainty(posterior, args$threshold) %>% 
+  val_no_bias <- get_speaker_uncertainty(posterior, params$theta) %>% 
     mutate(key="epistemic_uncertainty",
            cost=params$cost_conditional, alpha=params$alpha,
            param_nor_beta=param_beta,
@@ -379,7 +385,7 @@ voi_pc <- function(posterior, params){
   val_biscuits <- marginalize(posterior, c("C")) %>%
     expected_val("C") %>% select(-p) %>%
     rename(value=ev) %>% 
-    mutate(key="biscuits_pc",
+    mutate(key="pc",
            cost=params$cost_conditional, alpha=params$alpha, 
            param_nor_beta=param_beta,
            param_nor_theta=param_theta,
@@ -392,7 +398,7 @@ voi_pa <- function(posterior, params){
     expected_val("A") %>% select(-p) %>% 
     rename(value=ev) %>% 
     mutate(key="pa",
-           cost=c, alpha=a, model_id=m,
+           cost=c, alpha=a, 
            param_nor_beta=param_beta,
            param_nor_theta=param_theta,
            value=as.character(value))
@@ -414,8 +420,8 @@ get_voi <- function(posterior, params){
   cp <- voi_conditional_perfection(posterior, params)
   
   results <- bind_rows(uncertainty, pa, pc, cp) %>%
-              add_column(seed=model_params$seed,
-                         n_tables=model_params$n_tables_per_cn)
+              add_column(seed=params$seed,
+                         n_tables=params$n_tables)
   return(results)
 }
 

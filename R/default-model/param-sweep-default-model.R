@@ -3,31 +3,31 @@ source("R/helpers.R")
 library(rwebppl)
 library(tidyverse)
 
-ALPHAS <- c(0.5)#, 1, 2, 3, 5, 10)
+# Set Parameters that are iterated over -----------------------------------
+ALPHAS <- c(0.5, 1) #, 2, 3, 5, 10)
 COSTS_CONDITIONAL <- c(0)#, 0.01, 0.05, 0.1, 0.25, 0.5)
 PARAM_NOR_BETAS <- c(10)
 PARAM_NOR_THETAS <- c(10)
 
-CNS <- c("A implies C", "A implies -C", "-A implies C", "-A implies -C", 
-         "C implies A", "C implies -A", "-C implies A", "-C implies -A", "A || C")
-UTTERANCES <- c("-C", "C", "-A", "A",
-                "-A and -C", "-A and C", "A and -C", "A and C",
-                "C > -A", "C > A", "-C > -A", "-C > A",
-                "-A > -C", "A > -C", "-A > C", "A > C", 
-                "maybe -C", "maybe C", "maybe -A", "maybe A")
+# utterances and tables must be generated already
+# (e.g. by running run-default-model.R)
 
+n_iter <- length(ALPHAS) * length(COSTS_CONDITIONAL) * length(PARAM_NOR_BETAS) *
+      length(PARAM_NOR_THETAS)
+print(paste('# iterations:', n_iter))
+
+# Setup -------------------------------------------------------------------
 TARGET_DIR <- file.path(".", "data", "default-model", fsep = .Platform$file.sep)
-TARGET_FN <- "results-voi-default-model.rds"
-TABLES_PATH <- file.path(TARGET_DIR, "tables-all.rds", fsep=.Platform$file.sep)
 params <- tibble(n_tables=500,
                  nor_beta=NA,
                  nor_theta=NA,
-                 param_nor_beta=10,
+                 param_nor_beta=10, 
                  param_nor_theta=10,
                  indep_sigma=0.001,
                  bias="none",
                  verbose=TRUE,
                  alpha=3,
+                 theta=0.9,
                  level_max="PL",
                  cost_conditional=0,
                  utt="A > C",
@@ -37,20 +37,21 @@ params <- tibble(n_tables=500,
                  target_fn=paste("results-", bias, sep=""),
                  seed=1234)
 
+params <- params %>% as.list()
 
 
+utt_path <- file.path(TARGET_DIR, paste("utterances-", params$bias, ".rds", sep=""),
+                      fsep=.Platform$file.sep)
+cns_path <- file.path("data", "default-model", "cns-default.rds", fsep=.Platform$file.sep)
 
-run_default_model <- function(tables_to_wppl, params){
-  model_params <- params %>% as.list()
-  model_params$utterances=UTTERANCES
-  model_params$cns=CNS
-  model_params$tables=tables_to_wppl
-  posterior <- run_model(model_params)
-  voi <- get_voi(posterior, params)
-  return(voi)
-}
+params$utterances <- readRDS(utt_path)
+params$cns <- readRDS(cns_path)
 
+TARGET_FN <- "results-voi-default.rds"
+TABLES_PATH <- file.path(TARGET_DIR, "tables-all.rds", fsep=.Platform$file.sep)
 
+# Loop --------------------------------------------------------------------
+all_results <- list()
 idx <- 1
 for(param_beta in PARAM_NOR_BETAS){
   for(param_theta in PARAM_NOR_THETAS){
@@ -72,7 +73,8 @@ for(param_beta in PARAM_NOR_BETAS){
       for(a in ALPHAS){
         params$cost_conditional <- c
         params$alpha <- a
-        results <- run_default_model(tables_to_wppl, params)
+        params$tables <- tables_to_wppl
+        results <- run_model_voi(params)
         
         all_results[[idx]] <- results
         idx <- idx + 1
@@ -83,5 +85,5 @@ for(param_beta in PARAM_NOR_BETAS){
 }
 # save all results
 values_all <- all_results %>% bind_rows() 
-values_all %>% save(paste(TARGET_DIR, TARGET_FN))
+values_all %>% save(paste(TARGET_DIR, TARGET_FN, sep=.Platform$file.sep))
 

@@ -15,6 +15,7 @@ params <- tibble(n_tables=500,
                  # bias="lawn",
                  verbose=TRUE,
                  alpha=3,
+                 theta=0.9,
                  level_max="PL",
                  cost_conditional=0,
                  utt="A > C",
@@ -23,10 +24,17 @@ params <- tibble(n_tables=500,
                  seed=1234)
 
 # Setup -------------------------------------------------------------------
-CNS <- c("A implies C", "A implies -C", "-A implies C", "-A implies -C", 
-         "C implies A", "C implies -A", "-C implies A", "-C implies -A", "A || C")
 TARGET_DIR <- file.path(".", "data", "default-model", fsep = .Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
+
+cns_path <- file.path("data", "default-model", "cns-default.rds", fsep=.Platform$file.sep)
+if(!file.exists(cns_path)){
+  CNS <- webppl(program_file = file.path("R", "default-model",
+                                         "generate-cns.wppl", fsep=.Platform$file.sep))
+  CNS %>% save(cns_path)
+} else {
+  CNS <- readRDS(cns_path)
+}
 
 utts_fn <- paste("utterances-", params$bias, ".rds", sep="")
 utts_path <- file.path(TARGET_DIR, utts_fn, fsep = .Platform$file.sep)
