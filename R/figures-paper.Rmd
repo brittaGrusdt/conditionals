@@ -133,14 +133,27 @@ plot_evs(evs, marginal="A", save_as=file.path(RESULT_DIR, "figs", "evs-pa.png"))
 
 ## Values of interest compared across PL/LL/prior
 
-# ```{r param-sweep-data}
-# data <- readRDS(file.path("data", "default-model", "results-voi-default.rds"))
-# ```
+```{r param-sweep-data}
+data <- readRDS(file.path("data", "default-model", "results-voi-default.rds"))
+voi_none <- readRDS(file.path("data", "default-model", "results-none-voi.rds"))
+```
+
+```{r}
+voi_none %>% filter(key=="epistemic_uncertainty") %>%
+  mutate(value=round(as.numeric(value), 3)) %>% 
+    ggplot() + 
+      geom_bar(mapping = aes(x=level, y=value, fill=level),
+               stat="identity")  +
+      scale_x_discrete(limits = c("prior", "LL", "PL")) +
+      labs(y="P(C)<0.1 + P(C)>0.9")
+  
+```
 
 
-<!-- ```{r values-of-interest} -->
-<!-- df <- data %>% filter(param_nor_beta==10 & param_nor_theta==10 & cost==0 & alpha==5) -->
-<!-- ``` -->
+
+```{r values-of-interest}
+df <- data %>% filter(param_nor_beta==10 & param_nor_theta==10 & cost==0 & alpha==5)
+```
 
 
 ## Values of interest depending on combination of alpha and cost
@@ -202,5 +215,9 @@ plot_evs(evs, marginal="A", save_as=file.path(RESULT_DIR, "figs", "evs-pa.png"))
 <!-- } -->
 
 <!-- ``` -->
+
+
+
+
 
 

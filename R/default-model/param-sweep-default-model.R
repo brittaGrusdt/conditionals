@@ -4,8 +4,8 @@ library(rwebppl)
 library(tidyverse)
 
 # Set Parameters that are iterated over -----------------------------------
-ALPHAS <- c(0.5, 1) #, 2, 3, 5, 10)
-COSTS_CONDITIONAL <- c(0)#, 0.01, 0.05, 0.1, 0.25, 0.5)
+ALPHAS <- c(0.5, 1, 2, 3, 5, 10)
+COSTS_CONDITIONAL <- c(0, 0.01, 0.05, 0.1, 0.25, 0.5)
 PARAM_NOR_BETAS <- c(10)
 PARAM_NOR_THETAS <- c(10)
 
@@ -32,6 +32,7 @@ params <- tibble(n_tables=500,
                  cost_conditional=0,
                  utt="A > C",
                  save=FALSE, # save entire distributions
+                 save_voi=FALSE,
                  model_path="./model/model-general.wppl",
                  target_dir=TARGET_DIR,
                  target_fn=paste("results-", bias, sep=""),
@@ -47,7 +48,7 @@ cns_path <- file.path("data", "default-model", "cns-default.rds", fsep=.Platform
 params$utterances <- readRDS(utt_path)
 params$cns <- readRDS(cns_path)
 
-TARGET_FN <- "results-voi-default.rds"
+TARGET_FN <- paste("results-", params$bias, "-voi-sweep.rds", sep="")
 TABLES_PATH <- file.path(TARGET_DIR, "tables-all.rds", fsep=.Platform$file.sep)
 
 # Loop --------------------------------------------------------------------
@@ -80,7 +81,7 @@ for(param_beta in PARAM_NOR_BETAS){
         idx <- idx + 1
       }
     }
-    print(paste(idx, "from", n_iter, "done"))
+    print(paste(idx-1, "from", n_iter, "done"))
   }
 }
 # save all results

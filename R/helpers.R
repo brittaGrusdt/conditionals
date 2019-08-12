@@ -424,7 +424,9 @@ get_voi <- function(posterior, params){
                          n_tables=params$n_tables)
   
   name <- file.path(params$target_dir, params$target_fn, fsep=.Platform$file.sep)
-  results %>% save(paste(name, "-voi.rds", sep=""))
+  if(params$save_voi){
+    results %>% save(paste(name, "-voi.rds", sep=""))
+  }
   return(results)
 }
 
