@@ -279,6 +279,27 @@ convert_data <- function(data_tables){
   return(data_tables)
 }
 
+add_table_params <- function(df, params){
+  df <- df %>% mutate(cost=params$cost_conditional, alpha=params$alpha,
+                      nor_beta=params$nor_beta,
+                      nor_theta=params$nor_theta,
+                      param_nor_beta=params$param_nor_beta,
+                      param_nor_theta=params$param_nor_theta,
+                      indep_sigma=params$indep_sigma,
+                      bias=params$bias,
+                      value=as.character(value))
+  return(df)
+}
+
+
+filter_by_model_params <- function(df, params){
+  df <- df %>% filter(cost==params$cost_conditional &
+                      alpha==params$alpha &
+                      seed==params$seed &
+                      bias==params$bias)
+  return(df)
+}
+
 # values-of-interest ------------------------------------------------------
 
 # 1. returns the minimum of the hellinger distances between P(cn) and
@@ -305,17 +326,11 @@ get_cp_values_cns <- function(distr_wide){
                            TRUE ~ 0
     ))
   
-  values <- marginal %>% group_by(level) %>%
-    summarize(hellinger_ac=hellinger(marginal, marginal_cp1),
-              hellinger_anc=hellinger(marginal, marginal_cp2),
-              hel_min_val=min(hellinger_ac, hellinger_anc),
-              hel_min_dir=case_when(hellinger_ac == hellinger_anc ~ "eq",
-                                    hellinger_ac < hellinger_anc ~ "AC",
-                                    TRUE ~ "A-C")) %>% 
-    unite("dir_val", hel_min_dir, hel_min_val)
+  voi_cns <- marginal %>% group_by(level) %>%
+    summarize(cp_cns_ac=hellinger(marginal, marginal_cp1),
+              cp_cns_anc=hellinger(marginal, marginal_cp2)) %>% 
+      gather(cp_cns_ac, cp_cns_anc, key="key", value="value")
   
-  voi_cns <- values %>% dplyr::select(level, dir_val) %>%
-              rename(value=dir_val) %>% add_column(key="cp-cns")
   return(voi_cns)
 }
 
@@ -337,26 +352,26 @@ get_cp_values_bns <- function(distr_wide){
                                   c(0.5, 0, 0, 0.5))
     ) 
   values <- values %>% group_by(level) %>%
-    summarize(ev_hel_ac=sum(prob*hellinger_ac),
-              ev_hel_anc=sum(prob*hellinger_anc))
+    summarize(cp_bns_ac=sum(prob*hellinger_ac),
+              cp_bns_anc=sum(prob*hellinger_anc))
+  voi_bns <- values %>% gather(cp_bns_ac, cp_bns_anc, key="key", value="value")
   
-  voi_bns <- values %>%
-    mutate(dir=case_when(ev_hel_ac == ev_hel_anc ~ "eq",
-                         ev_hel_ac < ev_hel_anc ~ "AC",
-                         TRUE ~ "A-C"),
-           val=case_when(ev_hel_ac < ev_hel_anc ~ ev_hel_ac,
-                         TRUE ~ ev_hel_anc)) %>%
-                unite("dir_val", dir, val) %>%
-                rename(value=dir_val) %>%
-                dplyr::select(level, value) %>% add_column(key="cp-bns")
   return(voi_bns)
+}
+
+
+get_cp_values_pnc_given_na <- function(posterior_wide){
+  ev_pnc_given_na <- compute_cond_prob(posterior_wide, "P(-C|-A)") %>% 
+    expected_val("p_nc_given_na") %>% rename(key=p, value=ev)
+  return(ev_pnc_given_na)
 }
 
 get_cp_values <- function(distr){
   distr_wide <- distr %>% spread(key = cell, value = val)
   voi_cns <- get_cp_values_cns(distr_wide)
   voi_bns <- get_cp_values_bns(distr_wide)
-  return(bind_rows(voi_bns, voi_cns))
+  voi_pnc_given_na <- get_cp_values_pnc_given_na(distr_wide)
+  return(bind_rows(voi_bns, voi_cns, voi_pnc_given_na))
 }
 
 # theta <= P(C) <= 1-theta where theta is threshold at which utterances count
@@ -366,50 +381,36 @@ get_speaker_uncertainty <- function(distr, theta){
   pc_intervals <- pc %>% filter(p>=theta | p<=1-theta)
   
   evs <- pc_intervals %>% group_by(level) %>% summarize(value=sum(prob)) %>% 
-    add_column(key="sp-uncertainty")
+          add_column(key="sp-uncertainty")
   return(evs)
 }
 
 
 voi_epistemic_uncertainty <- function(posterior, params){
   val_no_bias <- get_speaker_uncertainty(posterior, params$theta) %>% 
-    mutate(key="epistemic_uncertainty",
-           cost=params$cost_conditional, alpha=params$alpha,
-           param_nor_beta=params$param_nor_beta,
-           param_nor_theta=params$param_nor_theta,
-           value=as.character(value))
+                  mutate(key="epistemic_uncertainty")
+  val_no_bias <- add_table_params(val_no_bias, params)
   return(val_no_bias)
 }
 
 voi_pc <- function(posterior, params){
   val_biscuits <- marginalize(posterior, c("C")) %>%
     expected_val("C") %>% select(-p) %>%
-    rename(value=ev) %>% 
-    mutate(key="pc",
-           cost=params$cost_conditional, alpha=params$alpha, 
-           param_nor_beta=params$param_nor_beta,
-           param_nor_theta=params$param_nor_theta,
-           value=as.character(value))
+    rename(value=ev) %>% mutate(key="pc")
+  val_biscuits <- add_table_params(val_biscuits, params)
   return(val_biscuits)
 }
 
 voi_pa <- function(posterior, params){
   val_pa <- marginalize(posterior, c("A")) %>% 
     expected_val("A") %>% select(-p) %>% 
-    rename(value=ev) %>% 
-    mutate(key="pa",
-           cost=params$cost_conditional, alpha=params$alpha, 
-           param_nor_beta=params$param_nor_beta,
-           param_nor_theta=params$param_nor_theta,
-           value=as.character(value))
+    rename(value=ev) %>% mutate(key="pa")
+  val_pa <- val_pa %>% add_table_params(params)
   return(val_pa)
 }
 
 voi_conditional_perfection <- function(posterior, params){
-  val_cp <- get_cp_values(posterior) %>% 
-    mutate(cost=params$cost_conditional, alpha=params$alpha,
-           param_nor_beta=params$param_nor_beta,
-           param_nor_theta=params$param_nor_theta)
+  val_cp <- get_cp_values(posterior) %>% add_table_params(params)
   return(val_cp)
 }
 

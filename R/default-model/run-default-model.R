@@ -5,14 +5,15 @@ library(tidyverse)
 
 # Parameters --------------------------------------------------------------
 params <- tibble(n_tables=500,
+                 # n_tables=4500,
                  nor_beta=NA,
                  nor_theta=NA,
                  param_nor_beta=10,
                  param_nor_theta=10,
                  indep_sigma=0.001,
-                 bias="none",
+                 # bias="none",
                  # bias="pizza",
-                 # bias="lawn",
+                 bias="lawn",
                  verbose=TRUE,
                  alpha=3,
                  theta=0.9,
@@ -20,6 +21,7 @@ params <- tibble(n_tables=500,
                  cost_conditional=0,
                  utt="A > C",
                  save=TRUE,
+                 save_voi=TRUE,
                  model_path="./model/model-general.wppl",
                  seed=1234)
 
@@ -46,9 +48,10 @@ if(!file.exists(tables_path)){
   tables <- create_tables(params, tables_path)
 } else {
   tables <- readRDS(tables_path) %>% filter_tables(params)
-  print(paste("tables read from:", tables_path))
   if(nrow(tables)==0){
     tables <- create_tables(params, tables_path)
+  } else{
+    print(paste("tables read from:", tables_path))
   }
 }
 tables_to_wppl <- tables %>% dplyr::select(ps, vs)

@@ -10,6 +10,7 @@ level2color <- tribble(~level, ~col,
 
 plot_cns <- function(data, level){
   df <- data %>% group_by(level, cn) %>% summarize(prob=sum(prob))
+  df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
   if(is.null(level)){
     p <- df %>% 
           ggplot() + 
@@ -61,8 +62,6 @@ plot_marginal_prob <- function(data_wide, val_marginal, level=NULL, evs=NULL,
   if(val_marginal == "cns"){
     p <- plot_cns(data_wide, level)
   } else {
-    # df <- data_wide %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
-    # df <- marginalize(df, val_marginal)
     samples <- list()
     for(lev in unique(data_wide$level)){
       d <- data_wide %>% filter(level==lev)
