@@ -31,7 +31,7 @@ var verbose = data["verbose"][0]
 
 var vars = [["A", "-A"], ["C", "-C"]]
 var p_ac_ind = {"none": 0.25,
-                "lawn": 0.1,
+                "lawn": 0.025,
                 "pizza" : 1,
                 "dutchman" : 1
                 }
@@ -116,7 +116,7 @@ var state_prior = cache(function(bias){
                  "cn": cn_prior(bias)}
     factor(log_likelihood(state))
     if(bias=='lawn'){
-      condition(Math.exp(state.table.score("-AC")) <= threshold_cp)
+      // condition(Math.exp(state.table.score("-AC")) <= threshold_cp)
       //soft version:
       // if(Math.exp(state.table.score("-AC")) <= threshold_cp){
       //   factor(-Math.log(thresholds.f))

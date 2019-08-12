@@ -83,7 +83,6 @@ create_independent_tables <- function(params){
 create_tables <- function(params, target_path){
   tables_all <- list()
   if(params$bias == "dutchman" || params$bias == "pizza"){
-    params$n_tables <- params$n_tables * 9
     tables_ind <- create_independent_tables(params)
     tables_dep <- tibble()
   } else {
