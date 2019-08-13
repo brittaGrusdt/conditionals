@@ -82,9 +82,9 @@ evs_all
 
 ```{r epistemic-speaker-uncertainty, message=FALSE}
 # plot_marginal_prob(pa, c("A"), evs=evs_all %>% filter(p=="A"), save_as=file.path(RESULT_DIR, "figs", "no-bias-pa.png"))
-p <- plot_marginal_prob(pc, c("C"), evs=evs_all %>% filter(p=="C"), save_as=file.path(RESULT_DIR, "figs", "no-bias-pc.png"))
-p <- plot_marginal_prob(data_wide, "cns", save_as=file.path(RESULT_DIR, "figs", "no-bias-cns.png"))
-p
+plot_marginal_prob(pc, c("C"), evs=evs_all %>% filter(p=="C"), save_as=file.path(RESULT_DIR, "figs", "none-pc.png"))
+plot_marginal_prob(data_wide, "cns", save_as=file.path(RESULT_DIR, "figs", "none-cns.png"))
+
 ```
 
 
@@ -106,7 +106,7 @@ evs
 
 
 ```{r biscuit-conditionals, message=FALSE}
-plot_marginal_prob(pc, c("C"), evs=filter(evs, p=="C"), save_as=file.path(RESULT_DIR, "figs", "biscuit-pc.png"))
+plot_marginal_prob(pc, c("C"), evs=filter(evs, p=="C"), save_as=file.path(RESULT_DIR, "figs", "pizza-pc.png"))
 ```
 
 
@@ -126,27 +126,19 @@ evs <- bind_rows(expected_val(pc, "C"), expected_val(pa, "A")) %>% add_column(bi
 evs
 ```
 
-
 ```{r conditional-perfection, message=FALSE}
-# plot_marginal_prob(pa, c("A"), evs=expected_val(pa, "A"), save_as=file.path(RESULT_DIR, "figs", "cp-pa.png"))
-# plot_marginal_prob(pc, c("C"), evs=expected_val(pc, "C"), save_as=file.path(RESULT_DIR, "figs", "cp-pc.png"))
+# plot_marginal_prob(pa, c("A"), evs=expected_val(pa, "A"), save_as=file.path(RESULT_DIR, "figs", "lawn-pa.png"))
+# plot_marginal_prob(pc, c("C"), evs=expected_val(pc, "C"), save_as=file.path(RESULT_DIR, "figs", "lawn-pc.png"))
 
-plot_marginal_prob(data_wide, "cns", save_as=file.path(RESULT_DIR, "figs", "cp-cns.png"))
+plot_marginal_prob(data_wide, "cns", save_as=file.path(RESULT_DIR, "figs", "lawn-cns.png"))
 ```
 
-
-```{r evs-pc, message=FALSE}
-# plot_evs(evs, marginal="C", save_as=file.path(RESULT_DIR, "figs", "evs-pc.png"))
-# plot_evs(evs, marginal="A", save_as=file.path(RESULT_DIR, "figs", "evs-pa.png"))
-```
-
+## Value-of-interest for epistemic uncertainty (no bias)
 
 ```{r}
 # voi_none_all <- readRDS(file.path("data", "default-model", "results-none-voi-sweep.rds"))
 voi_none_all <- readRDS("data/default-model/results-none-voi.rds")
 ```
-
-## Value-of-interest for epistemic uncertainty (no bias)
 
 ```{r}
 voi_none <- voi_none_all %>% filter(key=="epistemic_uncertainty") %>% filter_tables(params) %>%
@@ -163,7 +155,7 @@ p <- voi_none %>%
                 text = element_text(size= 20),
                 legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
 
-ggsave(paste(RESULT_DIR, "figs", "epistemic-uncertainty-none.png", sep=.Platform$file.sep), p)
+ggsave(paste(RESULT_DIR, "figs", "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p)
 p
 ```
 
@@ -194,7 +186,7 @@ p <- voi_pizza %>%
                 text = element_text(size= 20),
                 legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
 
-ggsave(paste(RESULT_DIR, "figs", "ev-pc-pizza.png", sep=.Platform$file.sep), p)
+ggsave(paste(RESULT_DIR, "figs", "pizza-voi-pc.png", sep=.Platform$file.sep), p)
 p
 ```
 
@@ -242,17 +234,17 @@ data <- data %>% mutate(order=case_when(level=="prior" ~ "a",
                                         TRUE ~ "c"))
 # plot only values for bias=none
 p <- plot_cp_vois(data %>% filter(bias=="none"))
-ggsave(paste(RESULT_DIR, "figs", "vois-cp_bias_none.png", sep=.Platform$file.sep), p)
+ggsave(paste(RESULT_DIR, "figs", "none-vois-cp.png", sep=.Platform$file.sep), p)
 p
 
 # plot only values for bias=lawn
 p <- plot_cp_vois(data %>% filter(bias=="lawn"))
-ggsave(paste(RESULT_DIR, "figs", "vois-cp_bias_lawn.png", sep=.Platform$file.sep), p)
+ggsave(paste(RESULT_DIR, "figs", "lawn-vois-cp.png", sep=.Platform$file.sep), p)
 p
 
 # plot comparison between cp-strengths for bias-none and bias-lawn
 p <- plot_cp_vois(data)
-ggsave(paste(RESULT_DIR, "figs", "vois-cp_comparison.png", sep=.Platform$file.sep), p)
+ggsave(paste(RESULT_DIR, "figs", "comparison-vois-cp.png", sep=.Platform$file.sep), p)
 p
 ```
 
