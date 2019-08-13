@@ -31,7 +31,7 @@ var verbose = data["verbose"][0]
 
 var vars = [["A", "-A"], ["C", "-C"]]
 var p_ac_ind = {"none": 0.25,
-                "lawn": 0.025,
+                "lawn": 0.0,
                 "pizza" : 1,
                 "dutchman" : 1
                 }

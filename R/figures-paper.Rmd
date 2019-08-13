@@ -59,9 +59,10 @@ plot_tables(tables)
 ```
 
 
-## Speaker epistemic uncertainty
+## Default model: no bias
 
-read data 
+Causal nets
+
 
 ```{r}
 fn_no_bias <- file.path(RESULT_DIR, "default-model", "results-none.rds")
@@ -81,8 +82,7 @@ evs_all
 
 ```{r epistemic-speaker-uncertainty, message=FALSE}
 # plot_marginal_prob(pa, c("A"), evs=evs_all %>% filter(p=="A"), save_as=file.path(RESULT_DIR, "figs", "no-bias-pa.png"))
-# plot_marginal_prob(pa, c("C"), evs=evs_all %>% filter(p=="C"), save_as=file.path(RESULT_DIR, "figs", "no-bias-pc.png"))
-
+p <- plot_marginal_prob(pc, c("C"), evs=evs_all %>% filter(p=="C"), save_as=file.path(RESULT_DIR, "figs", "no-bias-pc.png"))
 p <- plot_marginal_prob(data_wide, "cns", save_as=file.path(RESULT_DIR, "figs", "no-bias-cns.png"))
 p
 ```
@@ -141,9 +141,7 @@ plot_marginal_prob(data_wide, "cns", save_as=file.path(RESULT_DIR, "figs", "cp-c
 ```
 
 
-# Values of interest compared across PL/LL/prior
-
-```{r param-sweep-data}
+```{r}
 # voi_none_all <- readRDS(file.path("data", "default-model", "results-none-voi-sweep.rds"))
 voi_none_all <- readRDS("data/default-model/results-none-voi.rds")
 ```
@@ -160,83 +158,19 @@ p <- voi_none %>%
           geom_bar(mapping = aes(x=level, y=value, fill=level),
                    stat="identity")  +
           scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="P(C)<0.1 + P(C)>0.9")
+          labs(y="P(C)<0.1 + P(C)>0.9") + 
+          theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                text = element_text(size= 20),
+                legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
 
 ggsave(paste(RESULT_DIR, "figs", "epistemic-uncertainty-none.png", sep=.Platform$file.sep), p)
 p
 ```
 
 
-## CP-strength for no bias
-1.bns Expected value hellinger distance
-
-```{r cp-strength-bns}
-voi_lawn <- voi_none_all %>% filter(key=="cp-bns") %>% filter_tables(params) %>%
-              filter_by_model_params(params) %>% separate(value, c("dir", "value"), sep="_") %>% 
-              mutate(value=as.numeric(value))
-
-voi_lawn %>% dplyr::select(level, dir, value, key)
-p <- voi_lawn %>% 
-      mutate(value=round(as.numeric(value), 3)) %>% 
-        ggplot() + 
-          geom_bar(mapping = aes(x=level, y=value, fill=level),
-                   stat="identity")  +
-          scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="no-bias-voi-cp-bns", title = paste("'CP'-direction:", voi_lawn$dir %>% unique()))
-
-ggsave(paste(RESULT_DIR, "figs", "voi-cp-bns_none.png", sep=.Platform$file.sep), p)
-p
-```
-
-2. hellinger distance marginal cns
-
-```{r lawn-cns}
-voi_lawn <- voi_none_all %>% filter(key=="cp-cns") %>% filter_tables(params) %>%
-              filter_by_model_params(params) %>% separate(value, c("dir", "value"), sep="_") %>% 
-              mutate(value=as.numeric(value))
-voi_lawn %>% dplyr::select(level, dir, value, key)
-
-p <- voi_lawn %>% 
-      mutate(value=round(as.numeric(value), 3)) %>% 
-        ggplot() + 
-          geom_bar(mapping = aes(x=level, y=value, fill=level),
-                   stat="identity")  +
-          scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="no_bias_cp-cns", title = paste("CP-direction:", voi_lawn$dir %>% unique()))
-
-ggsave(paste(RESULT_DIR, "figs", "voi-cp-cns_none.png", sep=.Platform$file.sep), p)
-p
-```
-
-
-3. Expected value of P(-C|-A)
-
-```{r lawn-cns}
-voi_lawn <- voi_none_all %>% filter(key=="p_nc_given_na") %>% filter_tables(params) %>%
-              filter_by_model_params(params) %>% 
-              mutate(value=as.numeric(value))
-voi_lawn %>% dplyr::select(level, value, key)
-
-p <- voi_lawn %>% 
-      mutate(value=round(as.numeric(value), 3)) %>% 
-        ggplot() + 
-          geom_bar(mapping = aes(x=level, y=value, fill=level),
-                   stat="identity")  +
-          scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="no-bias-cp-P(-C|-A)")
-
-ggsave(paste(RESULT_DIR, "figs", "voi-cp-pnc_given_na_none.png", sep=.Platform$file.sep), p)
-p
-```
-
-
-
-
-
-
 # Value-of-interest for biscuit bias
 
-```{r param-sweep-data}
+```{r}
 # voi_pizza_all <- readRDS(file.path("data", "default-model", "results-pizza-voi-sweep.rds"))
 voi_pizza_all <- readRDS("data/default-model/results-pizza-voi.rds")
 ```
@@ -255,146 +189,71 @@ p <- voi_pizza %>%
           geom_bar(mapping = aes(x=level, y=value, fill=level),
                    stat="identity")  +
           scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="E(P(C))")
+          labs(y=TeX('$\\mathbf{E}(P(C))$')) +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                text = element_text(size= 20),
+                legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
 
 ggsave(paste(RESULT_DIR, "figs", "ev-pc-pizza.png", sep=.Platform$file.sep), p)
 p
 ```
 
 
-# Value-of-interest for CP bias
+# CP-strengths for lawn-bias and no-bias 
 
-
-```{r param-sweep-data}
-# voi_lawn_all <- readRDS(file.path("data", "default-model", "results-lawn-voi-sweep.rds"))
-voi_lawn_all <- readRDS("data/default-model/results-lawn-voi.rds")
-```
-
-
-```{r}
-params_cp <- params
-params_cp$bias <- "lawn"
-```
-
-# lawn bns
+Strength measured by **cp-bns**:
 
 expected value of hellinger distance between the joint probability distribution of each Bayes net and
 P(A,C)=0.5, P(-A,-C)=0.5 or P(A,-C)=0.5, P(-A,C)=0.5
 weighted by prior probability of respective Bayes net.
 
 
-```{r lawn-bns}
-voi_lawn <- voi_lawn_all %>% filter(key=="cp-bns") %>% filter_tables(params_cp) %>%
-              filter_by_model_params(params_cp) %>% separate(value, c("dir", "value"), sep="_") %>% 
-              mutate(value=as.numeric(value))
-
-voi_lawn %>% dplyr::select(level, dir, value, key)
-p <- voi_lawn %>% 
-      mutate(value=round(as.numeric(value), 3)) %>% 
-        ggplot() + 
-          geom_bar(mapping = aes(x=level, y=value, fill=level),
-                   stat="identity")  +
-          scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="cp-bns", title = paste("CP-direction:", voi_lawn$dir %>% unique()))
-
-ggsave(paste(RESULT_DIR, "figs", "voi-cp-bns.png", sep=.Platform$file.sep), p)
-p
-```
-
-
-# lawn cns
+Strength measured by **cp-cns**:
 
 Hellinger distance between marginal probability over causal nets and P(A->C)=0.25, P(-A->-C)=0.25, P(C->A)=0.25, P(-C->-A)=0.25
 
-```{r lawn-cns}
-voi_lawn <- voi_lawn_all %>% filter(key=="cp-cns") %>% filter_tables(params_cp) %>%
-              filter_by_model_params(params_cp) %>% separate(value, c("dir", "value"), sep="_") %>% 
-              mutate(value=as.numeric(value))
-voi_lawn %>% dplyr::select(level, dir, value, key)
 
-p <- voi_lawn %>% 
-      mutate(value=round(as.numeric(value), 3)) %>% 
-        ggplot() + 
-          geom_bar(mapping = aes(x=level, y=value, fill=level),
-                   stat="identity")  +
-          scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="cp-cns", title = paste("CP-direction:", voi_lawn$dir %>% unique()))
-
-ggsave(paste(RESULT_DIR, "figs", "voi-cp-cns.png", sep=.Platform$file.sep), p)
-p
-```
-
-# lawn P(-C|-A)
-Expected value of P(-C|-A)
-
-```{r lawn-cns}
-voi_lawn <- voi_lawn_all %>% filter(key=="p_nc_given_na") %>% filter_tables(params_cp) %>%
-              filter_by_model_params(params_cp) %>% 
-              mutate(value=as.numeric(value))
-voi_lawn %>% dplyr::select(level, value, key)
-
-p <- voi_lawn %>% 
-      mutate(value=round(as.numeric(value), 3)) %>% 
-        ggplot() + 
-          geom_bar(mapping = aes(x=level, y=value, fill=level),
-                   stat="identity")  +
-          scale_x_discrete(limits = c("prior", "LL", "PL")) +
-          labs(y="cp-P(-C|-A)")
-
-ggsave(paste(RESULT_DIR, "figs", "voi-cp-pnc_given_na.png", sep=.Platform$file.sep), p)
-p
-```
-
-
-
-# Compare no-bias cp-strength to cp-bias cp-strength
 ```{r}
+# voi_lawn_all <- readRDS(file.path("data", "default-model", "results-lawn-voi-sweep.rds"))
 voi_lawn_all <- readRDS("data/default-model/results-lawn-voi.rds")
 voi_none_all <- readRDS("data/default-model/results-none-voi.rds")
+
+params_cp <- params
+params_cp$bias <- "lawn"
 ```
 
 ```{r}
 filter_vois_cp <- function(data, params){
   # data %>% filter(startsWith(key, "cp_bns") | startsWith(key, "cp_cns") | key=="p_nc_given_na") %>% 
-  data %>% filter(key=="cp_bns_ac" | key=="cp_cns_ac" | key=="p_nc_given_na") %>% 
+  # data %>% filter(key=="cp_bns_ac" | key=="cp_cns_ac" | key=="p_nc_given_na") %>% 
+   data %>% filter(key=="cp_bns_ac" | key=="cp_cns_ac" | key=="p_nc_given_na") %>% 
                   filter_tables(params) %>%
                   filter_by_model_params(params) %>% dplyr::select(level, value, key, bias)
 }
 
-params$bias <- "none"
 voi_lawn_none <- filter_vois_cp(voi_none_all, params)
 
-params$bias <- "lawn"
-voi_lawn_cp <- filter_vois_cp(voi_lawn_all, params)
+params_cp <- params %>% mutate(bias="lawn")
+voi_lawn_cp <- filter_vois_cp(voi_lawn_all, params_cp)
 
 data <- bind_rows(voi_lawn_none, voi_lawn_cp)
-
-p <- data %>% mutate(value=as.numeric(value)) %>% ggplot() + 
-      geom_bar(aes(x=key, y=value, fill=level), stat="identity", position="dodge") + 
-      facet_wrap(~bias) +
-      theme(axis.text.x = element_text(angle = 90))
-fn <- paste("vois-cp_comparison_per_bias_", "only_cn_ind_low.png", sep="")
-ggsave(paste(RESULT_DIR, "figs", fn, sep=.Platform$file.sep), p)
+data <- data %>% mutate(order=case_when(level=="prior" ~ "a",
+                                        level=="LL" ~ "b",
+                                        TRUE ~ "c"))
+# plot only values for bias=none
+p <- plot_cp_vois(data %>% filter(bias=="none"))
+ggsave(paste(RESULT_DIR, "figs", "vois-cp_bias_none.png", sep=.Platform$file.sep), p)
 p
 
-
-
-p <- data %>% mutate(value=as.numeric(value)) %>% ggplot() + 
-      geom_bar(aes(x=key, y=value, fill=bias), stat="identity", position="dodge") + 
-      facet_wrap(~level) +
-      theme(axis.text.x = element_text(angle = 90))
-fn <- paste("vois-cp_comparison_per_level_", "only_cn_ind_low.png", sep="")
-ggsave(paste(RESULT_DIR, "figs", fn, sep=.Platform$file.sep), p)
-
+# plot only values for bias=lawn
+p <- plot_cp_vois(data %>% filter(bias=="lawn"))
+ggsave(paste(RESULT_DIR, "figs", "vois-cp_bias_lawn.png", sep=.Platform$file.sep), p)
 p
-```
 
-
-
-
-
-```{r values-of-interest}
-df <- data %>% filter(param_nor_beta==10 & param_nor_theta==10 & cost==0 & alpha==5)
+# plot comparison between cp-strengths for bias-none and bias-lawn
+p <- plot_cp_vois(data)
+ggsave(paste(RESULT_DIR, "figs", "vois-cp_comparison.png", sep=.Platform$file.sep), p)
+p
 ```
 
 
