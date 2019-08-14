@@ -1,6 +1,18 @@
-var thresholds = {theta: 0.899, theta_maybe: 0.499}
-var LEVEL_MAX = data["level_max"][0]
-var alpha = 5
+// var data = {
+//   "utt": ["R > -S"],
+//   "alpha": [5]
+//   "cost_conditional": [0]
+// }
+var thresholds = {theta: 0.899, theta_likely: 0.499}
+var verbose = data["verbose"][0]
+var LEVEL_MAX = data["level_max"] ? data["level_max"][0] : "PL"
+var COST_CONDITIONAL = data["cost_conditional"][0]
+var alpha = data["alpha"][0]
+
+if(verbose){
+  display("alpha:" + alpha)
+  display("cost conditional:" + COST_CONDITIONAL)
+}
 
 // Causal networks --------------------------------------------------------------
 var causal_nets = {"cn1": "R > W > S", "cn2": "R||S"}
@@ -42,7 +54,6 @@ var combinations = Infer({model:function(){
   return filter(function(t){t.length>0}, tokens)
 }}).support()
 var combinations = filter(function(x){x.length > 0}, combinations)
-display('# unique combinations of pairs: ' + combinations.length)
 
 var marginal = function(state, variables){
   var tokens = state.support()
@@ -95,7 +106,6 @@ var joint_probs = function(token, cn, pr){
   return p_sw * p_wr * p_r
 }
 
-display(combinations)
 var tokens = {"cn1": filter(function(tokens){tokens.length==3}, combinations),
               "cn2": filter(function(tokens){
                 tokens.length==2 && !tokens.includes("W")
@@ -132,14 +142,13 @@ display('# literals + # conjunctions: ' + literals_conjunctions.length)
 
 var literals = filter(function(utt){!utt.includes(" and ")},
                       literals_conjunctions)
-var maybes = map(function(utt){'maybe ' + utt}, literals)
-display('# maybe: ' + maybes.length)
+var utts_likely = map(function(utt){'likely ' + utt}, literals)
+display('# utts_likely: ' + utts_likely.length)
 
 var conditionals = combine_pairs(" > ")
 display('# conditionals: ' + conditionals.length)
 
-var utterances = literals_conjunctions.concat(conditionals.concat(maybes))
-display('# utterances: ' + utterances.length)
+var utterances = literals_conjunctions.concat(conditionals.concat(utts_likely))
 // map(display, utterances)
 display('# utterances:' + utterances.length)
 
@@ -152,8 +161,8 @@ var utterance_probs = cache(function(utterance, state){
            marginal(state, [antecedent])
   }
   if(literals.includes(utterance)){return marginal(state, [utterance])}
-  if(maybes.includes(utterance)){
-    var u = utterance.slice("maybe ".length)
+  if(utts_likely.includes(utterance)){
+    var u = utterance.slice("likely ".length)
     return marginal(state, [u])
   }
   if(literals_conjunctions.includes(utterance)){
@@ -166,8 +175,8 @@ var utterance_probs = cache(function(utterance, state){
 
 var meaning = cache(function(utterance, state){
  var p = utterance_probs(utterance, state)
- var u_applicable = utterance.includes('maybe') ?
-     (p >= thresholds.theta_maybe) : p >= thresholds.theta
+ var u_applicable = utterance.includes('likely') ?
+     (p >= thresholds.theta_likely) : p >= thresholds.theta
  return u_applicable
 })
 
@@ -194,10 +203,10 @@ var literal_listener = cache(function(utterance){
 
 var cost = function(utt){
   if(!utterances.includes(utt)){error('unknown utterance ' + utt)}
-  var c1 = utt.includes(' > ') ? 0.55 : 0
-  var c2 = (utt.split(' and ').length - 1) * 0.25
-  var c3 = (utt.split('-').length - 1) * 0.125
-  var c4 = utt.includes('maybe') ? 0.1 : 0
+  var c1 = utt.includes(' > ') ? COST_CONDITIONAL : 0
+  var c2 = (utt.split(' and ').length - 1) * (COST_CONDITIONAL/2)
+  var c3 = utt.split('-').length > 1 ?  (COST_CONDITIONAL/4) : 0
+  var c4 = utt.includes('likely') ? (COST_CONDITIONAL/5) : 0
   return c1 + c2 + c3 + c4
 }
 
@@ -224,20 +233,14 @@ var listener = function(utterance){
 }
 
 // Run from R ----------------------------------------------------------------
-
-// var data = {
-//   "utt": ["R > -S"],
-//   "vars_marginal": ["E"],
-// }
-
 var u = data["utt"][0]
+if(verbose){
+  display("listener hears utterance: " + u)
+}
 
-display("")
-display("utterance: " + u)
-
-var pl = listener(u)
-var ll = literal_listener(u)
 var prior = state_prior
+var ll = literal_listener(u)
+var pl = listener(u)
 
 var wrap_ll = function(u){
   var obj = {"u": u, "LL": literal_listener(u)}

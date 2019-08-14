@@ -1,5 +1,19 @@
-var thresholds = {theta: 0.699, theta_maybe: 0.499}
-var alpha = 5
+// var data = {
+//   "utt": ["E > S"],
+//   "alpha": [5]
+//   "cost_conditional": [0]
+// }
+var thresholds = {theta: 0.899, theta_likely: 0.499}
+
+var verbose = data["verbose"][0]
+var LEVEL_MAX = data["level_max"] ? data["level_max"][0] : "PL"
+var COST_CONDITIONAL = data["cost_conditional"][0]
+var alpha = data["alpha"][0]
+
+if(verbose){
+  display("alpha:" + alpha)
+  display("cost conditional:" + COST_CONDITIONAL)
+}
 
 // Causal networks --------------------------------------------------------------
 var causal_nets = {"cn1": "E || S>C", "cn2": "E>S>C"}
@@ -121,13 +135,13 @@ display('# literals + # conjunctions: ' + literals_conjunctions.length)
 
 var literals = filter(function(utt){!utt.includes(" and ")},
                       literals_conjunctions)
-var maybes = map(function(utt){'maybe ' + utt}, literals)
-display('# maybe: ' + maybes.length)
+var utts_likely = map(function(utt){'likely ' + utt}, literals)
+display('# likely: ' + utts_likely.length)
 
 var conditionals = combine_pairs(" > ")
 display('# conditionals: ' + conditionals.length)
 
-var utterances = literals_conjunctions.concat(conditionals.concat(maybes))
+var utterances = literals_conjunctions.concat(conditionals.concat(utts_likely))
 display('# utterances: ' + utterances.length)
 // map(display, utterances)
 
@@ -140,8 +154,8 @@ var utterance_probs = cache(function(utterance, state){
            marginal(state, [antecedent])
   }
   if(literals.includes(utterance)){return marginal(state, [utterance])}
-  if(maybes.includes(utterance)){
-    var u = utterance.slice("maybe ".length)
+  if(utts_likely.includes(utterance)){
+    var u = utterance.slice("likely ".length)
     return marginal(state, [u])
   }
   if(literals_conjunctions.includes(utterance)){
@@ -154,8 +168,8 @@ var utterance_probs = cache(function(utterance, state){
 
 var meaning = cache(function(utterance, state){
  var p = utterance_probs(utterance, state)
- var u_applicable = utterance.includes('maybe') ?
-     (p >= thresholds.theta_maybe) : p >= thresholds.theta
+ var u_applicable = utterance.includes('likely') ?
+     (p >= thresholds.theta_likely) : p >= thresholds.theta
  return u_applicable
 })
 
@@ -182,10 +196,10 @@ var literal_listener = cache(function(utterance){
 
 var cost = function(utt){
   if(!utterances.includes(utt)){error('unknown utterance ' + utt)}
-  var c1 = utt.includes(' > ') ? 0.55 : 0
-  var c2 = (utt.split(' and ').length - 1) * 0.25
-  var c3 = (utt.split('-').length - 1) * 0.125
-  var c4 = utt.includes('maybe') ? 0.1 : 0
+  var c1 = utt.includes(' > ') ? COST_CONDITIONAL : 0
+  var c2 = (utt.split(' and ').length - 1) * (COST_CONDITIONAL/2)
+  var c3 = utt.split('-').length > 1 ?  (COST_CONDITIONAL/4) : 0
+  var c4 = utt.includes('likely') ? (COST_CONDITIONAL/5) : 0
   return c1 + c2 + c3 + c4
 }
 
@@ -229,15 +243,10 @@ var listener = function(utterance){
 }
 
 // Run from R ----------------------------------------------------------------
-
-// var data = {
-//   "utt": ["E > S"],
-// }
-
 var u = data["utt"][0]
-
-display("")
-display("utterance: " + u)
+if(verbose){
+  display("utterance: " + u)
+}
 
 var pl = listener(u)
 var ll = literal_listener(u)
