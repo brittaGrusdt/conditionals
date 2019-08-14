@@ -62,11 +62,12 @@ plot_density <- function(df, xlab, level, evs){
                             linetype="dotted",size=1)
       }
   }
+  p <- p + scale_x_continuous(breaks=c(0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0))
   return(p)
 }
 
 plot_marginal_prob <- function(data_wide, val_marginal, level=NULL, evs=NULL, 
-                               save_as="plot-marginal.png"){
+                               save_as=NULL){
   if(val_marginal == "cns"){
     p <- plot_cns(data_wide, level)
   } else {
@@ -80,7 +81,7 @@ plot_marginal_prob <- function(data_wide, val_marginal, level=NULL, evs=NULL,
     xlab <- paste("P(", paste(val_marginal, collapse = ","), ")", sep="")
     p <- plot_density(data_marginal, xlab, level, evs)
   }
-  ggsave(save_as, p)
+  if(!is.null(save_as)){ggsave(save_as, p)}
   return(p)
 }
 
@@ -113,9 +114,7 @@ plot_marginal_bar <- function(data, val_marginal_str, level=NULL, save_as="plot-
             text = element_text(size= 15),
             legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
   }
-  if(!is.null(save_as)){
-    ggsave(save_as, p)
-  }
+  if(!is.null(save_as)){ggsave(save_as, p)}
   return(p)
 }
 
@@ -135,7 +134,7 @@ plot_voi_alpha_cost <- function(data, model, key, level){
   print(p)
 }
 
-plot_evs <- function(data, marginal, save_as){
+plot_evs <- function(data, marginal, save_as=NULL){
   df <- data %>% filter(p==marginal) 
     p <- df %>% 
       ggplot() + 
@@ -143,11 +142,11 @@ plot_evs <- function(data, marginal, save_as){
                stat="identity", position="dodge") + 
       # facet_wrap(~level) + 
       labs(x="biases", y=paste("E[P(", marginal, ")]", sep=""))
-    ggsave(save_as, p)
+    if(!is.null(save_as)){ggsave(save_as, p)}
     return(p)
 }
 
-plot_cp_vois <- function(data){
+plot_cp_vois <- function(data, save_as=NULL){
   # data needs column order!
   data <- data %>% mutate(key_val=case_when(startsWith(key, "cp_bns") ~ 0,
                                             startsWith(key, "cp_cns") ~ 1,
@@ -164,6 +163,7 @@ plot_cp_vois <- function(data){
                                 TeX('$P(\\neg C| \\neg A)$'))) + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           text = element_text(size= 15),
-          legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
+          legend.position = "right", legend.title = element_blank(), legend.direction = "vertical")
+  if(!is.null(save_as)){ggsave(save_as, p)}
   return(p)
 }
