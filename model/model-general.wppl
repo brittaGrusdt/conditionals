@@ -244,16 +244,6 @@ if(LEVEL_MAX == "speaker_all_bns"){
   var distributions = {"speaker": map(wrap_speaker, bns)}
   distributions
 
-} else if(LEVEL_MAX == "logLik"){
-
-  var data = map(function(s){
-      var logLik = log_likelihood(s)
-      return {"logL": logLik, "cn": s.cn}
-  }, all_states)
-
-  var distributions = {"logLik": data}
-  distributions
-
 } else{
   var distributions = LEVEL_MAX == "prior" ? {prior} :
                       LEVEL_MAX == "LL" ? {"prior": prior, "LL": run("LL")} :

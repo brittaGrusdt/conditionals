@@ -34,7 +34,7 @@ marginalize <- function(data, vars){
   }
   df <- data %>% group_by(bn_id, level) %>% mutate(p = sum(val))
   # now data must be wide again, each bn_id should appear only once per level
-  df <- df %>% spread(key=cell, val=val)
+  df <- df %>% spread(key=cell, val=val, fill=0)
   return(df)
 }
 
@@ -243,11 +243,7 @@ run_model <- function(params){
     result <- df %>% group_by(support) %>% summarize(p_mean=mean(probs)) %>%
       filter(support==params$utt) %>% pull(p_mean)
     
-  }else if(params$level_max=="logLik"){
-    df <- posterior %>% map(function(x){as_tibble(x)})
-    result <- df$logLik %>% unnest() 
-    
-  }else if(params$level_max=="LL-all-utts"){
+  } else if(params$level_max=="LL-all-utts"){
     df <- posterior %>%  map(function(x){as_tibble(x)})
     result <- df$LL %>% unnest() %>% rowid_to_column()
     result <- result %>% unnest() %>% rename(cell=table.support, val=table.probs, prob=LL.probs)
