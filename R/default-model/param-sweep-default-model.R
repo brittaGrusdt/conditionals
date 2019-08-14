@@ -34,6 +34,7 @@ params <- tibble(n_tables=500,
                  save=FALSE, # save entire distributions
                  save_voi=FALSE,
                  model_path="./model/model-general.wppl",
+                 model="default",
                  target_dir=TARGET_DIR,
                  target_fn=paste("results-", bias, sep=""),
                  seed=1234)

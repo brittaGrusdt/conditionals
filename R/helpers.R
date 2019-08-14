@@ -206,15 +206,21 @@ run_webppl <- function(params){
 }
 
 structure_model_data <- function(posterior, params){
-  posterior <- posterior %>% 
-    map(function(x){
-      as_tibble(x) %>% add_column(nor_beta=params$nor_beta,
-                                  nor_theta=params$nor_theta,
-                                  param_nor_beta=params$param_nor_beta,
-                                  param_nor_theta=params$param_nor_theta,
-                                  n_tables=params$n_tables,
-                                  indep_sigma=params$indep_sigma)
+  if(params$model == "default"){
+    posterior <- posterior %>% 
+      map(function(x){
+        as_tibble(x) %>% add_column(nor_beta=params$nor_beta,
+                                    nor_theta=params$nor_theta,
+                                    param_nor_beta=params$param_nor_beta,
+                                    param_nor_theta=params$param_nor_theta,
+                                    n_tables=params$n_tables,
+                                    indep_sigma=params$indep_sigma)
+      })
+  } else{
+    posterior <- posterior %>% map(function(x){
+      as_tibble(x)
     })
+  }
   
   posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
   

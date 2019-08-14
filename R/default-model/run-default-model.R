@@ -22,6 +22,7 @@ params <- tibble(n_tables=500,
                  utt="A > C",
                  save=TRUE,
                  save_voi=TRUE,
+                 model="default",
                  model_path="./model/model-general.wppl",
                  seed=1234)
 
