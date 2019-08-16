@@ -1,17 +1,22 @@
 // var data = {
+//   "verbose": [true],
 //   "utt": ["R > -S"],
-//   "alpha": [5]
-//   "cost_conditional": [0]
+//   "alpha": [5],
+//   "cost_conditional": [0],
+//   "prior_pr": [0.6, 0.7, 0.8]
 // }
 var thresholds = {theta: 0.899, theta_likely: 0.499}
 var verbose = data["verbose"][0]
 var LEVEL_MAX = data["level_max"] ? data["level_max"][0] : "PL"
 var COST_CONDITIONAL = data["cost_conditional"][0]
 var alpha = data["alpha"][0]
+var prior_pr = data["prior_pr"]
+
 
 if(verbose){
   display("alpha:" + alpha)
   display("cost conditional:" + COST_CONDITIONAL)
+  display("prior P(R):" + prior_pr)
 }
 
 // Causal networks --------------------------------------------------------------
@@ -21,7 +26,7 @@ var prior_cn2 = 0.95
 // Probabilities ----------------------------------------------------------------
 var vars = [["R", "-R"], ["S", "-S"], ["W", "-W"]]
 // var priors_rain = [0.1, 0.5, 0.9]
-var priors_rain = [0.6, 0.7, 0.8]
+var priors_rain = prior_pr
 var p_wedding_inside = {"R": 1, "-R": 0}
 var probabilities = {"cn1": {"p_wi": p_wedding_inside,
                              "p_s": {"W": 0, "-W": 1}},
