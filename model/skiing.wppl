@@ -1,7 +1,9 @@
 // var data = {
+//     "verbose": [true],
 //   "utt": ["E > S"],
-//   "alpha": [5]
-//   "cost_conditional": [0]
+//   "alpha": [5],
+//   "cost_conditional": [0],
+//   "prior_pe": [0.2]
 // }
 var thresholds = {theta: 0.899, theta_likely: 0.499}
 
@@ -9,10 +11,12 @@ var verbose = data["verbose"][0]
 var LEVEL_MAX = data["level_max"] ? data["level_max"][0] : "PL"
 var COST_CONDITIONAL = data["cost_conditional"][0]
 var alpha = data["alpha"][0]
+var prior_pe = data["prior_pe"][0]
 
 if(verbose){
   display("alpha:" + alpha)
   display("cost conditional:" + COST_CONDITIONAL)
+  display("prior P(E):" + prior_pe)
 }
 
 // Causal networks --------------------------------------------------------------
@@ -25,13 +29,18 @@ var prior_cn2 = 0.05
 var vars = [["S", "-S"], ["E", "-E"], ["C", "-C"]]
 
 var probabilities = {"cn1": {"p_clothes": {"S": 0.7, "-S": 0.1},
-                             "p_exam": 0.2,
+                             "p_exam": prior_pe,
                              "p_skiing": 0.1},
                      "cn2": {"p_clothes": {"S": 0.7, "-S": 0.1},
-                             "p_exam": 0.2,
+                             "p_exam": prior_pe,
                              "p_skiing": {"E": 0.98, "-E": 0.1}}
                     }
 // Helper --------------------------------------------------------------------
+var roundToN = function(x, n){
+  var m = Math.pow(10,n)
+  return Math.round(x*m)/m
+}
+
 var negate = function(x){
   return x.startsWith("-") ? x.slice(1) : "-" + x
 }
@@ -52,7 +61,6 @@ var combinations = Infer({model:function(){
   return filter(function(t){t.length>0}, tokens)
 }}).support()
 var combinations = filter(function(x){x.length > 0}, combinations)
-display('# unique combinations of pairs: ' + combinations.length)
 
 var marginal = function(state, variables){
   var tokens = state.support()
@@ -131,19 +139,19 @@ var state_prior = Infer({model:function(){
 var literals_conjunctions = map(function(tokens){
   tokens.join(" and ")
 }, combinations)
-display('# literals + # conjunctions: ' + literals_conjunctions.length)
-
 var literals = filter(function(utt){!utt.includes(" and ")},
                       literals_conjunctions)
 var utts_likely = map(function(utt){'likely ' + utt}, literals)
-display('# likely: ' + utts_likely.length)
-
 var conditionals = combine_pairs(" > ")
-display('# conditionals: ' + conditionals.length)
-
 var utterances = literals_conjunctions.concat(conditionals.concat(utts_likely))
-display('# utterances: ' + utterances.length)
 // map(display, utterances)
+
+if(verbose){
+  display('# likely: ' + utts_likely.length)
+  display('# conditionals: ' + conditionals.length)
+  display('# utterances: ' + utterances.length)
+  display('# literals + # conjunctions: ' + literals_conjunctions.length)
+}
 
 var utterance_probs = cache(function(utterance, state){
   if(conditionals.includes(utterance)){
@@ -178,11 +186,14 @@ var all_states = state_prior.support()
 var utts_to_remove = filter(function(u){
   !any(function(s){meaning(u,s.table)}, all_states)
 }, utterances)
-display('# utts without corresponding state: ' + utts_to_remove.length)
 // map(display, utts_to_remove)
 
 var utterances = filter(function(u){!utts_to_remove.includes(u)}, utterances)
-display('# included utterances: ' + utterances.length)
+
+if(verbose){
+  display('# utts without corresponding state: ' + utts_to_remove.length)
+  display('# included utterances: ' + utterances.length)
+}
 // map(display, utterances)
 
 // Model ----------------------------------------------------------------------
@@ -223,16 +234,21 @@ var listener = function(utterance){
     observe(speaker(state), utterance)
     return state
   }})
+  return distr
+}
 
+var listener_beliefs = function(distr, evidence_var){
   // listener has evidence for C
   var ps = map(function(d){Math.exp(distr.score(d))}, distr.support())
   var vs = map(function(x){
     var old_table = x["table"]
+//     viz(old_table)
     var new_table = Infer({model:function(){
       var entry = sample(old_table)
-      condition(!entry.includes("-C"))
+      condition(!entry.includes(negate(evidence_var)))
       return entry
     }})
+//     viz(new_table)
     return {"cn": x["cn"], "table": new_table}
     }, distr.support())
 
@@ -244,14 +260,17 @@ var listener = function(utterance){
 
 // Run from R ----------------------------------------------------------------
 var u = data["utt"][0]
+var evidence = data["evidence"][0]
 if(verbose){
   display("utterance: " + u)
+  display("evidence for: " + evidence)
 }
 
-var pl = listener(u)
-var ll = literal_listener(u)
 var prior = state_prior
+var ll = literal_listener(u)
+var pl = listener(u)
+var pl_beliefs = listener_beliefs(pl, evidence)
 
 // object to return
-var distributions = {"PL": pl, "LL": ll, "prior": prior}
+var distributions = {"PL": pl, "LL": ll, "prior": prior, "PL-beliefs": pl_beliefs}
 distributions
