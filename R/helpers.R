@@ -41,6 +41,14 @@ marginalize <- function(data, vars){
 expected_val <- function(df_wide, value_str){
   evs <- df_wide %>% mutate(ev_prod=p * prob) %>% group_by(level) %>%
           summarize(ev=sum(ev_prod)) %>% add_column(p=value_str)
+  
+  levels <- evs$level 
+  if(is.na(match("prior", levels))){
+    evs <- evs %>% add_row(level="prior", ev=0, p=value_str)}
+  if(is.na(match("LL", levels))){
+    evs <- evs %>% add_row(level="LL", ev=0, p=value_str)}
+  if(is.na(match("PL", levels))){
+    evs <- evs %>% add_row(level="PL", ev=0, p=value_str)}
   return(evs)
 }
 
@@ -302,6 +310,44 @@ filter_by_model_params <- function(df, params){
   return(df)
 }
 
+adapt_bn_ids <- function(data_wide){
+  # only considers levels PL, LL and prior
+  df <- data_wide %>% dplyr::select(-prob, -level, -bn_id, -cn)
+  cell_names <- names(df)
+  data_wide <- data_wide %>% unite(cells, names(df), sep="__")
+
+  # makes sure that bn_ids are identical across levels PL/LL/prior
+  prior <- data_wide %>% filter(level=="prior") %>% arrange(cn, cells)
+  ll <- data_wide %>% filter(level=="LL") %>% arrange(cn, cells)
+  pl <- data_wide %>% filter(level=="PL") %>% arrange(cn, cells)
+  df <- bind_rows(ll, prior)
+  
+  # not all Bayes nets that are in the prior also occur in the literal/pragmatic listener
+  # (but there is no diff btw. those in LL/PL)
+  idx_dups <- df %>% dplyr::select(-level, -prob, -bn_id) %>% duplicated()
+  duplicates_prior <- df[idx_dups, ] %>%  arrange(cn, cells)
+  # duplicates_prior$level %>% unique()
+  
+  pl <- pl %>% mutate(bn_id=duplicates_prior$bn_id)
+  ll <- ll %>% mutate(bn_id=duplicates_prior$bn_id)
+  
+  df <- bind_rows(prior, ll, pl)
+  df <- df %>% separate(cells, cell_names, sep="__", convert=TRUE) 
+  return(df)
+}
+
+sample_webppl_distr <- function(data_wide){
+  # data_wide needs field prob (Bayes net prob) and p
+  samples <- list()
+  for(lev in unique(data_wide$level)){
+    d <- data_wide %>% filter(level==lev)
+    s <- get_samples(tibble(support=d$p, prob=d$prob), 5000000)
+    samples[[`lev`]] <- s %>% add_column(level=lev)
+  }
+  data_marginal <- bind_rows(samples)
+  return(data_marginal)
+}
+
 # values-of-interest ------------------------------------------------------
 
 # 1. returns the minimum of the hellinger distances between P(cn) and
@@ -416,15 +462,35 @@ voi_conditional_perfection <- function(posterior, params){
   return(val_cp)
 }
 
-get_voi <- function(posterior, params){
-  uncertainty <- voi_epistemic_uncertainty(posterior, params)
-  pa <- voi_pa(posterior, params)
-  pc <- voi_pc(posterior, params)
-  cp <- voi_conditional_perfection(posterior, params)
+voi_skiing <- function(posterior, params){
+  pe <- marginalize(posterior, c("E")) 
+  ev_pe <- pe %>% expected_val("E") %>% rename(value=ev, key=p) %>% 
+    mutate(alpha=params$alpha, cost=params$cost_conditional, pe=params$prior_pe)
+  return(ev_pe)
+}
+
+voi_sundowners <- function(posterior, params){
   
-  results <- bind_rows(uncertainty, pa, pc, cp) %>%
-              add_column(seed=params$seed,
-                         n_tables=params$n_tables)
+}
+
+get_voi <- function(posterior, params){
+  if(params$model == "default"){
+    uncertainty <- voi_epistemic_uncertainty(posterior, params)
+    pa <- voi_pa(posterior, params)
+    pc <- voi_pc(posterior, params)
+    cp <- voi_conditional_perfection(posterior, params)
+    
+    results <- bind_rows(uncertainty, pa, pc, cp) %>%
+                add_column(seed=params$seed,
+                           n_tables=params$n_tables)
+  } else if(params$model == "skiing"){
+    results <- voi_skiing(posterior, params)
+  } else if(params$model == "sundowners"){
+    # TODO
+    # results <- voi_sundowners(posterior, params)
+  }else{
+    stop(paste("unknown model:", params$model))
+  }
   
   name <- file.path(params$target_dir, params$target_fn, fsep=.Platform$file.sep)
   if(params$save_voi){

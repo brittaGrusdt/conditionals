@@ -44,17 +44,15 @@ plot_tables(tables)
 fn_no_bias <- file.path(RESULT_DIR, "default-model", "results-none.rds")
 data_no_bias <- read_rds(fn_no_bias)
 
-
 data_wide <- data_no_bias %>% spread(key=cell, val=val)# %>% adapt_bn_ids()
-data_long <- data_wide %>% gather(`AC`, `AC`, `A-C`, `-AC`, `-A-C`, key=cell, val=val)
-pc <- marginalize(data_long, c("C")) 
-pa <- marginalize(data_long, c("A"))
+pc <- marginalize(data_no_bias, c("C")) 
+pa <- marginalize(data_no_bias, c("A"))
 
 evs_all <- bind_rows(pc %>% expected_val("C"), pa %>% expected_val("A")) %>% add_column(bias="none")
 evs_all
+# plot_marginal_prob(data_no_bias, c("A"), evs=evs_all %>% filter(p=="A"))
+p <- plot_marginal_prob(data_no_bias, c("C"))
 
-# plot_marginal_prob(pa, c("A"), evs=evs_all %>% filter(p=="A"))
-p <- plot_marginal_prob(pc, c("C"))
 vlines <- tibble(upper=0.9, lower=0.1)
 p2 <- p + geom_vline(data=vlines, aes(xintercept=lower),
                     linetype="dotted", color="dimgray", size=1) + 
@@ -63,22 +61,17 @@ p2 <- p + geom_vline(data=vlines, aes(xintercept=lower),
           theme_bw()
 ggsave(paste(TARGET_DIR, "none-pc.png", sep=.Platform$file.sep), p2)
 
-
-plot_marginal_prob(data_wide, "cns", save_as=paste(TARGET_DIR, "none-cns.png",
-                                                    sep=.Platform$file.sep))
-
-
+plot_cns(data_wide, level=NULL, save_as=paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep))
 
 # Biscuit conditionals ----------------------------------------------------
 fn_biscuits <- file.path(RESULT_DIR, "default-model", "results-pizza.rds")
 data_biscuit <- read_rds(fn_biscuits)
 
-data_wide <- data_biscuit %>% spread(key=cell, val=val)
 pc <- marginalize(data_biscuit, c("C"))
 pa <- marginalize(data_biscuit, c("A"))
 evs <- bind_rows(expected_val(pc, c("C")), expected_val(pa, c("A"))) %>% add_column(bias="biscuits")
 
-plot_marginal_prob(pc, c("C"), evs=filter(evs, p=="C"))
+plot_marginal_prob(data_biscuit, c("C"))
 
 # Conditional Perfection --------------------------------------------------
 fn_cp <- file.path(RESULT_DIR, "default-model", "results-lawn.rds")
@@ -90,8 +83,7 @@ pc <- marginalize(data_cp, c("C"))
 pa <- marginalize(data_cp, c("A")) 
 evs <- bind_rows(expected_val(pc, "C"), expected_val(pa, "A")) %>% add_column(bias="cp")
 
-plot_marginal_prob(data_wide, "cns")
-
+plot_cns(data_wide)
 
 # Value-of-interest for epistemic uncertainty (no bias) -------------------
 
