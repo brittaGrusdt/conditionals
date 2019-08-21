@@ -61,7 +61,10 @@ compute_cond_prob <- function(distr_wide, prob){
     distr <- distr_wide %>% mutate(p=`AC`/(`-AC`+`AC`))
   }else if(prob=="P(-A|-C)"){
     distr <- distr_wide %>% mutate(p=`-A-C`/(`A-C`+`-A-C`))
-  }else{
+  } else if(prob=="P(C|-A)"){
+    distr <- distr_wide %>% mutate(p=`-AC`/(`-AC`+`-A-C`))
+  }
+  else{
     stop("not implemented.")
   }
   return(distr)
@@ -119,12 +122,18 @@ plot_marginal <- function(data, vars, distribution_str, density_graph = FALSE){
 # Plot all table distributions for each causal network respectively
 plot_tables <- function(data){
     cns <- data$cn %>% as.factor() %>% levels()
+    data <- data %>% mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")))
     for(causal_net in cns){
+      if(causal_net == "A || C"){
+        cn_title <- "A independent C"
+      } else {
+        cn_title <- causal_net
+      }
       p <- data %>% filter(cn==causal_net) %>%
         ggplot(aes(x=val,  color = cell)) +
             geom_density() +
             facet_wrap(~cell, scales = "free_y") +
-            labs(title = causal_net) +
+            labs(title = cn_title, x="p") +
             theme(legend.position = "none")
       print(p)
     }
