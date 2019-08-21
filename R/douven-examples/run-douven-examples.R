@@ -6,7 +6,7 @@ library(tidyverse)
 # Parameters --------------------------------------------------------------
 params_skiing <- tibble(verbose=TRUE,
                         utt="E > S",
-                        prior_pe=0.7,
+                        prior_pe=0.2,
                         model="skiing",
                         alpha=3,
                         level_max="PL",
@@ -26,8 +26,8 @@ params_sundowners <- tibble(verbose=TRUE,
 # prior_pr <- c(0.1, 0.2, 0.3)
 prior_pr <- c(0.6, 0.7, 0.8)
 
-# params <- params_skiing
-params <- params_sundowners
+params <- params_skiing
+# params <- params_sundowners
 
 # Setup -------------------------------------------------------------------
 print(paste('run model for ', params$model, 'example'))
