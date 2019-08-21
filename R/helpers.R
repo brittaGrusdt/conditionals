@@ -348,6 +348,16 @@ sample_webppl_distr <- function(data_wide){
   return(data_marginal)
 }
 
+
+rename_levels <- function(df){
+  df %>% mutate(level = case_when(level=="LL" ~ "literal-listener",
+                                  level=="PL" ~ "listener",
+                                  level=="prior" ~ "prior",
+                                  TRUE ~ "listener-beliefs"))
+}
+
+
+
 # values-of-interest ------------------------------------------------------
 
 # 1. returns the minimum of the hellinger distances between P(cn) and

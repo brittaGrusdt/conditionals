@@ -124,7 +124,7 @@ plot_conditional_prob <- function(data, p, level=NULL, evs=NULL){
 }
 
 plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, title=""){
-  xlab <- paste("P(", paste(val_marginal_str, collapse = ","), ")", sep="")
+  xlab <- paste("E[P(", paste(val_marginal_str, collapse = ","), ")]", sep="")
   df <- data_evs %>% mutate(level=as.factor(level))
   if(is.null(level)){
     p <- df %>% 
@@ -132,11 +132,12 @@ plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, t
       geom_bar(mapping = aes(x=level, y=ev, fill=level),
                stat="identity", position="dodge") + 
       # facet_wrap(~level) + 
-      labs(x=xlab, y="probability", title=title) +
+      labs(x=xlab, y="probability", title=title) + theme_bw() + 
       theme(axis.text.x = element_text(angle = 45, hjust = 1),
-            text = element_text(size= 15),
-            legend.position = "bottom", legend.title = element_blank(),
-            legend.direction = "horizontal")
+            text = element_text(size= 25),
+            legend.position = "none")
+            # legend.title = element_blank(),
+            # legend.direction = "horizontal")
   }else{
     col <- level2color %>% filter(level== (!!level)) %>% pull(col)
     p <- df %>% filter(level==(!! level)) %>% 
@@ -144,8 +145,8 @@ plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, t
       geom_bar(mapping = aes(x=p, y=prob), fill=col, stat="identity") + 
       labs(x=xlab, y="probability", title=level) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1),
-            text = element_text(size= 15),
-            legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
+            text = element_text(size= 15), legend.position = "none")
+            # legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
   }
   if(!is.null(save_as)){ggsave(save_as, p)}
   return(p)
