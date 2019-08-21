@@ -47,7 +47,7 @@ var negate = function(x){
 
 var intersect_arrays = function(arrays){
   return filter(function(m){
-          var m_in_all_lists = map(function(idx){arrays[idx].includes(m)},
+          var m_in_all_lists = map(function(idx){arrays[idx].indexOf(m) != -1},
                                   _.range(1,arrays.length))
           return sum(m_in_all_lists)==m_in_all_lists.length
     }, arrays[0])
@@ -77,7 +77,7 @@ var combine_pairs = function(connective){
   var pairs_list = mapIndexed(function(idx, tokens1){
     var arr = filter(function(tokens){
       all(function(x){
-        !tokens.includes(x) && !tokens.includes(negate(x))
+        tokens.indexOf(x) == -1 && tokens.indexOf(negate(x)) == -1
       }, tokens1)
     }, combinations.slice(idx+1))
 
@@ -154,19 +154,19 @@ if(verbose){
 }
 
 var utterance_probs = cache(function(utterance, state){
-  if(conditionals.includes(utterance)){
+  if(conditionals.indexOf(utterance) != -1){
     var components = utterance.split(" > ")
     var antecedent = components[0].split(" and ").join("")
     var consequent = components[1].split(" and ").join("")
     return marginal(state, [antecedent, consequent]) /
            marginal(state, [antecedent])
   }
-  if(literals.includes(utterance)){return marginal(state, [utterance])}
-  if(utts_likely.includes(utterance)){
+  if(literals.indexOf(utterance) != -1){return marginal(state, [utterance])}
+  if(utts_likely.indexOf(utterance) != -1){
     var u = utterance.slice("likely ".length)
     return marginal(state, [u])
   }
-  if(literals_conjunctions.includes(utterance)){
+  if(literals_conjunctions.indexOf(utterance) != -1){
     var components = utterance.split(" and ")
     return marginal(state, components)
   }
@@ -188,7 +188,7 @@ var utts_to_remove = filter(function(u){
 }, utterances)
 // map(display, utts_to_remove)
 
-var utterances = filter(function(u){!utts_to_remove.includes(u)}, utterances)
+var utterances = filter(function(u){utts_to_remove.indexOf(u) == -1}, utterances)
 
 if(verbose){
   display('# utts without corresponding state: ' + utts_to_remove.length)
@@ -206,11 +206,11 @@ var literal_listener = cache(function(utterance){
 }, 10000)
 
 var cost = function(utt){
-  if(!utterances.includes(utt)){error('unknown utterance ' + utt)}
-  var c1 = utt.includes(' > ') ? COST_CONDITIONAL : 0
+  if(utterances.indexOf(utt) == -1){error('unknown utterance ' + utt)}
+  var c1 = utt.indexOf(' > ') != -1 ? COST_CONDITIONAL : 0
   var c2 = (utt.split(' and ').length - 1) * (COST_CONDITIONAL/2)
   var c3 = utt.split('-').length > 1 ?  (COST_CONDITIONAL/4) : 0
-  var c4 = utt.includes('likely') ? (COST_CONDITIONAL/5) : 0
+  var c4 = utt.indexOf('likely') != -1 ? (COST_CONDITIONAL/5) : 0
   return c1 + c2 + c3 + c4
 }
 
