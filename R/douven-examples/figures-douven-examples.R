@@ -34,7 +34,6 @@ data_wide %>% filter(level=="prior") %>% group_by(bn_id, level) %>% group_map(pl
 plot_bns(df)
 
 pe <- marginalize(data_long, c("E")) 
-ev_pe <- pe %>% expected_val("C")
 
 p <- plot_evs_bar(ev_pe, "E") 
 p <- p + scale_x_discrete(limits = c("PL-beliefs", "PL", "LL", "prior"),

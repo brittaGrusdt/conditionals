@@ -4,7 +4,7 @@ source("R/default-model/helpers-tables.R")
 source("R/plot-functions.R")
 
 RESULT_DIR <- "data"
-TARGET_DIR <- file.path("data", "figs", fsep=.Platform$file.sep)
+TARGET_DIR <- file.path("data", "default-model", "figs", fsep=.Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
 
 
@@ -70,6 +70,7 @@ data_biscuit <- read_rds(fn_biscuits)
 pc <- marginalize(data_biscuit, c("C"))
 pa <- marginalize(data_biscuit, c("A"))
 evs <- bind_rows(expected_val(pc, c("C")), expected_val(pa, c("A"))) %>% add_column(bias="biscuits")
+plot_evs_bar(data_biscuit, c("C"))
 
 plot_marginal_prob(data_biscuit, c("C"))
 
@@ -92,7 +93,7 @@ voi_none_all <- readRDS("data/default-model/results-none-voi.rds")
 voi_none <- voi_none_all %>% filter(key=="epistemic_uncertainty") %>% filter_tables(params) %>%
   filter_by_model_params(params)
 
-p <- voi_none %>% 
+p <- voi_none %>% rename_levels() %>% 
   mutate(value=round(as.numeric(value), 3)) %>% 
   ggplot() + 
   geom_bar(mapping = aes(x=level, y=value, fill=level),
@@ -113,18 +114,17 @@ p
 ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p,
        width=15, height=6)
 
-
 # Value-of-interest for biscuit bias --------------------------------------
 # voi_pizza_all <- readRDS(file.path("data", "default-model", "results-pizza-voi-sweep.rds"))
 voi_pizza_all <- readRDS("data/default-model/results-pizza-voi.rds")
 
 params_biscuits <- params
 params_biscuits$bias <- "pizza"
-params_biscuits$n_tables <- 500*9
+params_biscuits$n_tables <- 500
 voi_pizza <- voi_pizza_all %>% filter(key=="pc") %>% filter_tables(params_biscuits) %>%
   filter_by_model_params(params_biscuits)
 
-p <- voi_pizza %>% 
+p <- voi_pizza %>% rename_levels() %>% 
   mutate(value=round(as.numeric(value), 3)) %>% 
   ggplot() + 
   geom_bar(mapping = aes(x=level, y=value, fill=level),
