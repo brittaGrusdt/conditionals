@@ -34,11 +34,26 @@ data_wide %>% filter(level=="prior") %>% group_by(bn_id, level) %>% group_map(pl
 plot_bns(df)
 
 pe <- marginalize(data_long, c("E")) 
-ev_pe <- pe %>% expected_val("C") %>% rename_levels()
+ev_pe <- pe %>% expected_val("C")
 
 p <- plot_evs_bar(ev_pe, "E") 
+p <- p + scale_x_discrete(limits = c("PL-beliefs", "PL", "LL", "prior"),
+                          labels = c("pragmatic interpretation conditioned on B",
+                                  "pragmatic interpretation",
+                                  "literal interpretation",
+                                  "belief before hearing 'If E, S'"),
+                          position = "top") +
+      scale_y_continuous(limits=c(0,1)) +
+      coord_flip() +
+      labs(title="expected degree of belief in E", x="", y="") +
+      theme_classic(base_size=25) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, size=25),
+            axis.text.y = element_text(size= 25),
+            # text = element_text(size= 25),
+            legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal")
+
 fn <- paste(TARGET_DIR, "skiing-pe.png", sep=.Platform$file.sep)
-ggsave(fn, p, height = 6, width=6)
+ggsave(fn, p, height = 6, width=15)
 
 # Sweep-prior-exam --------------------------------------------------------
 fn <- file.path(RESULT_DIR, "results-skiing-voi-sweep.rds")

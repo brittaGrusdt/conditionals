@@ -96,14 +96,22 @@ p <- voi_none %>%
   mutate(value=round(as.numeric(value), 3)) %>% 
   ggplot() + 
   geom_bar(mapping = aes(x=level, y=value, fill=level),
-           stat="identity")  +
-  scale_x_discrete(limits = c("prior", "LL", "PL")) +
-  labs(y="P(C)<0.1 + P(C)>0.9") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        text = element_text(size= 20),
-        legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
+           stat="identity")  + 
+  scale_x_discrete(limits = c("PL", "LL", "prior"), labels = c("pragmatic interpretation",
+                                                               "literal interpretation",
+                                                               "belief before hearing 'If A, C'"),
+                   position = "top") +
+  # scale_y_continuous(position="right") +
+  coord_flip() +
+  labs(title="degree of belief about consequent C to be true or false",
+       x="", y="") + 
+  theme_classic(base_size=20) +
+  theme(axis.text.x = element_text(size=25),
+        axis.text.y = element_text(size= 25),
+        legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal")
 p
-# ggsave(paste(TARGET_DIR, "figs", "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p)
+ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p,
+       width=15, height=6)
 
 
 # Value-of-interest for biscuit bias --------------------------------------
@@ -121,13 +129,21 @@ p <- voi_pizza %>%
   ggplot() + 
   geom_bar(mapping = aes(x=level, y=value, fill=level),
            stat="identity")  +
-  scale_x_discrete(limits = c("prior", "LL", "PL")) +
-  labs(y=TeX('$\\mathbf{E}(P(C))$')) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        text = element_text(size= 20),
-        legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
+  scale_x_discrete(limits = c("PL", "LL", "prior"),
+                   labels = c("pragmatic interpretation",
+                              "literal interpretation",
+                              "belief before hearing 'If A, C'"),
+                   position = "top") +
+  scale_y_continuous(limits=c(0,1)) +
+  coord_flip() +
+  labs(title="expected degree of belief in consequent C", x="", y="") +
+  theme_classic(base_size=20) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size=25),
+        axis.text.y = element_text(size= 25),
+        # text = element_text(size= 25),
+        legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal")
 
-# ggsave(paste(TARGET_DIR, "pizza-voi-pc.png", sep=.Platform$file.sep), p)
+ggsave(paste(TARGET_DIR, "pizza-voi-pc.png", sep=.Platform$file.sep), p, width=15, height=6)
 p
 
 # CP-strengths for lawn-bias and no-bias  ---------------------------------
@@ -174,7 +190,7 @@ plot_cp_vois(data %>% filter(bias=="none"))
 # save_as <- paste(TARGET_DIR, "none-vois-cp.png", sep=.Platform$file.sep)
 
 # plot only values for bias=lawn
-plot_cp_vis(data %>% filter(bias=="lawn"))
+plot_cp_vois(data %>% filter(bias=="lawn"))
 # save_as <- paste(TARGET_DIR, "lawn-vois-cp.png", sep=.Platform$file.sep)
 
 # plot comparison between cp-strengths for bias-none and bias-lawn
