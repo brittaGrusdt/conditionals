@@ -1,6 +1,6 @@
 library(tidyverse)
 library(latex2exp)
-
+source("R/helpers.R")
 
 target_dir <- paste("data", "figs", sep=.Platform$file.sep)
 
@@ -36,14 +36,18 @@ data_dir <- file.path(".", "data", "precomputations", "model-general",
 
 path_tables <- file.path(data_dir, "tables-all.rds", fsep = .Platform$file.sep)
 tables <- read_rds(path_tables) %>%
-            filter(n_tables==500 & noise_v==250 & param_nor_beta==10 & param_nor_theta==10) %>% 
+            filter(seed==1234 & n_tables==800 & noise_v==250 & param_nor_beta==10 & param_nor_theta==10) %>% 
             select(ps, vs) %>% unnest() %>%  rename(cell=vs, val=ps, bn_id=id) %>% 
             add_column(level="prior")
   
 df1 <- marginalize(tables, c("A")) %>% ungroup() %>% select(bn_id, p) %>%
-        mutate(pna=1-p) %>% rename(pa=p) %>% gather(pa, pna, key=val, val=p)
+        mutate(pna=1-p) %>% rename(pa=p) %>% gather(pa, pna, key=val, val=p) 
+df1 <- bind_rows(df1, df1 %>% mutate(val=case_when(val=="pa" ~ "likely_pa",
+                                                   TRUE ~ "likely_pna")))
 df2 <- marginalize(tables, c("C")) %>% ungroup() %>% select(bn_id, p) %>% 
         mutate(pnc=1-p) %>% rename(pc=p) %>% gather(pc, pnc, key=val, val=p)
+df2 <- bind_rows(df2, df2 %>% mutate(val=case_when(val=="pc" ~ "likely_pc",
+                                                   TRUE ~ "likely_pnc")))
 
 df3 <- marginalize(tables, c("A", "C")) %>% ungroup() %>% select(bn_id, p) %>% add_column(val="pac")
 df4 <- marginalize(tables, c("A", "-C")) %>% ungroup() %>% select(bn_id, p) %>% add_column(val="panc")
@@ -64,14 +68,19 @@ df10 <- tables_wide %>% compute_cond_prob("P(-A|-C)") %>% ungroup() %>% select(b
 conditionals <- bind_rows(df7, df8, df9, df10) 
 
 data <- bind_rows(conditionals, marginals)
-data <- data %>% mutate(u_holds=case_when(p>=0.9 ~ TRUE,
-                                          TRUE ~ FALSE),
-                        u_maybe=case_when(p>=0.5 ~ TRUE,
-                                          TRUE  ~ FALSE))
+data <- data %>% mutate(u_holds=case_when(startsWith(val, "likely") & p>=0.5 ~ TRUE,
+                                          p >= 0.9 ~ TRUE,
+                                          TRUE ~ FALSE))
 summary <- data %>% group_by(val) %>% summarize(s=sum(u_holds))
+summary %>% arrange(s)
 
-data %>% filter(val=="pc_a" | val=="pc") %>%  group_by(bn_id) %>% summarize(both=sum(u_holds)==2) -> s2 
+# x <- data %>% filter(val=="pc_a" & u_holds)
+# df <- data %>% filter(val=="pc" | val=="pc_a")
+# df <- data %>% filter(val=="pac" | val=="pc_a")
 
+# n <- nrow(x)
+# s <- df %>% group_by(bn_id) %>% summarize(all=sum(u_holds)==2) %>% pull(all) %>% sum()
+# s/n
 
 # fn_utts <- paste("utterances-none.rds", sep="")
 # path_utterances <- file.path(data_dir, fn_utts, fsep = .Platform$file.sep)
