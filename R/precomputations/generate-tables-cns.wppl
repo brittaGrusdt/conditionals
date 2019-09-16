@@ -1,5 +1,5 @@
 ////////////  SET PARAMETERS  /////////////////
-var noise_v = data["noise"][0]
+// var sigma = data["sigma"][0]
 var n_tables = data["n_tables"][0]
 var verbose = data["verbose"][0]
 var noisy_or_beta = data["nor_beta"][0]
@@ -101,17 +101,24 @@ var build_table_functions = {
                                  }
                          }),
 
-  "||" : cache(function(a, c){
-          var table = [a*c, a * (1-c), (1-a) * c, (1-a) * (1-c)]
-          var table_noisy = map(function(cell){
-                                  beta({a: cell*noise_v, b:(1-cell)*noise_v})
-                                }, table)
-          var c = sum(table_noisy)
-          var table_new = map(function(cell){roundToN(cell/c)}, table_noisy)
-
-          return {"AC": table_new[0], "A-C": table_new[1],
-                  "-AC": table_new[2], "-A-C": table_new[3]}
+  "||" : cache(function(a, c, ac){
+          var x = (ac+a-ac+c-ac)
+          var last = x >= 1 ? 0 : 1-x
+          display(last)
+          var table = [ac, a-ac, c-ac, last]
+          display(table)
+          return {"AC": table[0], "A-C": table[1],
+                  "-AC": table[2], "-A-C": table[3]}
           })
+}
+
+var truncate_normal = function(cell, limit){
+  var distr = Infer({method:"rejection", model:function(){
+    var x = gaussian({mu:cell, sigma:0.001})
+    condition(x>0 && x < limit)
+    return x
+  }})
+  sample(distr)
 }
 
 var make_tables = cache(function(cn){
@@ -129,9 +136,11 @@ var make_tables = cache(function(cn){
       var child_p = theta_i + beta_i - (beta_i * theta_i)
       var child_np = beta_i
       var parent = beta(1, 1)
+      var parent2 = beta(1,1)
 
       var probs =
-        cn=="A || C" ? [beta(1,1), beta(1,1)] :
+        cn=="A || C" ? [parent, parent2, truncate_normal(parent*parent2,
+          Math.min(parent, parent2))] :
         cn=="A implies C" || cn=="C implies A" ? [child_p, child_np, parent] :
         cn=="A implies -C" || cn=="C implies -A" ?
           [1-child_p, 1-child_np, parent] :
@@ -141,7 +150,7 @@ var make_tables = cache(function(cn){
           [1-child_np, 1-child_p, 1-parent] :
         error("unknown causal network " + cn)
 
-      var table = cn=="A || C" ? build_table(probs[0], probs[1])
+      var table = cn=="A || C" ? build_table(probs[0], probs[1], probs[2])
                                  : build_table(probs[0], probs[1], probs[2])
 
       return Categorical({"vs": _.keys(table),"ps": _.values(table)})
