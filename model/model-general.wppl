@@ -124,8 +124,7 @@ var state_prior = cache(function(bias){
     } else if(bias=="pizza"){
       condition(state.cn == "A || C")
     } else if(bias == "dutchman"){
-      condition(state.cn == "A || C" &&
-                marginal(state.table, ["C"]) <= thresholds.f)
+      condition(marginal(state.table, ["C"]) <= thresholds.f)
     }
     return state
   }})
