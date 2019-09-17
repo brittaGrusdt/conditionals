@@ -54,7 +54,7 @@ p <- p + scale_x_discrete(limits = c("PL-beliefs", "PL", "LL", "prior"),
 fn <- paste(TARGET_DIR, "skiing-pe.png", sep=.Platform$file.sep)
 ggsave(fn, p, height = 6, width=15)
 
-# Sweep-prior-exam --------------------------------------------------------
+# skiing sweep-prior-exam --------------------------------------------------------
 fn <- file.path(RESULT_DIR, "results-skiing-voi-sweep.rds")
 sweep_data <- readRDS(fn) %>% filter(level=="PL-beliefs")
 
@@ -74,7 +74,7 @@ data_long <- readRDS(fn)
 data_wide <- data_long %>% spread(key=cell, val=val, fill = 0)
 df <- data_wide %>% adapt_bn_ids()
 
-plot_cns(df,level = NULL, save_as=paste(TARGET_DIR, "sundowners-cns.png", sep=.Platform$file.sep))
+plot_cns(df, save_as=paste(TARGET_DIR, "sundowners-cns.png", sep=.Platform$file.sep))
 
 # plot distribution of each Bayes net
 plot_distr <- function(d, x){
@@ -89,7 +89,7 @@ plot_distr <- function(d, x){
 data_wide %>% filter(level=="prior") %>% group_by(bn_id, level) %>% group_map(plot_distr)
 
 # plot distribution over Bayes nets 
-plot_bns(df)
+# plot_bns(df)
 
 # Plot expected values for P(R,S)
 prs <- marginalize(data_long, c("R", "S")) 
@@ -97,15 +97,101 @@ ev_prs <- prs %>% expected_val("RS")
 plot_evs_bar(ev_prs, "R,S")
 
 
-# Plot entire distributions for P(R)
-pr <- marginalize(data_long, c("R")) 
-plot_marginal_prob(pr, "R", density=FALSE)
+
+p <- ev_prs %>% ggplot() +
+  geom_bar(mapping = aes(x=level, y=ev, fill=level),
+           stat="identity")  +
+  scale_x_discrete(limits = c("PL", "LL", "prior"),
+                   labels = c("pragmatic interpretation",
+                              "literal interpretation",
+                              "belief before hearing 'If A, C'"),
+                   position = "top") +
+  scale_y_continuous(limits=c(0,1)) +
+  coord_flip() +
+  labs(title="expected degree of belief in probability of rain and sundowners",
+       x="", y="") +
+  theme_classic(base_size=20) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size=25),
+        axis.text.y = element_text(size= 25),
+        # text = element_text(size= 25),
+        legend.position = "none", legend.title = element_blank(),
+        legend.direction = "horizontal")
+
+ggsave(paste(TARGET_DIR, "sundowners-prs.png", sep=.Platform$file.sep),
+       p, height = 6, width=15)
+
+
 
 
 # Plot expected values for P(R)
+pr <- marginalize(data_long, c("R")) 
 ev_pr <- pr %>% expected_val("R")
 plot_evs_bar(ev_pr, "R")
 
 
+p <- ev_pr %>% ggplot() +
+  geom_bar(mapping = aes(x=level, y=ev, fill=level),
+           stat="identity")  +
+  scale_x_discrete(limits = c("PL", "LL", "prior"),
+                   labels = c("pragmatic interpretation",
+                              "literal interpretation",
+                              "belief before hearing 'If A, C'"),
+                   position = "top") +
+  scale_y_continuous(limits=c(0,1)) +
+  coord_flip() +
+  labs(title="expected degree of belief in probability of rain", x="", y="") +
+  theme_classic(base_size=20) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size=25),
+        axis.text.y = element_text(size= 25),
+        # text = element_text(size= 25),
+        legend.position = "none", legend.title = element_blank(),
+        legend.direction = "horizontal")
+
+ggsave(paste(TARGET_DIR, "sundowners-pr.png", sep=.Platform$file.sep),
+       p, height = 6, width=15)
+
+
+
+
+
+
+
+# sweep sundowners example ------------------------------------------------
+fn <- file.path(RESULT_DIR, "results-sundowners-voi-sweep.rds")
+sweep_data <- readRDS(fn) %>% unnest(prior_pr) %>% unite("prior_pr", pr1, pr2, pr3, sep="_")
+
+
+
+
+sweep_data %>% filter(cost==0 & alpha==3 & prior_pr=="0.6_0.7_0.8") %>% 
+  ggplot() + 
+  geom_bar(mapping=aes(x=value, y=prior_pl_diff), size=2) +
+  theme_bw() + 
+  facet_wrap(~key) +
+  labs(x="", y="", title="") +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        text = element_text(size= 25))
+
+
+
+
+
+# diffs <- sweep_data %>% group_by(alpha,cost, prior_pr) %>% spread(key=level, val=value) %>%
+#   mutate(prior_pl_diff=prior-PL)
+# 
+# 
+# p <- diffs %>% filter(key=="R") %>% 
+#   ggplot() + 
+#   geom_point(mapping=aes(x=prior_pr, y=prior_pl_diff), size=2) +
+#   theme_bw() + 
+#   # facet_grid(key~level) +
+#   facet_grid(alpha~cost) + 
+#   labs(x="", y="", title="") +
+#   theme(legend.position = "none", 
+#         axis.text.x = element_text(angle = 45, hjust = 1),
+#         text = element_text(size= 25))
+# p
+# 
 
 

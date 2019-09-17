@@ -4,7 +4,7 @@ source("R/default-model/helpers-tables.R")
 source("R/plot-functions.R")
 
 RESULT_DIR <- "data"
-TARGET_DIR <- file.path("data", "default-model", "figs", fsep=.Platform$file.sep)
+TARGET_DIR <- file.path(RESULT_DIR, "default-model", "figs", fsep=.Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
 
 
@@ -61,11 +61,22 @@ p2 <- p + geom_vline(data=vlines, aes(xintercept=lower),
           theme_bw()
 ggsave(paste(TARGET_DIR, "none-pc.png", sep=.Platform$file.sep), p2)
 
-plot_cns(data_wide, level=NULL, save_as=paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep))
+plot_cns_default(data_wide)
+# save_as=paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep))
+
+
+pa_c <- compute_cond_prob(data_wide, "P(A|C)")
+pa_nc <- compute_cond_prob(data_wide, "P(-A|-C)") %>%
+  mutate(p=1-p) %>% filter(!is.na(p))
+expected_val(pa_c, "P(A|C)")
+expected_val(pa_nc, "P(A|-C)")
+
 
 # Biscuit conditionals ----------------------------------------------------
 fn_biscuits <- file.path(RESULT_DIR, "default-model", "results-pizza.rds")
 data_biscuit <- read_rds(fn_biscuits)
+data_wide <- data_biscuit %>% spread(key=cell, val=val)
+
 
 pc <- marginalize(data_biscuit, c("C"))
 pa <- marginalize(data_biscuit, c("A"))
@@ -73,6 +84,12 @@ evs <- bind_rows(expected_val(pc, c("C")), expected_val(pa, c("A"))) %>% add_col
 plot_evs_bar(data_biscuit, c("C"))
 
 plot_marginal_prob(data_biscuit, c("C"))
+
+pa_c <- compute_cond_prob(data_wide, "P(A|C)")
+pa_nc <- compute_cond_prob(data_wide, "P(-A|-C)") %>%
+  mutate(p=1-p) %>% filter(!is.na(p))
+expected_val(pa_c, "P(A|C)")
+expected_val(pa_nc, "P(A|-C)")
 
 # Conditional Perfection --------------------------------------------------
 fn_cp <- file.path(RESULT_DIR, "default-model", "results-lawn.rds")
@@ -84,7 +101,13 @@ pc <- marginalize(data_cp, c("C"))
 pa <- marginalize(data_cp, c("A")) 
 evs <- bind_rows(expected_val(pc, "C"), expected_val(pa, "A")) %>% add_column(bias="cp")
 
-plot_cns(data_wide)
+plot_cns_default(data_wide)
+
+pa_c <- compute_cond_prob(data_wide, "P(A|C)")
+pa_nc <- compute_cond_prob(data_wide, "P(-A|-C)") %>%
+          mutate(p=1-p) %>% filter(!is.na(p))
+expected_val(pa_c, "P(A|C)")
+expected_val(pa_nc, "P(A|-C)")
 
 # Value-of-interest for epistemic uncertainty (no bias) -------------------
 
@@ -182,16 +205,19 @@ params_cp <- params %>% mutate(bias="lawn")
 voi_lawn_cp <- filter_vois_cp(voi_lawn_all, params_cp)
 
 data <- bind_rows(voi_lawn_none, voi_lawn_cp)
-data <- data %>% mutate(order=case_when(level=="prior" ~ "a",
-                                        level=="LL" ~ "b",
-                                        TRUE ~ "c"))
+
 # plot only values for bias=none
-plot_cp_vois(data %>% filter(bias=="none"))
-# save_as <- paste(TARGET_DIR, "none-vois-cp.png", sep=.Platform$file.sep)
+p <- plot_cp_vois(data %>% filter(bias=="none"))
+fn <- paste(TARGET_DIR, "none-vois-cp.png", sep=.Platform$file.sep)
+ggsave(fn, p, width=15, height=6)
+
 
 # plot only values for bias=lawn
-plot_cp_vois(data %>% filter(bias=="lawn"))
-# save_as <- paste(TARGET_DIR, "lawn-vois-cp.png", sep=.Platform$file.sep)
+fn <- paste(TARGET_DIR, "lawn-vois-cp.png", sep=.Platform$file.sep)
+p <- plot_cp_vois(data %>% filter(bias=="lawn"))
+ggsave(fn, p, width=15, height=6)
+
+
 
 # plot comparison between cp-strengths for bias-none and bias-lawn
 plot_cp_vois(data)

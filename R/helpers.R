@@ -38,6 +38,10 @@ marginalize <- function(data, vars){
   return(df)
 }
 
+marginal_cns <- function(data_wide){
+  data_wide %>% group_by(level, cn) %>% summarize(marginal=sum(prob))
+}
+
 expected_val <- function(df_wide, value_str){
   evs <- df_wide %>% mutate(ev_prod=p * prob) %>% group_by(level) %>%
           summarize(ev=sum(ev_prod)) %>% add_column(p=value_str)
@@ -82,14 +86,6 @@ plot_bns <- function(data, distribution_str){
     labs(title = distribution_str)
 }
 
-plot_cns <- function(data, distribution_str){
-  data %>% spread(key = cell, value = val) %>% 
-  ggplot() + 
-    geom_bar(mapping = aes(x=cn, y=bn_probs), stat="identity") + 
-    labs(title = distribution_str, y="probability") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-}
-
 plot_bn_table <- function(data, id, distribution_str){
   df <- data %>%  filter(bn_id==id)
   ggplot(data = df) + 
@@ -118,27 +114,6 @@ plot_marginal <- function(data, vars, distribution_str, density_graph = FALSE){
   }
   p
 }
-
-# Plot all table distributions for each causal network respectively
-plot_tables <- function(data){
-    cns <- data$cn %>% as.factor() %>% levels()
-    data <- data %>% mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")))
-    for(causal_net in cns){
-      if(causal_net == "A || C"){
-        cn_title <- "A independent C"
-      } else {
-        cn_title <- causal_net
-      }
-      p <- data %>% filter(cn==causal_net) %>%
-        ggplot(aes(x=val,  color = cell)) +
-            geom_density() +
-            facet_wrap(~cell, scales = "free_y") +
-            labs(title = cn_title, x="p") +
-            theme(legend.position = "none")
-      print(p)
-    }
-}
-
 
 # data structures ---------------------------------------------------------
 save <- function(data, target_path){
@@ -489,7 +464,18 @@ voi_skiing <- function(posterior, params){
 }
 
 voi_sundowners <- function(posterior, params){
+  pr <- marginalize(posterior, c("R"))
+  ev_pr <- pr %>% expected_val("R") %>% rename(value=ev, key=p)
   
+  prs <- marginalize(posterior, c("R", "S"))
+  ev_prs <- prs %>% expected_val("R and S") %>% rename(value=ev, key=p)
+  
+  vois <- bind_rows(ev_prs, ev_pr)  %>% 
+            mutate(alpha=params$alpha, cost=params$cost_conditional, 
+                   pr1=params$prior_pr[1],
+                   pr2=params$prior_pr[2],
+                   pr3=params$prior_pr[3]) %>% nest(pr1,pr2,pr3, .key = "prior_pr")
+  return(vois)
 }
 
 get_voi <- function(posterior, params){
@@ -505,8 +491,7 @@ get_voi <- function(posterior, params){
   } else if(params$model == "skiing"){
     results <- voi_skiing(posterior, params)
   } else if(params$model == "sundowners"){
-    # TODO
-    # results <- voi_sundowners(posterior, params)
+    results <- voi_sundowners(posterior, params)
   }else{
     stop(paste("unknown model:", params$model))
   }

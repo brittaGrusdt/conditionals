@@ -25,45 +25,88 @@ plot_bns <- function(data_wide){
     return(p)
 }
 
+plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
+    df <- data_wide %>% group_by(level, cn) %>% summarize(prob=sum(prob))
+    df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
+    
+    if(is.null(level)){
+      p <- df %>% 
+            ggplot() + 
+            geom_bar(mapping = aes(x=cn, y=prob, fill=level),
+                     stat="identity", position="dodge") + 
+            facet_wrap(~level) + 
+            labs(x="causal nets", y="probability") +
+            scale_x_discrete(limits=c("A implies C", "A implies -C",
+                                      "-A implies C", "-A implies -C",
+                                      "C implies A", "C implies -A",
+                                      "-C implies A", "-C implies -A",
+                                      "A || C"),
+                             labels=c("A->C", "A->¬C", "¬A->C", "¬A->¬C",
+                                      "C->A", "C->¬A", "¬C->A", "¬C->¬A",
+                                      "A indep. C")) +
+            theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                 text = element_text(size= 15),
+                 legend.position = "none", legend.title = element_blank(),
+                 legend.direction = "horizontal")
+    }else{
+      col <- level2color %>% filter(level== (!!level)) %>% pull(col)
+      p <- df %>% filter(level==(!! level)) %>% 
+            ggplot() + 
+            geom_bar(mapping = aes(x=cn, y=prob), fill=col, stat="identity") + 
+            labs(x="causal nets", y="probability") +
+            scale_x_discrete(limits=c("A implies C", "A implies -C",
+                                  "-A implies C", "-A implies -C",
+                                  "C implies A", "C implies -A",
+                                  "-C implies A", "-C implies -A",
+                                  "A || C"),
+                         labels=c("A->C", "A->¬C", "¬A->C", "¬A->¬C",
+                                  "C->A", "C->¬A", "¬C->A", "¬C->¬A",
+                                  "A indep. C")) +
+            theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                  text = element_text(size= 15),
+                  legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
+    }
+    if(!is.null(save_as)){ggsave(save_as, p)}
+    return(p)
+}
+
+
 plot_cns <- function(data_wide, level=NULL, save_as=NULL){
   df <- data_wide %>% group_by(level, cn) %>% summarize(prob=sum(prob))
-
   df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
   
-  df$cn_nice <- case_when(df$cn=="A implies C"  ~ "A->C",
-                          df$cn=="A implies -C" ~ "A->¬C",
-                          df$cn=="-A implies C" ~ "¬A->C",
-                          df$cn=="-A implies -C" ~ "¬A->¬C",
-                          df$cn=="C implies A" ~ "C->A",
-                          df$cn=="C implies -A" ~ "C->¬A",
-                          df$cn=="-C implies A" ~ "¬C->A",
-                          df$cn=="-C implies -A" ~ "¬C->¬A",
-                          df$cn=="A || C" ~ "A ind. C",
-                          TRUE~"") 
   if(is.null(level)){
     p <- df %>% 
-          ggplot() + 
-          geom_bar(mapping = aes(x=cn_nice, y=prob, fill=level),
-                   stat="identity", position="dodge") + 
-          facet_wrap(~level) + 
-          labs(x="causal nets", y="probability") +
-          theme(axis.text.x = element_text(angle = 45, hjust = 1),
-               text = element_text(size= 15),
-               legend.position = "none", legend.title = element_blank(),
-               legend.direction = "horizontal")
+      ggplot() + 
+      geom_bar(mapping = aes(x=cn, y=prob, fill=level),
+               stat="identity", position="dodge") + 
+      facet_wrap(~level, labeller = labeller(
+        level = c(`prior` =
+                    paste(strwrap("belief before hearing 'If A, C'", width=15), collapse="\n"),
+                  `LL` = paste(strwrap("literal interpretation", width=15), collapse="\n"),
+                  `PL`= paste(strwrap("pragmatic interpretation", width=15), collapse="\n"))
+      )) + 
+      labs(x="causal nets", y="probability") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+            text = element_text(size= 25),
+            legend.position = "none", legend.title = element_blank(),
+            legend.direction = "horizontal")
   }else{
     col <- level2color %>% filter(level== (!!level)) %>% pull(col)
     p <- df %>% filter(level==(!! level)) %>% 
-          ggplot() + 
-          geom_bar(mapping = aes(x=cn, y=prob), fill=col, stat="identity") + 
-          labs(x="causal nets", y="probability") +
-          theme(axis.text.x = element_text(angle = 45, hjust = 1),
-                text = element_text(size= 15),
-                legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
+      ggplot() + 
+      geom_bar(mapping = aes(x=cn, y=prob), fill=col, stat="identity") + 
+      labs(x="causal nets", y="probability") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+            text = element_text(size= 25),
+            legend.position = "bottom",
+            legend.title = element_blank(),
+            legend.direction = "horizontal")
   }
-  if(!is.null(save_as)){ggsave(save_as, p)}
+  if(!is.null(save_as)){ggsave(save_as, p, width=15, height=6)}
   return(p)
 }
+
 
 plot_density <- function(df, xlab, level, evs){
   if(is.null(level)){
@@ -152,6 +195,42 @@ plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, t
   return(p)
 }
 
+# Plot all table distributions for each causal network respectively
+plot_tables <- function(data){
+  cns <- data$cn %>% as.factor() %>% levels()
+  data <- data %>% mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")))
+  for(causal_net in cns){
+    if(causal_net == "A || C"){
+      cn_title <- "A independent C"
+    } else {
+      cn_title <- causal_net
+    }
+    p <- data %>% filter(cn==causal_net) %>%
+      ggplot(aes(x=val,  color = cell)) +
+      geom_density() +
+      facet_wrap(~cell, scales = "free_y",
+                 labeller = labeller(
+                   cell = c(`AC` = "p1", `A-C` = "p2",
+                            `-AC`= "p3", `-A-C` = "p4")
+                 )) +
+      labs(title = cn_title, x="p") +
+      theme(legend.position = "none", text = element_text(size=20))
+    print(p)
+  }
+}
+
+plot_beta <- function(alpha, beta, xlab, color="black"){
+  p <- ggplot(data = data.frame(x = c(0, 1)), aes(x)) +
+    scale_y_continuous(breaks = NULL)  
+  p <- p + stat_function(fun = dbeta, n = 101, col=color,
+                           args = list(shape1 = alpha, shape2 = beta)) +
+        labs(x = xlab, y="density", title=t) +
+        theme_classic() +
+        theme(text = element_text(size= 25))
+  return(p)
+}
+
+# Values-of-interest ------------------------------------------------------
 plot_voi_alpha_cost <- function(data, model, key, level){
   df <- data %>% filter(model_id==model & key==(!! key) & level== (!! level)) %>% 
     mutate(value=as.numeric(value), cost=as.factor(cost))
@@ -169,23 +248,33 @@ plot_voi_alpha_cost <- function(data, model, key, level){
 }
 
 plot_cp_vois <- function(data, save_as=NULL){
-  # data needs column order!
-  data <- data %>% mutate(key_val=case_when(startsWith(key, "cp_bns") ~ 0,
-                                            startsWith(key, "cp_cns") ~ 1,
-                                            key=="p_nc_given_na" ~ 2,
-                                            TRUE ~ -1))
+  data <- data %>% mutate(level=as.factor(level))
   
-  p <- data %>% mutate(value=as.numeric(value)) %>% ggplot() + 
-    geom_bar(aes(x=key_val, y=value, fill=level, group=order), stat="identity", position="dodge") + 
-    facet_wrap(~bias) +
+  p <- data %>% filter(key=="cp_bns_ac" | key=="p_nc_given_na") %>%
+    mutate(value=as.numeric(value)) %>%
+    ggplot() + 
+    geom_bar(aes(x=level, y=value, fill=level), stat="identity", position="dodge") + 
+    facet_wrap(~key, labeller = labeller(
+      key = c(`cp_bns_ac` = paste(strwrap(
+                              "expected hellinger distance btw. perfectly
+                              biconditional distribution and joint probability
+                              tables", width=50), collapse="\n"),
+              `p_nc_given_na`= paste(strwrap(
+                                "belief in consequent to be false given
+                                antecedent is false", width=40), collapse="\n"))
+    )) +
     labs(y="", x="") +
-    scale_x_continuous(breaks=c(0,1, 2),
-                       labels=c(TeX('$\\mathbf{E}(f(X))$'),
-                                TeX('$hel(P_{cp}, P_{cns})$'),
-                                TeX('$P(\\neg C| \\neg A)$'))) + 
+    scale_x_discrete(limits = c("PL", "LL", "prior"), 
+                    labels=c("pragmatic interpretation",
+                             "literal interpretation",
+                            "belief before hearing 'If A, C'"
+                             ), 
+                    position = "top") +
+    coord_flip() + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          text = element_text(size= 15),
-          legend.position = "right", legend.title = element_blank(), legend.direction = "vertical")
+          text = element_text(size= 25),
+          strip.text.x = element_text(size = 20),
+          legend.position = "none", legend.title = element_blank())
   if(!is.null(save_as)){ggsave(save_as, p)}
   return(p)
 }
