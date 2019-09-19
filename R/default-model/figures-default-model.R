@@ -61,8 +61,7 @@ p2 <- p + geom_vline(data=vlines, aes(xintercept=lower),
           theme_bw()
 ggsave(paste(TARGET_DIR, "none-pc.png", sep=.Platform$file.sep), p2)
 
-plot_cns_default(data_wide)
-# save_as=paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep))
+plot_cns_default(data_wide, save_as=paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep))
 
 
 pa_c <- compute_cond_prob(data_wide, "P(A|C)")
@@ -81,9 +80,8 @@ data_wide <- data_biscuit %>% spread(key=cell, val=val)
 pc <- marginalize(data_biscuit, c("C"))
 pa <- marginalize(data_biscuit, c("A"))
 evs <- bind_rows(expected_val(pc, c("C")), expected_val(pa, c("A"))) %>% add_column(bias="biscuits")
-plot_evs_bar(data_biscuit, c("C"))
-
-plot_marginal_prob(data_biscuit, c("C"))
+plot_evs_bar(evs, c("C"))
+# plot_marginal_prob(data_biscuit, c("C"))
 
 pa_c <- compute_cond_prob(data_wide, "P(A|C)")
 pa_nc <- compute_cond_prob(data_wide, "P(-A|-C)") %>%
@@ -110,67 +108,80 @@ expected_val(pa_c, "P(A|C)")
 expected_val(pa_nc, "P(A|-C)")
 
 # Value-of-interest for epistemic uncertainty (no bias) -------------------
+voi_none_all <- readRDS(file.path("data", "default-model", "results-none-voi.rds"))
+voi_none <- voi_none_all %>% filter(startsWith(key, "epistemic_uncertainty")) %>% filter_tables(params) %>%
+                filter_by_model_params(params)
 
-# voi_none_all <- readRDS(file.path("data", "default-model", "results-none-voi-sweep.rds"))
-voi_none_all <- readRDS("data/default-model/results-none-voi.rds")
-voi_none <- voi_none_all %>% filter(key=="epistemic_uncertainty") %>% filter_tables(params) %>%
-  filter_by_model_params(params)
-
-p <- voi_none %>% rename_levels() %>% 
-  mutate(value=round(as.numeric(value), 3)) %>% 
+p <- voi_none %>% 
+  mutate(value=round(as.numeric(value), 2)) %>% 
   ggplot() + 
   geom_bar(mapping = aes(x=level, y=value, fill=level),
-           stat="identity")  + 
-  scale_x_discrete(limits = c("PL", "LL", "prior"), labels = c("pragmatic interpretation",
-                                                               "literal interpretation",
-                                                               "belief before hearing 'If A, C'"),
+           stat="identity")  +
+  geom_text( aes( label = value, x = level,  y = value ),
+             hjust = -0.1, size = 8) + 
+  facet_wrap(~key,
+             labeller = labeller(key = c(`epistemic_uncertainty_A` = "Antecedent",
+                                         `epistemic_uncertainty_C` = "Consequent"))) +
+  scale_x_discrete(limits = c("PL", "LL", "prior"), labels = c("Pragmatic interpretation",
+                                                               "Literal interpretation",
+                                                               "Belief before hearing 'If A, C'"),
                    position = "top") +
-  # scale_y_continuous(position="right") +
+  scale_y_continuous(limits=c(0, 0.4)) +
   coord_flip() +
-  labs(title="degree of belief about consequent C to be true or false",
-       x="", y="") + 
-  theme_classic(base_size=20) +
-  theme(axis.text.x = element_text(size=25),
+  theme(axis.text.x = element_text(size= 25),
         axis.text.y = element_text(size= 25),
-        legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal")
+        axis.title.y = element_text(size = 25),
+        axis.title.x = element_text(size = 25),
+        strip.text = element_text(size = 25),
+        legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal") +
+  # labs(title=paste(strwrap("Degree of belief about consequent C to be true or false", width=25), collapse="\n")) +
+  # labs(y=paste("Expected degree of belief about", t, "to be true or false"), x="") +
+  labs(y=TeX("$F_X(1-t) + 1-F_X(t)$"), x="") 
+  # theme_classic(base_size=20) +
 p
-ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p,
-       width=15, height=6)
+ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p, width=15, height=6)
 
 # Value-of-interest for biscuit bias --------------------------------------
 # voi_pizza_all <- readRDS(file.path("data", "default-model", "results-pizza-voi-sweep.rds"))
 voi_pizza_all <- readRDS("data/default-model/results-pizza-voi.rds")
-
 params_biscuits <- params
 params_biscuits$bias <- "pizza"
-params_biscuits$n_tables <- 500
 voi_pizza <- voi_pizza_all %>% filter(key=="pc") %>% filter_tables(params_biscuits) %>%
-  filter_by_model_params(params_biscuits)
+  filter_by_model_params(params_biscuits) %>% mutate(bias="Biscuits")
+voi_none <- voi_none_all %>% filter(key=="pc") %>% filter_tables(params) %>% filter_by_model_params(params) %>% 
+  mutate(bias="Default context")
+voi_data <- bind_rows(voi_pizza, voi_none)
 
-p <- voi_pizza %>% rename_levels() %>% 
-  mutate(value=round(as.numeric(value), 3)) %>% 
+p <- voi_data %>%
+  mutate(value=round(as.numeric(value), 2)) %>% 
   ggplot() + 
   geom_bar(mapping = aes(x=level, y=value, fill=level),
            stat="identity")  +
+  geom_text( aes( label = value, x = level,  y = value ),
+             hjust = 1, size = 8) +
+  facet_wrap(~bias) + 
   scale_x_discrete(limits = c("PL", "LL", "prior"),
-                   labels = c("pragmatic interpretation",
-                              "literal interpretation",
-                              "belief before hearing 'If A, C'"),
-                   position = "top") +
+                   labels = c("Pragmatic interpretation",
+                              "Literal interpretation",
+                              "Belief before hearing 'If A, C'"),
+                 position = "top") +
   scale_y_continuous(limits=c(0,1)) +
   coord_flip() +
-  labs(title="expected degree of belief in consequent C", x="", y="") +
-  theme_classic(base_size=20) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size=25),
-        axis.text.y = element_text(size= 25),
-        # text = element_text(size= 25),
-        legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal")
-
-ggsave(paste(TARGET_DIR, "pizza-voi-pc.png", sep=.Platform$file.sep), p, width=15, height=6)
+  # theme_classic(base_size=20) +
+  theme(axis.text.y = element_text(size= 25),
+    # axis.text.x = element_text(angle = 45, hjust = 1, size=25),
+    axis.text.x = element_text(size= 17),
+    axis.title.y = element_text(size = 25),
+    axis.title.x = element_text(size = 25),
+    strip.text = element_text(size = 25),
+    title = element_text(size = 25),
+    legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal") +
+  labs(y="Expected degree of belief in consequent", x="", title="")
 p
+ggsave(paste(TARGET_DIR, "pizza-voi-pc.png", sep=.Platform$file.sep), p, width=15, height=6)
 
 # CP-strengths for lawn-bias and no-bias  ---------------------------------
-# Strength measured by **cp-bns**:
+# Strength measured by  **cp-bns**:
 #   
 # Expected value of hellinger distance between the joint probability
 # distribution of each Bayes net and
