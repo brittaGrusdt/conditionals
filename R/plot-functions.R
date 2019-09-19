@@ -26,7 +26,7 @@ plot_bns <- function(data_wide){
 }
 
 plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
-    df <- data_wide %>% group_by(level, cn) %>% summarize(prob=sum(prob))
+    df <- data_wide %>% group_by(level, cn) %>% summarize(prob=round(sum(prob), 3))
     df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
     
     if(is.null(level)){
@@ -34,7 +34,17 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
             ggplot() + 
             geom_bar(mapping = aes(x=cn, y=prob, fill=level),
                      stat="identity", position="dodge") + 
-            facet_wrap(~level) + 
+            geom_text(data=df, aes(x=cn, y=prob, label=prob), size=4,
+                      position=position_dodge(0.9),
+                      hjust = -0.2) +
+            facet_wrap(~level
+               ,labeller = labeller(
+                 level = c(`prior` =
+                             paste(strwrap("Belief before hearing 'If A, C'", width=25), collapse="\n"),
+                           `LL` = paste(strwrap("Literal interpretation", width=25), collapse="\n"),
+                           `PL`= paste(strwrap("Pragmatic interpretation", width=25), collapse="\n"))
+               )
+            ) + 
             labs(x="causal nets", y="probability") +
             scale_x_discrete(limits=c("A implies C", "A implies -C",
                                       "-A implies C", "-A implies -C",
@@ -44,6 +54,8 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
                              labels=c("A->C", "A->¬C", "¬A->C", "¬A->¬C",
                                       "C->A", "C->¬A", "¬C->A", "¬C->¬A",
                                       "A indep. C")) +
+          scale_y_continuous(limits=c(0, 0.7)) +
+          coord_flip() + 
             theme(axis.text.x = element_text(angle = 45, hjust = 1),
                  text = element_text(size= 15),
                  legend.position = "none", legend.title = element_blank(),
@@ -208,11 +220,12 @@ plot_tables <- function(data){
     p <- data %>% filter(cn==causal_net) %>%
       ggplot(aes(x=val,  color = cell)) +
       geom_density() +
-      facet_wrap(~cell, scales = "free_y",
+      facet_wrap(~cell, scales = "free_y"
+                 ,
                  labeller = labeller(
-                   cell = c(`AC` = "p1", `A-C` = "p2",
-                            `-AC`= "p3", `-A-C` = "p4")
-                 )) +
+                   cell = c(`AC` = "A ∧ C", `A-C` = "A ∧ ¬C",
+                            `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C"))
+                 ) +
       labs(title = cn_title, x="p") +
       theme(legend.position = "none", text = element_text(size=20))
     print(p)
