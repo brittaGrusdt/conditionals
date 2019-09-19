@@ -332,16 +332,6 @@ sample_webppl_distr <- function(data_wide){
   return(data_marginal)
 }
 
-
-rename_levels <- function(df){
-  df %>% mutate(level = case_when(level=="LL" ~ "literal-listener",
-                                  level=="PL" ~ "listener",
-                                  level=="prior" ~ "prior",
-                                  TRUE ~ "listener-beliefs"))
-}
-
-
-
 # values-of-interest ------------------------------------------------------
 
 # 1. returns the minimum of the hellinger distances between P(cn) and
@@ -416,28 +406,27 @@ get_cp_values <- function(distr){
   return(bind_rows(voi_bns, voi_cns, voi_pnc_given_na))
 }
 
-# theta <= P(C) <= 1-theta where theta is threshold at which utterances count
-# as true
-get_speaker_uncertainty <- function(distr, theta){
-  pc <- marginalize(distr, c("C"))
-  pc_intervals <- pc %>% filter(p>=theta | p<=1-theta)
+# theta <= P(C) <= 1-theta where theta is threshold at which utterances count as true
+get_speaker_uncertainty <- function(distr, theta, val){
+  marginal <- marginalize(distr, c(val))
+  p_intervals <- marginal %>% filter(p>=theta | p<=1-theta)
+  # p_intervals <- marginal %>% filter(p<=1-theta)
   
-  evs <- pc_intervals %>% group_by(level) %>% summarize(value=sum(prob)) %>% 
-          add_column(key="sp-uncertainty")
+  evs <- p_intervals %>% group_by(level) %>% summarize(value=sum(prob)) %>%
+    add_column(key=paste("epistemic_uncertainty", val, sep="_"))
   return(evs)
 }
 
 
 voi_epistemic_uncertainty <- function(posterior, params){
-  val_no_bias <- get_speaker_uncertainty(posterior, params$theta) %>% 
-                  mutate(key="epistemic_uncertainty")
-  val_no_bias <- add_table_params(val_no_bias, params)
+  val_pc <- get_speaker_uncertainty(posterior, params$theta, "C")
+  val_pa <- get_speaker_uncertainty(posterior, params$theta, "A")
+  val_no_bias <- add_table_params(bind_rows(val_pc, val_pa), params)
   return(val_no_bias)
 }
 
 voi_pc <- function(posterior, params){
-  val_biscuits <- marginalize(posterior, c("C")) %>%
-    expected_val("C") %>% select(-p) %>%
+  val_biscuits <- marginalize(posterior, c("C")) %>% expected_val("C") %>% select(-p) %>%
     rename(value=ev) %>% mutate(key="pc")
   val_biscuits <- add_table_params(val_biscuits, params)
   return(val_biscuits)

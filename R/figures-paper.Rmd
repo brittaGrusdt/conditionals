@@ -141,7 +141,7 @@ voi_none_all <- readRDS("data/default-model/results-none-voi.rds")
 ```
 
 ```{r}
-voi_none <- voi_none_all %>% filter(key=="epistemic_uncertainty") %>% filter_tables(params) %>%
+voi_none <- voi_none_all %>% filter(key=="epistemic_uncertainty_C") %>% filter_tables(params) %>%
               filter_by_model_params(params)
 
 p <- voi_none %>% 
@@ -253,7 +253,7 @@ p
 
 <!-- ```{r param-sweep, message=FALSE} -->
 <!-- data <- data %>% filter(seed==1234) -->
-<!-- plot_voi_alpha_cost(data, 1, "epistemic_uncertainty", "PL") -->
+<!-- plot_voi_alpha_cost(data, 1, "epistemic_uncertainty_C", "PL") -->
 
 <!-- plot_voi_alpha_cost(data, 2, "biscuits_pc", "LL") -->
 <!-- plot_voi_alpha_cost(data, 2, "biscuits_pc", "PL") -->
