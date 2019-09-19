@@ -5,7 +5,6 @@ library(tidyverse)
 
 # Parameters --------------------------------------------------------------
 params <- tibble(n_tables=500,
-                 # n_tables=4500,
                  nor_beta=NA,
                  nor_theta=NA,
                  param_nor_beta=10,
@@ -13,7 +12,8 @@ params <- tibble(n_tables=500,
                  indep_sigma=0.001,
                  # bias="none",
                  # bias="pizza",
-                 bias="lawn",
+                 # bias="lawn",
+                 bias="dutchman",
                  verbose=TRUE,
                  alpha=3,
                  theta=0.9,
@@ -43,7 +43,8 @@ utts_fn <- paste("utterances-", params$bias, ".rds", sep="")
 utts_path <- file.path(TARGET_DIR, utts_fn, fsep = .Platform$file.sep)
 utts_wppl_model <- "./R/default-model/generate-utterances.wppl"
 
-tables_path <- file.path(TARGET_DIR, "tables-all.rds", fsep=.Platform$file.sep)
+# tables_path <- file.path(TARGET_DIR, "tables-all.rds", fsep=.Platform$file.sep)
+tables_path <- file.path(TARGET_DIR, paste("tables-", params$bias, ".rds", sep=""), fsep=.Platform$file.sep)
 
 if(!file.exists(tables_path)){
   tables <- create_tables(params, tables_path)
