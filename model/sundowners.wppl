@@ -45,7 +45,7 @@ var negate = function(x){
 
 var intersect_arrays = function(arrays){
   return filter(function(m){
-          var m_in_all_lists = map(function(idx){arrays[idx].includes(m)},
+          var m_in_all_lists = map(function(idx){arrays[idx].indexOf(m) != -1},
                                   _.range(1,arrays.length))
           return sum(m_in_all_lists)==m_in_all_lists.length
     }, arrays[0])
@@ -63,8 +63,8 @@ var combinations = filter(function(x){x.length > 0}, combinations)
 var marginal = function(state, variables){
   var tokens = state.support()
   var all_x = map(function(v){
-    v.includes("-") ? filter(function(k){k.includes(v)}, tokens) :
-                      filter(function(k){!k.includes("-"+v)}, tokens)
+    v.indexOf("-") ? filter(function(k){k.indexOf(v) != -1}, tokens) :
+                      filter(function(k){k.indexOf("-"+v) == -1}, tokens)
   }, variables)
   var xs = intersect_arrays(all_x)
 
@@ -75,7 +75,7 @@ var combine_pairs = function(connective){
   var pairs_list = mapIndexed(function(idx, tokens1){
     var arr = filter(function(tokens){
       all(function(x){
-        !tokens.includes(x) && !tokens.includes(negate(x))
+        tokens.indexOf(x) == -1 && tokens.indexOf(negate(x)) == -1
       }, tokens1)
     }, combinations.slice(idx+1))
 
@@ -99,21 +99,21 @@ var combine_pairs = function(connective){
 // States ----------------------------------------------------------------
 var joint_probs = function(token, cn, pr){
   var probs = probabilities[cn]
-  var sw = token.includes("-W") ? probs["p_s"]["-W"] : probs["p_s"]["W"]
-  var p_sw = token.includes("-S") ? 1-sw : sw
+  var sw = token.indexOf("-W") != -1 ? probs["p_s"]["-W"] : probs["p_s"]["W"]
+  var p_sw = token.indexOf("-S") != -1 ? 1-sw : sw
 
-  var r = token.includes("-R") ? "-R" : "R"
+  var r = token.indexOf("-R") != -1 ? "-R" : "R"
   var wr = probs["p_wi"][r]
-  var p_wr = token.includes("-W") ? 1-wr : wr
+  var p_wr = token.indexOf("-W") != -1 ? 1-wr : wr
 
-  var p_r = token.includes("-R") ? 1-pr : pr
+  var p_r = token.indexOf("-R") != -1 ? 1-pr : pr
 
   return p_sw * p_wr * p_r
 }
 
 var tokens = {"cn1": filter(function(tokens){tokens.length==3}, combinations),
               "cn2": filter(function(tokens){
-                tokens.length==2 && !tokens.includes("W")
+                tokens.length==2 && tokens.indexOf("W") == -1
               }, combinations)}
 
 var build_tables = cache(function(cn, p_r){
@@ -145,7 +145,7 @@ var literals_conjunctions = map(function(tokens){
 }, combinations)
 display('# literals + # conjunctions: ' + literals_conjunctions.length)
 
-var literals = filter(function(utt){!utt.includes(" and ")},
+var literals = filter(function(utt){utt.indexOf(" and ") == -1},
                       literals_conjunctions)
 var utts_likely = map(function(utt){'likely ' + utt}, literals)
 display('# utts_likely: ' + utts_likely.length)
@@ -158,19 +158,19 @@ var utterances = literals_conjunctions.concat(conditionals.concat(utts_likely))
 display('# utterances:' + utterances.length)
 
 var utterance_probs = cache(function(utterance, state){
-  if(conditionals.includes(utterance)){
+  if(conditionals.indexOf(utterance) != -1){
     var components = utterance.split(" > ")
     var antecedent = components[0].split(" and ").join("")
     var consequent = components[1].split(" and ").join("")
     return marginal(state, [antecedent, consequent]) /
            marginal(state, [antecedent])
   }
-  if(literals.includes(utterance)){return marginal(state, [utterance])}
-  if(utts_likely.includes(utterance)){
+  if(literals.indexOf(utterance) != -1){return marginal(state, [utterance])}
+  if(utts_likely.indexOf(utterance) != -1){
     var u = utterance.slice("likely ".length)
     return marginal(state, [u])
   }
-  if(literals_conjunctions.includes(utterance)){
+  if(literals_conjunctions.indexOf(utterance) != -1){
     var components = utterance.split(" and ")
     return marginal(state, components)
   }
@@ -180,7 +180,7 @@ var utterance_probs = cache(function(utterance, state){
 
 var meaning = cache(function(utterance, state){
  var p = utterance_probs(utterance, state)
- var u_applicable = utterance.includes('likely') ?
+ var u_applicable = utterance.indexOf('likely') != -1 ?
      (p >= thresholds.theta_likely) : p >= thresholds.theta
  return u_applicable
 })
@@ -193,7 +193,7 @@ var utts_to_remove = filter(function(u){
 display('# utts without corresponding state: ' + utts_to_remove.length)
 // map(display, utts_to_remove)
 
-var utterances = filter(function(u){!utts_to_remove.includes(u)}, utterances)
+var utterances = filter(function(u){utts_to_remove.indexOf(u) == -1}, utterances)
 display('# included utterances: ' + utterances.length)
 // map(display, utterances)
 
@@ -207,11 +207,11 @@ var literal_listener = cache(function(utterance){
 }, 10000)
 
 var cost = function(utt){
-  if(!utterances.includes(utt)){error('unknown utterance ' + utt)}
-  var c1 = utt.includes(' > ') ? COST_CONDITIONAL : 0
+  if(utterances.indexOf(utt) == -1){error('unknown utterance ' + utt)}
+  var c1 = utt.indexOf(' > ') != -1 ? COST_CONDITIONAL : 0
   var c2 = (utt.split(' and ').length - 1) * (COST_CONDITIONAL/2)
   var c3 = utt.split('-').length > 1 ?  (COST_CONDITIONAL/4) : 0
-  var c4 = utt.includes('likely') ? (COST_CONDITIONAL/5) : 0
+  var c4 = utt.indexOf('likely') != -1 ? (COST_CONDITIONAL/5) : 0
   return c1 + c2 + c3 + c4
 }
 
