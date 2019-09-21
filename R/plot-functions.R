@@ -92,11 +92,14 @@ plot_cns <- function(data_wide, level=NULL, save_as=NULL){
       ggplot() + 
       geom_bar(mapping = aes(x=cn, y=prob, fill=level),
                stat="identity", position="dodge") + 
+      geom_text(data=df, aes(x=cn, y=prob, label=prob), size=4,
+                position=position_dodge(0.9),
+                hjust = -0.2) +
       facet_wrap(~level, labeller = labeller(
         level = c(`prior` =
-                    paste(strwrap("belief before hearing 'If A, C'", width=15), collapse="\n"),
-                  `LL` = paste(strwrap("literal interpretation", width=15), collapse="\n"),
-                  `PL`= paste(strwrap("pragmatic interpretation", width=15), collapse="\n"))
+                    paste(strwrap("Belief before hearing 'If A, C'", width=15), collapse="\n"),
+                  `LL` = paste(strwrap("Literal interpretation", width=15), collapse="\n"),
+                  `PL`= paste(strwrap("Pragmatic interpretation", width=15), collapse="\n"))
       )) + 
       labs(x="causal nets", y="probability") +
       theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -187,7 +190,7 @@ plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, t
       geom_bar(mapping = aes(x=level, y=ev, fill=level),
                stat="identity", position="dodge") + 
       # facet_wrap(~level) + 
-      labs(x=xlab, y="probability", title=title) + theme_bw() + 
+      labs(x=xlab, y="probability", title=title) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1),
             text = element_text(size= 25),
             legend.position = "none")
