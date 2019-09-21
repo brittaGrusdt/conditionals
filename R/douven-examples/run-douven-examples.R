@@ -23,9 +23,10 @@ params_sundowners <- tibble(verbose=TRUE,
                             cost_conditional=0,
                             save=TRUE,
                             seed=1234)
-prior_pr <- c(0.1, 0.2, 0.3)
+# prior_pr <- c(0.1, 0.2, 0.3)
 # prior_pr <- c(0.6, 0.7, 0.8)
-# prior_pr <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+prior_pr <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+# prior_pr <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 
 # params <- params_skiing
 params <- params_sundowners

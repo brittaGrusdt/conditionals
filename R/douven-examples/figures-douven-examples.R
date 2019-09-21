@@ -15,8 +15,9 @@ data_long <- readRDS(fn)
 data_wide <- data_long %>% spread(key=cell, val=val, fill = 0)
 df <- data_wide %>% adapt_bn_ids()
 
-# todo: plot-cns nur für default model
-plot_cns(df, level=NULL, save_as=NULL)
+p <- plot_cns(df, level=NULL, save_as=NULL)
+fn <- paste(TARGET_DIR, "skiing-cns.png", sep=.Platform$file.sep)
+ggsave(fn, p, height = 6, width=15)
 
 # plot distribution of each Bayes net
 plot_distr <- function(d, x){
@@ -34,24 +35,22 @@ data_wide %>% filter(level=="prior") %>% group_by(bn_id, level) %>% group_map(pl
 plot_bns(df)
 
 pe <- marginalize(data_long, c("E")) 
-
+ev_pe <-  pe %>% expected_val("E")
 p <- plot_evs_bar(ev_pe, "E") 
 p <- p + scale_x_discrete(limits = c("PL-beliefs", "PL", "LL", "prior"),
-                          labels = c("pragmatic interpretation conditioned on B",
-                                  "pragmatic interpretation",
-                                  "literal interpretation",
-                                  "belief before hearing 'If E, S'"),
-                          position = "top") +
-      scale_y_continuous(limits=c(0,1)) +
-      coord_flip() +
-      labs(title="expected degree of belief in E", x="", y="") +
-      theme_classic(base_size=25) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1, size=25),
+                          labels = c("Listener's beliefs",
+                                    paste(strwrap("Pragmatic interpretation", width=10), collapse="\n"),
+                                    paste(strwrap("Literal interpretation", width=10), collapse="\n"),
+                                    "Prior Belief")) + 
+                          # position = "top") +
+      # scale_y_continuous(limits=c(0,1)) +
+      # coord_flip() +
+      labs(title="Expected degree of belief in passing exam", y="", x="") +
+      theme(axis.text.x = element_text(angle = 27, size=25),
             axis.text.y = element_text(size= 25),
-            # text = element_text(size= 25),
             legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal")
 
-fn <- paste(TARGET_DIR, "skiing-pe.png", sep=.Platform$file.sep)
+fn <- paste(TARGET_DIR, "skiing.png", sep=.Platform$file.sep)
 ggsave(fn, p, height = 6, width=15)
 
 # skiing sweep-prior-exam --------------------------------------------------------
@@ -89,15 +88,12 @@ plot_distr <- function(d, x){
 data_wide %>% filter(level=="prior") %>% group_by(bn_id, level) %>% group_map(plot_distr)
 
 # plot distribution over Bayes nets 
-# plot_bns(df)
+plot_bns(df)
 
 # Plot expected values for P(R,S)
 prs <- marginalize(data_long, c("R", "S")) 
 ev_prs <- prs %>% expected_val("RS")
-plot_evs_bar(ev_prs, "R,S")
-
-
-
+plot_evs_bar(ev_prs, "R ∧ S")
 p <- ev_prs %>% ggplot() +
   geom_bar(mapping = aes(x=level, y=ev, fill=level),
            stat="identity")  +
@@ -121,14 +117,10 @@ ggsave(paste(TARGET_DIR, "sundowners-prs.png", sep=.Platform$file.sep),
        p, height = 6, width=15)
 
 
-
-
 # Plot expected values for P(R)
 pr <- marginalize(data_long, c("R")) 
 ev_pr <- pr %>% expected_val("R")
 plot_evs_bar(ev_pr, "R")
-
-
 p <- ev_pr %>% ggplot() +
   geom_bar(mapping = aes(x=level, y=ev, fill=level),
            stat="identity")  +
@@ -151,6 +143,37 @@ ggsave(paste(TARGET_DIR, "sundowners-pr.png", sep=.Platform$file.sep),
        p, height = 6, width=15)
 
 
+
+# Plot both expected values for P(R) and for P(R∧S)
+pr <- marginalize(data_long, c("R")) 
+ev_pr <- pr %>% expected_val("R")
+prs <- marginalize(data_long, c("R", "S")) 
+ev_prs <- prs %>% expected_val("RS")
+
+data <- bind_rows(ev_pr, ev_prs)
+
+p <- data %>% ggplot() +
+      geom_bar(mapping = aes(x=level, y=ev, fill=level),
+               stat="identity")  +
+      scale_x_discrete(limits = c("PL", "LL", "prior"),
+                       labels = c(paste(strwrap("Pragmatic interpretation", width=10), collapse="\n"),
+                                  paste(strwrap("Literal interpretation", width=10), collapse="\n"),
+                                  "Prior belief")) +
+                       # position = "top") +
+      # scale_y_continuous(limits=c(0,1)) +
+      facet_wrap(~p, labeller = labeller(p =
+                      c(`R` = paste(strwrap("Expected degree of belief in probability of rain", width=30), collapse="\n"),
+                        `RS` = paste(strwrap("Expected degree of belief in probability of rain and sundowners", width=30),
+                                     collapse="\n")))) +
+      # coord_flip() +
+      labs(x="", y="") +
+      theme(axis.text.y = element_text(size= 25),
+            axis.text.x = element_text(size= 25, hjust=1, angle=30),
+            strip.text = element_text(size=25),
+            legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal")
+
+
+ggsave(paste(TARGET_DIR, "sundowners.png", sep=.Platform$file.sep), p, height = 6, width=15)
 
 
 

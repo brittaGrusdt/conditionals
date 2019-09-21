@@ -63,8 +63,8 @@ var combinations = filter(function(x){x.length > 0}, combinations)
 var marginal = function(state, variables){
   var tokens = state.support()
   var all_x = map(function(v){
-    v.indexOf("-") ? filter(function(k){k.indexOf(v) != -1}, tokens) :
-                      filter(function(k){k.indexOf("-"+v) == -1}, tokens)
+    v.indexOf("-") != -1 ? filter(function(k){k.indexOf(v) != -1}, tokens) :
+                           filter(function(k){k.indexOf("-"+v) == -1}, tokens)
   }, variables)
   var xs = intersect_arrays(all_x)
 
