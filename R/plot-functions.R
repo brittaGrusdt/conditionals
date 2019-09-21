@@ -37,12 +37,13 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
             geom_text(data=df, aes(x=cn, y=prob, label=prob), size=4,
                       position=position_dodge(0.9),
                       hjust = -0.2) +
-            facet_wrap(~level
-               ,labeller = labeller(
-                 level = c(`prior` =
-                             paste(strwrap("Belief before hearing 'If A, C'", width=25), collapse="\n"),
-                           `LL` = paste(strwrap("Literal interpretation", width=25), collapse="\n"),
-                           `PL`= paste(strwrap("Pragmatic interpretation", width=25), collapse="\n"))
+            facet_wrap(~level, labeller = labeller(
+                          level=c(`prior`=paste(strwrap("Belief before hearing 'If A, C'",
+                                                        width=25), collapse="\n"),
+                           `LL` = paste(strwrap("Literal interpretation", width=25),
+                                        collapse="\n"),
+                           `PL`= paste(strwrap("Pragmatic interpretation", width=25),
+                                       collapse="\n"))
                )
             ) + 
             labs(x="causal nets", y="probability") +
@@ -78,7 +79,7 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
                   text = element_text(size= 15),
                   legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
     }
-    if(!is.null(save_as)){ggsave(save_as, p)}
+    if(!is.null(save_as)){ggsave(save_as, p, width=15, height=6)}
     return(p)
 }
 
