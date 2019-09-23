@@ -265,22 +265,29 @@ plot_voi_alpha_cost <- function(data, model, key, level){
 }
 
 plot_cp_vois <- function(data, save_as=NULL){
-  data <- data %>% mutate(level=as.factor(level))
+  data <- data %>% mutate(level=as.factor(level), value=round(as.numeric(value),2))
   
-  p <- data %>% filter(key=="cp_bns_ac" | key=="p_nc_given_na") %>%
+  p <- data %>%
+    # filter(key=="cp_bns_ac" | key=="p_nc_given_na") %>%
+    filter(key=="p_nc_given_na") %>%
     mutate(value=as.numeric(value)) %>%
     ggplot() + 
     geom_bar(aes(x=level, y=value, fill=level), stat="identity", position="dodge") + 
-    facet_wrap(~key, labeller = labeller(
-      key = c(`cp_bns_ac` = paste(strwrap(
-                              "expected hellinger distance btw. perfectly
-                              biconditional distribution and joint probability
-                              tables", width=50), collapse="\n"),
-              `p_nc_given_na`= paste(strwrap(
-                                "belief in consequent to be false given
-                                antecedent is false", width=40), collapse="\n"))
-    )) +
-    labs(y="", x="") +
+    geom_text( aes( label = value, x = level,  y = value ),
+               hjust = 1, size = 6) +
+    # facet_wrap(~key, labeller = labeller(
+    #   key = c(`cp_bns_ac` = paste(strwrap(
+    #                           "expected hellinger distance btw. perfectly
+    #                           biconditional distribution and joint probability
+    #                           tables", width=50), collapse="\n"),
+    #           `p_nc_given_na`= paste(strwrap(
+    #                             "belief in consequent to be false given
+    #                             antecedent is false", width=40), collapse="\n"))
+    # )) +
+    facet_wrap(~bias, labeller = labeller(
+      bias=c(none = "Default context", lawn="Context: A,C not independent")
+    )) + 
+    labs(x="", y="Expected degree of belief in ¬C given ¬A") +
     scale_x_discrete(limits = c("PL", "LL", "prior"), 
                     labels=c("pragmatic interpretation",
                              "literal interpretation",
@@ -292,6 +299,6 @@ plot_cp_vois <- function(data, save_as=NULL){
           text = element_text(size= 25),
           strip.text.x = element_text(size = 20),
           legend.position = "none", legend.title = element_blank())
-  if(!is.null(save_as)){ggsave(save_as, p)}
+  if(!is.null(save_as)){ggsave(save_as, p, height=6, width=15)}
   return(p)
 }
