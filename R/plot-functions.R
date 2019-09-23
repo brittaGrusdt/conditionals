@@ -34,16 +34,15 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
             ggplot() + 
             geom_bar(mapping = aes(x=cn, y=prob, fill=level),
                      stat="identity", position="dodge") + 
-            geom_text(data=df, aes(x=cn, y=prob, label=prob), size=4,
+            geom_text(data=df, aes(x=cn, y=prob, label=prob), size=3,
                       position=position_dodge(0.9),
-                      hjust = -0.2) +
-            facet_wrap(~level, labeller = labeller(
-                          level=c(`prior`=paste(strwrap("Belief before hearing 'If A, C'",
-                                                        width=25), collapse="\n"),
-                           `LL` = paste(strwrap("Literal interpretation", width=25),
-                                        collapse="\n"),
-                           `PL`= paste(strwrap("Pragmatic interpretation", width=25),
-                                       collapse="\n"))
+                      hjust = 0) +
+            facet_wrap(~level
+               ,labeller = labeller(
+                 level = c(`prior` =
+                             paste(strwrap("Belief before hearing 'If A, C'", width=25), collapse="\n"),
+                           `LL` = paste(strwrap("Literal interpretation", width=25), collapse="\n"),
+                           `PL`= paste(strwrap("Pragmatic interpretation", width=25), collapse="\n"))
                )
             ) + 
             labs(x="causal nets", y="probability") +
@@ -55,7 +54,7 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
                              labels=c("A->C", "A->¬C", "¬A->C", "¬A->¬C",
                                       "C->A", "C->¬A", "¬C->A", "¬C->¬A",
                                       "A indep. C")) +
-          scale_y_continuous(limits=c(0, 0.7)) +
+          scale_y_continuous(limits=c(0, 1)) +
           coord_flip() + 
             theme(axis.text.x = element_text(angle = 45, hjust = 1),
                  text = element_text(size= 15),
