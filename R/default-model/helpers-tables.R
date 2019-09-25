@@ -86,9 +86,12 @@ create_tables <- function(params, target_path){
     params$n_tables <- params$n_tables * 9
     tables_ind <- create_independent_tables(params)
     tables_dep <- tibble()
+  } else if(params$bias == "judy-benjamin"){
+    params$param_nor_theta=3
+    params$indep_sigma=0.001
   } else {
-    tables_ind <- create_independent_tables(params)
-    tables_dep <- create_dependent_tables(params)
+      tables_ind <- create_independent_tables(params)
+      tables_dep <- create_dependent_tables(params)
   }
   tables <- bind_rows(tables_ind, tables_dep) %>% rowid_to_column("id") %>% 
               mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,

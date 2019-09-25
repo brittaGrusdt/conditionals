@@ -5,6 +5,7 @@ var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_likely : 0.499}
 var CAUSAL_NETS = data["cns"]
 var UTTERANCES = data["utterances"]
 var tables_list = data["tables"]
+var degree = data["degree"][0]
 
 var TABLES = map(function(obj){
   Categorical({"vs": obj["vs"], "ps": obj["ps"]})
@@ -43,6 +44,7 @@ if(verbose){
   display("bias: " + BIAS)
   display("alpha:" + ALPHA)
   display("# tables:" + tables_list.length)
+  display("degree: " + degree)
 }
 
 
@@ -54,6 +56,10 @@ var intersect_arrays = cache(function(arrays){
           return sum(m_in_all_lists)==m_in_all_lists.length
     }, arrays[0])
 },10000)
+
+var negate = function(x){
+  return x.startsWith("-") ? x.slice(1) : "-" + x
+}
 
 // Probabilities ------------------------------------------------------------
 var marginal = cache(function(table, variables){
@@ -147,6 +153,8 @@ var utterance_probs = cache(function(utterance, table){
     var consequent = components[1].split(" and ").join("")
     return marginal(table, [antecedent, consequent]) /
            marginal(table, [antecedent])
+    // var neg_consequent = negate(consequent)
+    // return marginal(table, [antecedent, neg_consequent])
   }
   else if(utterance.includes("likely")){
     var u = utterance.slice("likely ".length)
@@ -163,8 +171,8 @@ var utterance_probs = cache(function(utterance, table){
 
 var meaning = cache(function(utterance, table){
  var p = utterance_probs(utterance, table)
- var u_applicable = utterance.includes('likely') ?
-     (p >= thresholds.theta_likely) : p >= thresholds.theta
+ var u_applicable = utterance.includes('likely') ? (p >= thresholds.theta_likely) :
+     utterance.includes(">") ? ((p >= degree - 0.025) & (p <= degree + 0.025)) :  p >= thresholds.theta
  return u_applicable
 })
 
