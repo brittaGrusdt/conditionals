@@ -132,7 +132,7 @@ var state_prior = cache(function(bias){
     } else if(bias == "dutchman"){
       condition(marginal(state.table, ["C"]) <= thresholds.f)
     }
-    return state
+    return {"bn": state, "intention": ""}
   }})
 
   // make sure that states that have almost 0-probability are excldued,
@@ -179,9 +179,16 @@ var meaning = cache(function(utterance, table){
 // Model ---------------------------------------------------------------------
 var literal_listener = cache(function(utterance, bias){
   Infer({method:'enumerate',model: function(){
-    var state = sample(state_prior(bias))
+    var state = sample(state_prior(bias))["bn"]
+
+    var speaker_intent = uniformDraw(["ISA", "PA"])
+    var val = utterance.indexOf(">") != -1 ? 0.8 : 0.2
+    var t = speaker_intent=="ISA" ? val : 1-val
+
     condition(meaning(utterance, state.table))
-    return state
+    factor(Math.log(t))
+
+    return {"bn": state, "intention": speaker_intent}
   }})
 }, 10000)
 
@@ -194,11 +201,12 @@ var costs = cache(function(utt){
   return c1 + c2 + c3 + c4
 }, 10000)
 
-var speaker = cache(function(bn, bias, displayU){
+var speaker = cache(function(bn, intention, bias, displayU){
   return Infer({method:'enumerate', model: function(){
     var utterance = uniformDraw(UTTERANCES)
     var ll = literal_listener(utterance, bias)
-    var utility = ll.score(bn)
+    // var utility = ll.score({"bn": bn, "intention": intention})
+    var utility = ll.score({bn, intention})
     if(displayU && utility!=-Infinity){
       display(utterance + utility)
     }
@@ -210,10 +218,11 @@ var speaker = cache(function(bn, bias, displayU){
 
 var listener = function(utterance, bias){
   return Infer({method:'enumerate', model:function(){
-                  var bn = sample(state_prior(bias))
-                  var sp = speaker(bn, bias, false)
+                  var bn = sample(state_prior(bias))["bn"]
+                  var intention = uniformDraw(["ISA", "PA"])
+                  var sp = speaker(bn, intention, bias, false)
                   observe(sp,utterance)
-                  return bn
+                  return {"bn": bn, "intention": intention}
                 }})
 }
 
@@ -226,7 +235,7 @@ var run = function(level){
 }
 
 var prior = run("prior")
-var all_states = prior.support()
+var all_states = map(function(obj){obj["bn"]}, prior.support())
 if(verbose){display('# states: ' + all_states.length)}
 
 // ------ debugging ------------------ //
@@ -234,17 +243,20 @@ if(verbose){display('# states: ' + all_states.length)}
 //   Math.exp(s.table.score("AC"))==0.8095
 // }, all_states)
 // display(bns)
-// speaker(bns[0], "none", false)
+// speaker(bns[0], intention, "none", false) # define intention
 
 var wrap_speaker = function(bn){
-  display(bn)
-  speaker(bn, "none", false)
+  // display(bn)
+  // var intention = "PA"
+  var intention = "ISA"
+  speaker(bn, intention, "none", false)
 }
 // ------ debugging ------------------ //
 
 
 // RUN MODEL
 if(LEVEL_MAX == "speaker_all_bns"){
+  // define speaker intentions
   var bns = filter(function(bn){
     meaning(UTT, bn.table)
   }, all_states)

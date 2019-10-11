@@ -14,7 +14,8 @@ webppl_distrs_to_tibbles <- function(posterior){
                           left_join(bn_probs, by = "bn_id") %>% 
                           mutate("bn_id" = as.character(bn_id)) %>%
                           add_column(level=y) %>% 
-                          rename(prob=probs, val=table.probs, cell=table.support)
+                          rename(prob=probs, val=bn.table.probs, cell=bn.table.support,
+                                 cn=bn.cn)
                         return(data_tibble)             
                       })
   
@@ -39,11 +40,11 @@ marginalize <- function(data, vars){
 }
 
 marginal_cns <- function(data_wide){
-  data_wide %>% group_by(level, cn) %>% summarize(marginal=sum(prob))
+  data_wide %>% group_by(level, cn, intention) %>% summarize(marginal=sum(prob))
 }
 
 expected_val <- function(df_wide, value_str){
-  evs <- df_wide %>% mutate(ev_prod=p * prob) %>% group_by(level) %>%
+  evs <- df_wide %>% mutate(ev_prod=p * prob) %>% group_by(intention, level) %>%
           summarize(ev=sum(ev_prod)) %>% add_column(p=value_str)
   
   levels <- evs$level 
@@ -227,7 +228,7 @@ structure_model_data <- function(posterior, params){
 }
 
 run_model <- function(params){
-  posterior <- run_webppl(params)
+    posterior <- run_webppl(params)
   
   if(params$level_max=="speaker_all_bns"){
     df <- posterior %>% map(function(x){as_tibble(x)})
@@ -339,9 +340,10 @@ sample_webppl_distr <- function(data_wide){
 # b) P(A->-C)=0.25, P(-A->C)=0.25, P(-C->A)=0.25, P(C->-A)=0.25
 # and the direction of minimum
 get_cp_values_cns <- function(distr_wide){
-  p_cns <- distr_wide %>% dplyr::select(prob, bn_id, cn, level)
+  p_cns <- distr_wide %>% dplyr::select(prob, bn_id, cn, level, intention)
   # get marginal probabilities for each cn
-  marginal <- p_cns %>% group_by(cn, level) %>% summarize(marginal=sum(prob))
+  marginal <- p_cns %>% group_by(cn, level, intention) %>%
+    summarize(marginal=sum(prob))
   
   # distributions to compare with
   marginal <- marginal %>%
@@ -358,7 +360,7 @@ get_cp_values_cns <- function(distr_wide){
                            TRUE ~ 0
     ))
   
-  voi_cns <- marginal %>% group_by(level) %>%
+  voi_cns <- marginal %>% group_by(level, intention) %>%
     summarize(cp_cns_ac=hellinger(marginal, marginal_cp1),
               cp_cns_anc=hellinger(marginal, marginal_cp2)) %>% 
       gather(cp_cns_ac, cp_cns_anc, key="key", value="value")
@@ -383,7 +385,7 @@ get_cp_values_bns <- function(distr_wide){
            hellinger_ac=hellinger(c(`AC`, `A-C`, `-AC`, `-A-C`), 
                                   c(0.5, 0, 0, 0.5))
     ) 
-  values <- values %>% group_by(level) %>%
+  values <- values %>% group_by(level, intention) %>%
     summarize(cp_bns_ac=sum(prob*hellinger_ac),
               cp_bns_anc=sum(prob*hellinger_anc))
   voi_bns <- values %>% gather(cp_bns_ac, cp_bns_anc, key="key", value="value")
@@ -412,7 +414,7 @@ get_speaker_uncertainty <- function(distr, theta, val){
   p_intervals <- marginal %>% filter(p>=theta | p<=1-theta)
   # p_intervals <- marginal %>% filter(p<=1-theta)
   
-  evs <- p_intervals %>% group_by(level) %>% summarize(value=sum(prob)) %>%
+  evs <- p_intervals %>% group_by(level, intention) %>% summarize(value=sum(prob)) %>%
     add_column(key=paste("epistemic_uncertainty", val, sep="_"))
   return(evs)
 }

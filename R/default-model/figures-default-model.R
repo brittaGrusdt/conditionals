@@ -72,6 +72,13 @@ pa_nc <- compute_cond_prob(data_wide, "P(-A|-C)") %>%
 expected_val(pa_c, "P(A|C)")
 expected_val(pa_nc, "P(A|-C)")
 
+pnc_na <- compute_cond_prob(data_wide, "P(-C|-A)")
+expected_val(pnc_na, "P(-C|-A)")
+
+
+data_wide %>% group_by(level, intention) %>% summarize(marginal=sum(prob))
+
+
 
 # Biscuit conditionals ----------------------------------------------------
 fn_biscuits <- file.path(RESULT_DIR, "default-model", "results-pizza.rds")
@@ -123,7 +130,7 @@ p <- voi_none %>%
            stat="identity")  +
   geom_text( aes( label = value, x = level,  y = value ),
              hjust = -0.1, size = 8) + 
-  facet_wrap(~key,
+  facet_grid(intention~key,
              labeller=labeller(key=c(`epistemic_uncertainty_A`="Antecedent",
                                      `epistemic_uncertainty_C`="Consequent"))) +
   scale_x_discrete(limits = c("PL", "LL", "prior"),
@@ -167,7 +174,8 @@ p <- voi_data %>%
            stat="identity")  +
   geom_text( aes( label = value, x = level,  y = value ),
              hjust = 1, size = 8) +
-  facet_wrap(~bias) + 
+  # facet_wrap(~bias) + 
+  facet_wrap(~intention) + 
   scale_x_discrete(limits = c("PL", "LL", "prior"),
                    labels = c("Pragmatic interpretation",
                               "Literal interpretation",
