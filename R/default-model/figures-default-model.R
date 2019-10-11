@@ -48,11 +48,10 @@ data_wide <- data_no_bias %>% spread(key=cell, val=val)# %>% adapt_bn_ids()
 pc <- marginalize(data_no_bias, c("C")) 
 pa <- marginalize(data_no_bias, c("A"))
 
-evs_all <- bind_rows(pc %>% expected_val("C"), pa %>% expected_val("A")) %>%
-            add_column(bias="none")
+evs_all <- bind_rows(pc %>% expected_val("C"), pa %>% expected_val("A")) %>% add_column(bias="none")
 evs_all
 # plot_marginal_prob(data_no_bias, c("A"), evs=evs_all %>% filter(p=="A"))
-p <- plot_marginal_prob(data_no_bias, c("C"))
+p <- plot_marginal_prob(data_no_bias %>% filter(level!="prior"), c("C"))
 
 vlines <- tibble(upper=0.9, lower=0.1)
 p2 <- p + geom_vline(data=vlines, aes(xintercept=lower),
@@ -62,9 +61,10 @@ p2 <- p + geom_vline(data=vlines, aes(xintercept=lower),
           theme_bw()
 ggsave(paste(TARGET_DIR, "none-pc.png", sep=.Platform$file.sep), p2)
 
-plot_cns_default(data_wide, save_as=paste(TARGET_DIR, "none-cns.png",
-                                          sep=.Platform$file.sep))
+plot_cns_default(data_wide, save_as=paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep))
 
+pc_a <- compute_cond_prob(data_wide, "P(C|A)")
+expected_val(pc_a, "P(C|A)")
 
 pa_c <- compute_cond_prob(data_wide, "P(A|C)")
 pa_nc <- compute_cond_prob(data_wide, "P(-A|-C)") %>%
@@ -88,8 +88,7 @@ data_wide <- data_biscuit %>% spread(key=cell, val=val)
 
 pc <- marginalize(data_biscuit, c("C"))
 pa <- marginalize(data_biscuit, c("A"))
-evs <- bind_rows(expected_val(pc, c("C")), expected_val(pa, c("A"))) %>%
-        add_column(bias="biscuits")
+evs <- bind_rows(expected_val(pc, c("C")), expected_val(pa, c("A"))) %>% add_column(bias="biscuits")
 plot_evs_bar(evs, c("C"))
 # plot_marginal_prob(data_biscuit, c("C"))
 
@@ -107,8 +106,7 @@ data_cp <- read_rds(fn_cp)
 data_wide <- data_cp %>% spread(key=cell, val=val)
 pc <- marginalize(data_cp, c("C")) 
 pa <- marginalize(data_cp, c("A")) 
-evs <- bind_rows(expected_val(pc, "C"), expected_val(pa, "A")) %>%
-        add_column(bias="cp")
+evs <- bind_rows(expected_val(pc, "C"), expected_val(pa, "A")) %>% add_column(bias="cp")
 
 plot_cns_default(data_wide)
 
@@ -120,8 +118,8 @@ expected_val(pa_nc, "P(A|-C)")
 
 # Value-of-interest for epistemic uncertainty (no bias) -------------------
 voi_none_all <- readRDS(file.path("data", "default-model", "results-none-voi.rds"))
-voi_none <- voi_none_all %>% filter(startsWith(key, "epistemic_uncertainty")) %>%
-              filter_tables(params) %>% filter_by_model_params(params)
+voi_none <- voi_none_all %>% filter(startsWith(key, "epistemic_uncertainty")) %>% filter_tables(params) %>%
+                filter_by_model_params(params)
 
 p <- voi_none %>% 
   mutate(value=round(as.numeric(value), 2)) %>% 
@@ -130,13 +128,13 @@ p <- voi_none %>%
            stat="identity")  +
   geom_text( aes( label = value, x = level,  y = value ),
              hjust = -0.1, size = 8) + 
+
   facet_grid(intention~key,
-             labeller=labeller(key=c(`epistemic_uncertainty_A`="Antecedent",
-                                     `epistemic_uncertainty_C`="Consequent"))) +
-  scale_x_discrete(limits = c("PL", "LL", "prior"),
-                   labels = c("Pragmatic interpretation",
-                              "Literal interpretation",
-                              "Belief before hearing 'If A, C'"),
+             labeller = labeller(key = c(`epistemic_uncertainty_A` = "Antecedent",
+                                         `epistemic_uncertainty_C` = "Consequent"))) +
+  scale_x_discrete(limits = c("PL", "LL", "prior"), labels = c("Pragmatic interpretation",
+                                                               "Literal interpretation",
+                                                               "Belief before hearing 'If A, C'"),
                    position = "top") +
   scale_y_continuous(limits=c(0, 0.4)) +
   coord_flip() +
@@ -145,16 +143,13 @@ p <- voi_none %>%
         axis.title.y = element_text(size = 25),
         axis.title.x = element_text(size = 25),
         strip.text = element_text(size = 25),
-        legend.position = "none", legend.title = element_blank(),
-        legend.direction = "horizontal") +
-  # labs(title=paste(strwrap("Degree of belief about consequent C to be true
-  # or false", width=25), collapse="\n")) +
+        legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal") +
+  # labs(title=paste(strwrap("Degree of belief about consequent C to be true or false", width=25), collapse="\n")) +
   # labs(y=paste("Expected degree of belief about", t, "to be true or false"), x="") +
   labs(y=TeX("$F_X(1-t) + 1-F_X(t)$"), x="") 
   # theme_classic(base_size=20) +
 p
-ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep),
-       p, width=15, height=6)
+ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p, width=15, height=6)
 
 # Value-of-interest for biscuit bias --------------------------------------
 # voi_pizza_all <- readRDS(file.path("data", "default-model", "results-pizza-voi-sweep.rds"))
@@ -247,9 +242,7 @@ ggsave(fn, p, width=15, height=6)
 
 
 # plot comparison between cp-strengths for bias-none and bias-lawn
-plot_cp_vois(data,
-             save_as = paste(TARGET_DIR, "comparison-vois-cp.png",
-                             sep=.Platform$file.sep))
+plot_cp_vois(data, save_as = paste(TARGET_DIR, "comparison-vois-cp.png", sep=.Platform$file.sep))
 
 
 # Values of interest depending on combination of alpha and cost -----------
