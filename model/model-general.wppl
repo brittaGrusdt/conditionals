@@ -18,6 +18,8 @@ var COST_CONDITIONAL = data["cost_conditional"][0]
 var UTT = data["utt"][0]
 // for bias lawn: max threshold for P(-A,C)
 var threshold_cp = data["threshold_cp"] ? data["threshold_cp"][0] : 0.05
+var SPEAKER_INTENTS = ["ISA", "PA"]
+// var SPEAKER_INTENTS = [""]
 
 
 // parameter for likelihood functions
@@ -121,6 +123,8 @@ var state_prior = cache(function(bias){
     var state = {"table": uniformDraw(TABLES),
                  "cn": cn_prior(bias)}
     factor(log_likelihood(state))
+
+    var intention = uniformDraw(SPEAKER_INTENTS)
     if(bias=='lawn'){
       // condition(Math.exp(state.table.score("-AC")) <= threshold_cp)
       //soft version:
@@ -132,7 +136,7 @@ var state_prior = cache(function(bias){
     } else if(bias == "dutchman"){
       condition(marginal(state.table, ["C"]) <= thresholds.f)
     }
-    return {"bn": state, "intention": ""}
+    return {"bn": state, "intention": intention}
   }})
 
   // make sure that states that have almost 0-probability are excldued,
@@ -144,6 +148,7 @@ var state_prior = cache(function(bias){
     return s
   }})
 })
+
 
 // Meaning ------------------------------------------------------------------
 var utterance_probs = cache(function(utterance, table){
@@ -171,8 +176,9 @@ var utterance_probs = cache(function(utterance, table){
 
 var meaning = cache(function(utterance, table){
  var p = utterance_probs(utterance, table)
- var u_applicable = utterance.includes('likely') ? (p >= thresholds.theta_likely) :
-     utterance.includes(">") ? ((p >= degree - 0.025) & (p <= degree + 0.025)) :  p >= thresholds.theta
+ var u_applicable = utterance.includes('likely') ? (p >= thresholds.theta_likely) : p >= thresholds.theta
+
+     // utterance.includes(">") ? ((p >= degree - 0.025) & (p <= degree + 0.025)) :  p >= thresholds.theta
  return u_applicable
 })
 
@@ -180,13 +186,15 @@ var meaning = cache(function(utterance, table){
 var literal_listener = cache(function(utterance, bias){
   Infer({method:'enumerate',model: function(){
     var state = sample(state_prior(bias))["bn"]
-
-    var speaker_intent = uniformDraw(["ISA", "PA"])
-    var val = utterance.indexOf(">") != -1 ? 0.8 : 0.2
-    var t = speaker_intent=="ISA" ? val : 1-val
-
     condition(meaning(utterance, state.table))
-    factor(Math.log(t))
+
+    var speaker_intent = uniformDraw(SPEAKER_INTENTS)
+
+    if(bias == "pizza"){
+      var val = utterance.indexOf(">") != -1 ? 0.8 : 0.2
+      var t = speaker_intent=="ISA" ? val : 1-val
+      factor(Math.log(t))
+    }
 
     return {"bn": state, "intention": speaker_intent}
   }})
@@ -205,7 +213,6 @@ var speaker = cache(function(bn, intention, bias, displayU){
   return Infer({method:'enumerate', model: function(){
     var utterance = uniformDraw(UTTERANCES)
     var ll = literal_listener(utterance, bias)
-    // var utility = ll.score({"bn": bn, "intention": intention})
     var utility = ll.score({bn, intention})
     if(displayU && utility!=-Infinity){
       display(utterance + utility)
@@ -219,12 +226,13 @@ var speaker = cache(function(bn, intention, bias, displayU){
 var listener = function(utterance, bias){
   return Infer({method:'enumerate', model:function(){
                   var bn = sample(state_prior(bias))["bn"]
-                  var intention = uniformDraw(["ISA", "PA"])
+                  var intention = uniformDraw(SPEAKER_INTENTS)
                   var sp = speaker(bn, intention, bias, false)
-                  observe(sp,utterance)
+                  observe(sp, utterance)
                   return {"bn": bn, "intention": intention}
                 }})
 }
+
 
 // Run from R ----------------------------------------------------------------
 var run = function(level){
@@ -237,6 +245,8 @@ var run = function(level){
 var prior = run("prior")
 var all_states = map(function(obj){obj["bn"]}, prior.support())
 if(verbose){display('# states: ' + all_states.length)}
+// display('a single state:')
+// display(all_states[0])
 
 // ------ debugging ------------------ //
 // var bns = filter(function(s){
