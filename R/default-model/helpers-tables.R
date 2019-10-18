@@ -1,13 +1,10 @@
-source("R/helpers.R")
 library(truncnorm)
 library(dplyr)
 
-
 SEED <- 1234
 set.seed(SEED)
-
-CNS_DEP <- c("A implies C", "A implies -C", "-A implies C", "-A implies -C", 
-             "C implies A", "C implies -A", "-C implies A", "-C implies -A")
+cns <- readRDS(file.path("./data/default-model/cns-default.rds", fsep=.Platform$file.sep))
+CNS_DEP <- cns[cns != "A || C"]
 
 # Table Generation --------------------------------------------------------
 create_dependent_tables <- function(params){
@@ -95,8 +92,6 @@ create_tables <- function(params, target_path){
   }
   tables <- bind_rows(tables_ind, tables_dep) %>% rowid_to_column("id") %>% 
               mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,
-                     param_nor_theta=params$param_nor_theta,
-                     param_nor_beta=params$param_nor_beta,
                      indep_sigma=params$indep_sigma,
                      n_tables=params$n_tables,
                      bias=params$bias,
@@ -108,15 +103,11 @@ create_tables <- function(params, target_path){
 
 filter_tables <- function(tables, params){
   if(is.na(params$nor_beta)){
-    df <- tables %>% filter(is.na(nor_beta) & is.na(nor_theta) &
-                                  param_nor_beta==params$param_nor_beta &
-                                  param_nor_theta==params$param_nor_theta)
+    df <- tables %>% filter(is.na(nor_beta) & is.na(nor_theta))
   } else{
-    df <- tables %>% filter(nor_beta == params$nor_beta &
-                            nor_theta == params$nor_theta)
+    df <- tables %>% filter(nor_beta == params$nor_beta & nor_theta == params$nor_theta)
   }
-  df <- df %>% filter(n_tables == params$n_tables &
-                      indep_sigma == params$indep_sigma & 
+  df <- df %>% filter(n_tables == params$n_tables & indep_sigma == params$indep_sigma & 
                       bias == params$bias &
                       seed == params$seed)
   return(df)
@@ -147,4 +138,11 @@ adapt_bn_ids <- function(data_wide){
   df <- bind_rows(prior, ll, pl)
   return(df)
 }
+
+# analysis generated tables
+# tables_data <- marginalize(tables_long %>% rename(level=cn), c("A")) %>%
+#   mutate(p=case_when(p==0 ~ 0.00001, TRUE~p), `P(C|A)`=AC/p)
+# tables_data %>% group_by(level) %>% summarize(m=mean(`P(C|A)`))
+
+
 
