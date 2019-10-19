@@ -35,16 +35,18 @@ if(!file.exists(tables_path)){
   }
 }
 
-tables <- tables %>% unnest_tables() %>%
-  filter(cn=="A implies C" | cn=="A || C")
+tables <- tables %>% unnest_tables()
+tables_filtered <- tables %>% filter(cn=="A implies C" | cn=="A || C")
 plot_tables(tables)
 
+tables_long <- tables %>%  select(rowid, val, cell, cn) %>% rename(bn_id=rowid)
+tables_wide <- tables_long %>% spread(key=cell, val=val)
 
 # Default model: no bias --------------------------------------------------
 fn_no_bias <- file.path(RESULT_DIR, "default-model", "results-none.rds")
 data_no_bias <- read_rds(fn_no_bias)
-
 data_wide <- data_no_bias %>% spread(key=cell, val=val)# %>% adapt_bn_ids()
+
 pc <- marginalize(data_no_bias, c("C")) 
 pa <- marginalize(data_no_bias, c("A"))
 
@@ -129,7 +131,8 @@ p <- voi_none %>%
   geom_text( aes( label = value, x = level,  y = value ),
              hjust = -0.1, size = 8) + 
 
-  facet_grid(intention~key,
+  # facet_grid(intention~key,
+  facet_wrap(~key,
              labeller = labeller(key = c(`epistemic_uncertainty_A` = "Antecedent",
                                          `epistemic_uncertainty_C` = "Consequent"))) +
   scale_x_discrete(limits = c("PL", "LL", "prior"), labels = c("Pragmatic interpretation",
@@ -146,7 +149,7 @@ p <- voi_none %>%
         legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal") +
   # labs(title=paste(strwrap("Degree of belief about consequent C to be true or false", width=25), collapse="\n")) +
   # labs(y=paste("Expected degree of belief about", t, "to be true or false"), x="") +
-  labs(y=TeX("$F_X(1-t) + 1-F_X(t)$"), x="") 
+  labs(y=TeX("$F_X(1-\\theta) + 1-F_X(\\theta)$"), x="") 
   # theme_classic(base_size=20) +
 p
 ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png", sep=.Platform$file.sep), p, width=15, height=6)
@@ -168,25 +171,32 @@ p <- voi_data %>%
   geom_bar(mapping = aes(x=level, y=value, fill=level),
            stat="identity")  +
   geom_text( aes( label = value, x = level,  y = value ),
-             hjust = 1, size = 8) +
+             hjust = 1, size = 4) +
   # facet_wrap(~bias) + 
-  facet_wrap(~intention) + 
-  scale_x_discrete(limits = c("PL", "LL", "prior"),
-                   labels = c("Pragmatic interpretation",
-                              "Literal interpretation",
-                              "Belief before hearing 'If A, C'"),
-                 position = "top") +
+  # facet_wrap(~intention) + 
+  facet_grid(bias~intention) + 
+  # scale_x_discrete(limits = c("PL", "LL", "prior"),
+  #                  labels = c("Pragmatic interpretation",
+  #                             "Literal interpretation",
+  #                             "Belief before hearing 'If A, C'"),
+  #                position = "top") +
   scale_y_continuous(limits=c(0,1)) +
   coord_flip() +
+  scale_fill_discrete(name="",
+                      breaks=c("prior", "LL", "PL"),
+                      labels=c("Belief before hearing 'If A, C'",
+                               "Literal interpretation", "Pragmatic interpretation")) + 
   # theme_classic(base_size=20) +
-  theme(axis.text.y = element_text(size= 25),
-    # axis.text.x = element_text(angle = 45, hjust = 1, size=25),
-    axis.text.x = element_text(size= 17),
-    axis.title.y = element_text(size = 25),
-    axis.title.x = element_text(size = 25),
-    strip.text = element_text(size = 25),
-    title = element_text(size = 25),
-    legend.position = "none", legend.title = element_blank(), legend.direction = "horizontal") +
+  theme(axis.text.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks = element_blank(),
+    # axis.text.x = element_text(size=17),
+    # axis.text.y = element_text(size = 17),
+    axis.title.y = element_text(size = 20),
+    axis.title.x = element_text(size = 20),
+    strip.text = element_text(size = 20),
+    title = element_text(size = 20),
+    legend.position = "right", legend.title = element_blank(), legend.direction = "vertical") +
   labs(y="Expected degree of belief in consequent", x="", title="")
 p
 ggsave(paste(TARGET_DIR, "pizza-voi-pc.png", sep=.Platform$file.sep), p, width=15, height=6)
