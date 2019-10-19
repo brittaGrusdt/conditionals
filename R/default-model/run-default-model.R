@@ -1,6 +1,7 @@
 source("R/default-model/helpers-tables.R")
 source("R/helpers-webppl.R")
 source("R/helper-functions.R")
+source("R/helpers-values-of-interest.R")
 library(rwebppl)
 library(tidyverse)
 
@@ -19,11 +20,12 @@ params$bias <- "none"
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
 # params$level_max="speaker_all_bns" 
-params$level_max="PL"
+params$level_max="LL"
 params$speaker_intents=c("")
 
 params$alpha <- 3
 params$cost_conditional <- 0
+params$theta <- 0.9
 params$utt <- "A > C"
 # params$utt="likely -C"
 # params$degree=0.95
@@ -88,7 +90,7 @@ data <- posterior %>% structure_model_data(params)
 trust <- data %>% listener_beliefs("PL")
 
 
-# data_voi <- get_voi(posterior, params)
+data_voi <- voi_default(data, params)
 
 
 

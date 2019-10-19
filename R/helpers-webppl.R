@@ -29,7 +29,7 @@ run_webppl <- function(path_wppl_file, params){
 }
 
 structure_model_data <- function(posterior, params){
-  posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles()
+  posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles() %>% mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val))
   if(params$save){save(posterior_tibbles, paste(params$target, ".rds", sep=""))}
   return(posterior_tibbles)
 }
