@@ -1,0 +1,117 @@
+  // var data = {
+  //   "verbose": [true],
+  //   "utt": ["R > -S"],
+  //   "alpha": [5],
+  //   "cost_conditional": [0],
+  //   "prior_pr": [0.6, 0.7, 0.8]
+  // }
+  var vars = [["R", "-R"], ["S", "-S"], ["W", "-W"]]
+  var powerset = get_var_powerset(vars, false)
+  var utterances = make_utterances(powerset)
+  var BIAS = ""
+
+  var verbose = data["verbose"][0]
+  var LEVEL_MAX = data["level_max"] ? data["level_max"][0] : "PL"
+  globalStore.cost_conditional = data["cost_conditional"][0]
+  globalStore.alpha = data["alpha"][0]
+  var prior_pr = data["prior_pr"]
+  var utt = data["utt"][0]
+
+  if(verbose){
+    display("alpha:" + globalStore.alpha)
+    display("cost conditional:" + globalStore.cost_conditional)
+    display("prior P(R):" + prior_pr)
+    display('all utterances:' + utterances.length)
+    display("listener hears utterance: " + utt)
+  }
+
+  // Causal networks --------------------------------------------------------------
+  var causal_nets = {"cn1": "R > W > S", "cn2": "R||S"}
+  var prior_cns = Categorical({"vs": ["cn1", "cn2"], "ps": [0.05, 0.95]})
+
+  // Probabilities ----------------------------------------------------------------
+  // var priors_rain = [0.1, 0.5, 0.9]
+  var priors_rain = prior_pr
+  var p_wedding_inside = {"R": 1, "-R": 0}
+  var probabilities = {"cn1": {"p_wi": p_wedding_inside,
+                               "p_s": {"W": 0, "-W": 1}},
+                       "cn2": {"p_wi": {"R": 1, "-R":1},
+                               "p_s" : {"W": 1, "-W": 1}}
+                      }
+
+  // States ----------------------------------------------------------------
+  var joint_probs = function(token, cn, pr){
+    var probs = probabilities[cn]
+    var sw = token.indexOf("-W") != -1 ? probs["p_s"]["-W"] : probs["p_s"]["W"]
+    var p_sw = token.indexOf("-S") != -1 ? 1-sw : sw
+
+    var r = token.indexOf("-R") != -1 ? "-R" : "R"
+    var wr = probs["p_wi"][r]
+    var p_wr = token.indexOf("-W") != -1 ? 1-wr : wr
+
+    var p_r = token.indexOf("-R") != -1 ? 1-pr : pr
+
+    return p_sw * p_wr * p_r
+  }
+
+  var var_combinations = {"cn1": filter(function(tokens){tokens.length==3}, powerset),
+                          "cn2": filter(function(tokens){
+                            tokens.length==2 && !tokens.includes("W") && !tokens.includes("-W")
+                          }, powerset)}
+
+  var build_table_distributions = cache(function(cn, p_r){
+    var tokens_active = var_combinations[cn]
+    var tokens_active_str = map(function(elems){elems.join("")}, tokens_active)
+
+    return Infer({model:function(){
+      var arr = map(function(elems){joint_probs(elems, cn, p_r)},
+                    tokens_active_str)
+
+      return categorical({vs:tokens_active_str, ps:arr})
+    }})
+  })
+
+  var uniform_draw_bn = function(cn){
+    var table_distrs = map(function(p_rain){build_table_distributions(cn, p_rain)}, priors_rain)
+    var Table = uniformDraw(table_distrs)
+    return {"cn": causal_nets[cn], "table": Table}
+  }
+
+  var state_prior = Infer({model:function(){
+    // var cn = flip(prior_cn2) ? "cn2" : "cn1"
+    var cn = sample(prior_cns)
+    var bn = uniform_draw_bn(cn)
+    return {bn}
+  }})
+
+  globalStore.state_prior = state_prior
+
+  // check which utterances need to be removed (e.g.because there's no corresponding state)
+  var all_states = state_prior.support()
+  var utts_to_remove = filter(function(u){
+    !any(function(s){meaning(u,s["bn"]["table"])}, all_states)
+  }, utterances)
+  display('# utts without corresponding state: ' + utts_to_remove.length)
+  // map(display, utts_to_remove)
+
+  var utterances = filter(function(u){utts_to_remove.indexOf(u) == -1}, utterances)
+  globalStore.utterances = utterances
+  display('# included utterances: ' + (globalStore.utterances).length)
+
+  // Run from R ----------------------------------------------------------------
+  var prior = state_prior
+  var ll = literal_listener(utt, BIAS)
+  var pl = listener(utt, BIAS)
+
+  var wrap_ll = function(u){
+    var obj = {"u": u, "LL": literal_listener(u)}
+    obj
+  }
+
+  if(LEVEL_MAX == "LL-all-utts"){
+    var distributions = {"LL": map(wrap_ll, utterances)}
+    distributions
+  } else {
+    var distributions = {"PL": pl, "LL": ll, "prior": prior}
+    distributions
+  }

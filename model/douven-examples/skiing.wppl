@@ -1,0 +1,123 @@
+// var data = {
+//     "verbose": [true],
+//   "utt": ["E > S"],
+//   "alpha": [5],
+//   "cost_conditional": [0],
+//   "prior_pe": [0.2]
+// }
+var vars = [["S", "-S"], ["E", "-E"], ["C", "-C"]]
+var causal_nets = {"cn1": "E || S>C", "cn2": "E>S>C"}
+var prior_cns = Categorical({"vs": ["cn1", "cn2"], "ps": [0.05, 0.95]})
+var powerset = get_var_powerset(vars, false)
+var utterances = make_utterances(powerset)
+var BIAS = ""
+
+var verbose = data["verbose"][0]
+var prior_pe = data["prior_pe"][0]
+var utt = data["utt"][0]
+var LEVEL_MAX = data["level_max"] ? data["level_max"][0] : "PL"
+globalStore.cost_conditional = data["cost_conditional"][0]
+globalStore.alpha = data["alpha"][0]
+
+if(verbose){
+  display("alpha:" + globalStore.alpha)
+  display("cost conditional:" + globalStore.cost_conditional)
+  display('all utterances:' + utterances.length)
+  display("prior P(E):" + prior_pe)
+  display("listener hears utterance: " + utt)
+}
+
+// Probabilities ----------------------------------------------------------------
+var probabilities = {"cn1": {"p_clothes": {"S": 0.7, "-S": 0.1},
+                             "p_exam": prior_pe,
+                             "p_skiing": 0.1},
+                     "cn2": {"p_clothes": {"S": 0.7, "-S": 0.1},
+                             "p_exam": prior_pe,
+                             "p_skiing": {"E": 0.98, "-E": 0.1}}
+                    }
+
+// States ----------------------------------------------------------------
+var joint_probs = function(token, cn){
+  var probs = probabilities[cn]
+  var p_e = token.includes("-E") ? 1-probs["p_exam"] : probs["p_exam"]
+
+  var cs = token.includes("-S") ? probs["p_clothes"]["-S"] : probs["p_clothes"]["S"]
+  var p_cs = token.includes("-C") ? 1-cs : cs
+
+  var se = cn=="cn1" ? probs["p_skiing"] :
+         token.includes("-E") ? probs["p_skiing"]["-E"] : probs["p_skiing"]["E"]
+  var p_se =  token.includes("-S") ? 1-se : se
+
+  return p_cs * p_se * p_e
+}
+var var_combinations_len3 = filter(function(tokens){tokens.length==3}, powerset)
+var var_combinations = {"cn1": var_combinations_len3, "cn2": var_combinations_len3}
+
+var build_table_distr = cache(function(cn){
+  var tokens_active = var_combinations[cn]
+  var tokens_active_str = map(function(elems){elems.join("")}, tokens_active)
+
+  return Infer({model:function(){
+    var arr = map(function(elems){joint_probs(elems, cn)}, tokens_active_str)
+    return categorical({vs:tokens_active_str, ps:arr})
+  }})
+})
+
+var get_bn = function(cn){
+  var Table = build_table_distr(cn)
+  var bn = {"cn": causal_nets[cn], "table": Table}
+  return {bn}
+}
+
+var state_prior = Infer({model:function(){
+  var cn = sample(prior_cns)
+  return get_bn(cn)
+}})
+
+globalStore.state_prior = state_prior
+
+// Utterances ----------------------------------------------------
+var all_states = state_prior.support()
+var utts_to_remove = filter(function(u){
+  !any(function(s){meaning(u,s["bn"]["table"])}, all_states)
+}, utterances)
+// map(display, utts_to_remove)
+var utterances = filter(function(u){utts_to_remove.indexOf(u) == -1}, utterances)
+globalStore.utterances = utterances
+
+if(verbose){
+  display('# utts without corresponding state: ' + utts_to_remove.length)
+  display('# included utterances: ' + (globalStore.utterances).length)
+}
+// map(display, utterances)
+
+// var listener_beliefs = function(distr, evidence_var){
+//   // listener has evidence for C
+//   var ps = map(function(d){Math.exp(distr.score(d))}, distr.support())
+//   var vs = map(function(x){
+//     var old_table = x["table"]
+// //     viz(old_table)
+//     var new_table = Infer({model:function(){
+//       var entry = sample(old_table)
+//       condition(!entry.includes(negate(evidence_var)))
+//       return entry
+//     }})
+// //     viz(new_table)
+//     return {"cn": x["cn"], "table": new_table}
+//     }, distr.support())
+//
+//   var new_distr = Infer({model:function(){
+//     categorical({vs, ps})
+//   }})
+//   return new_distr
+// }
+
+// Run from R ----------------------------------------------------------------
+var prior = state_prior
+var ll = literal_listener(utt, BIAS)
+var pl = listener(utt, BIAS)
+// var pl_beliefs = listener_beliefs(pl, evidence)
+
+// object to return
+var distributions = {"PL": pl, "LL": ll, "prior": prior} // "PL-beliefs": pl_beliefs}
+distributions

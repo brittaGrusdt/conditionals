@@ -1,0 +1,63 @@
+// var data = {
+//   "verbose": [true],
+//   "vars": ["A", "C"],
+//   "bias": ["none"]
+//   "tables": //add example here
+// }
+
+var verbose = data["verbose"][0]
+var variables = data["vars"]
+var bias = data["bias"][0]
+var tables_list = data["tables"]
+
+globalStore.Tables = map(function(obj){
+  Categorical({"vs": obj["vs"], "ps": obj["ps"]})
+}, tables_list)
+
+globalStore.speaker_intents = data["speaker_intents"]
+globalStore.indep_sigma = data["indep_sigma"][0]
+
+if(verbose){
+  display("bias: " + bias)
+  display("verbose: " + verbose)
+  display("# tables: " + globalStore.Tables.length)
+  display("vars: " + variables)
+}
+
+var variables = reduce(function(token, acc){
+  acc.concat([[token, negate(token)]])
+}, [], variables)
+
+var powerset = get_var_powerset(variables, false)
+globalStore.cns = connect_variables(powerset, " implies ")
+
+if(verbose){
+  display('cns: ')
+  display(globalStore.cns)
+}
+
+var utterances = make_utterances(powerset)
+
+var all_states = state_prior(bias).support()
+if(verbose){
+  display('# states: ' + all_states.length)
+}
+
+var utts_to_remove = filter(function(u){
+  !any(function(s){meaning(u, s["bn"]["table"])}, all_states)
+}, utterances)
+
+if(verbose){
+  display('# utts without corresponding state: ' + utts_to_remove.length)
+  display("removed utterances:")
+  map(display, utts_to_remove)
+}
+
+var utterances = filter(function(u){utts_to_remove.indexOf(u) == -1}, utterances)
+if(verbose){
+  display("included utterances:")
+  map(display, utterances)
+  display('# included utterances: ' + utterances.length)
+}
+
+utterances

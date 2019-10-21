@@ -1,0 +1,114 @@
+// Parameters
+var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_likely : 0.499}
+
+// states + utterances
+globalStore.cns = data["cns"]
+globalStore.utterances = data["utterances"]
+
+var tables_list = data["tables"]
+globalStore.Tables = map(function(obj){
+  Categorical({"vs": obj["vs"], "ps": obj["ps"]})
+}, tables_list)
+
+// model parameters
+globalStore.alpha = data["alpha"][0]
+globalStore.cost_conditional = data["cost_conditional"][0]
+globalStore.speaker_intents = data["speaker_intents"]
+// globalStore.speaker_intents = ["ISA", "PA"]
+
+// var degree = data["degree"][0]
+var BIAS = data["bias"][0]
+var UTT = data["utt"][0]
+
+// parameter for likelihood functions
+globalStore.indep_sigma = data["indep_sigma"][0]
+
+// output parameters
+var LEVEL_MAX = data["level_max"][0]
+var verbose = data["verbose"][0]
+
+// input data
+// var p_ac_ind = {"none": 0.25,
+//                 "lawn": 0.0,
+//                 "pizza" : 1,
+//                 "dutchman" : 1
+//                 }
+
+if(verbose){
+  display('# utterances:' + (globalStore.utterances).length)
+  display("utterance for listeners: " + UTT)
+  display("cost conditional:" + globalStore.cost_conditional)
+  display("cns:" + globalStore.cns)
+  display("bias: " + BIAS)
+  display("alpha:" + globalStore.alpha)
+  display("# tables:" + tables_list.length)
+  // display("degree: " + degree)
+}
+
+
+// Run from R ----------------------------------------------------------------
+var run = function(level){
+  if(verbose){ display("run " + level + " ...") }
+  return level == "prior" ? state_prior(BIAS) :
+         level == "LL" ? literal_listener(UTT, BIAS) : listener(UTT, BIAS)
+}
+
+globalStore.state_prior = run("prior")
+var all_states = map(function(obj){obj["bn"]}, (globalStore.state_prior).support())
+if(verbose){display('# states: ' + all_states.length)}
+// display('single state: ')
+// display(all_states[0])
+
+// ------ debugging ------------------ //
+var wrap_speaker = function(bn){
+  display(bn)
+  // var intention = "PA"
+  // var intention = "ISA"
+  var intention = ""
+  var state = {"bn": bn, "intention": intention}
+  speaker(state, "none", false)
+}
+
+var wrap_ll = function(u){
+  display(u)
+  literal_listener(u, BIAS)
+}
+
+// ------ debugging ------------------ //
+
+// RUN MODEL
+if(LEVEL_MAX == "speaker_all_bns"){
+  var bns = filter(function(bn){
+    meaning(UTT, bn.table)
+  }, all_states)
+  display('bns: ' + bns)
+  var distributions = {"distributions": map(wrap_speaker, bns)}
+  distributions
+
+} else if(LEVEL_MAX == "ll_all_utts"){
+  var distributions = {"distributions": map(wrap_ll, globalStore.utterances)}
+  distributions
+
+} else if(LEVEL_MAX == "prior_conditioned"){
+  var distributions = map(function(cn){
+                        display(cn)
+                        Infer({model:function(){
+                          var s = sample(globalStore.state_prior)
+                          condition(s["bn"]["cn"] == cn)
+                          return s
+                        }})
+                      }, globalStore.cns)
+
+  var obj = {distributions}
+  obj
+
+} else{
+  var distributions = LEVEL_MAX == "prior" ? {"prior": globalStore.state_prior} :
+                      LEVEL_MAX == "LL" ? {"prior": globalStore.state_prior, "LL": run("LL")} :
+                      LEVEL_MAX == "PL" ? {"prior": globalStore.state_prior, "LL": run("LL"),
+                                           "PL": run("PL")} :
+                      error("unknown output level: " + LEVEL_MAX)
+
+  // object to return to R
+  distributions
+}
