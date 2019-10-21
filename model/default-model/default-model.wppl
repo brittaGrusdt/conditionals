@@ -27,13 +27,6 @@ globalStore.indep_sigma = data["indep_sigma"][0]
 var LEVEL_MAX = data["level_max"][0]
 var verbose = data["verbose"][0]
 
-// input data
-// var p_ac_ind = {"none": 0.25,
-//                 "lawn": 0.0,
-//                 "pizza" : 1,
-//                 "dutchman" : 1
-//                 }
-
 if(verbose){
   display('# utterances:' + (globalStore.utterances).length)
   display("utterance for listeners: " + UTT)
@@ -44,7 +37,6 @@ if(verbose){
   display("# tables:" + tables_list.length)
   // display("degree: " + degree)
 }
-
 
 // Run from R ----------------------------------------------------------------
 var run = function(level){
