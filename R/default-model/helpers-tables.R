@@ -97,7 +97,7 @@ create_tables <- function(params, target_path){
                      bias=params$bias,
                      seed=SEED
               )
-  tables %>% save(target_path)
+  tables %>% save_data(target_path)
   return(tables)
 }
 

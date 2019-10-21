@@ -47,6 +47,8 @@ params$utts_path <- file.path(TARGET_DIR, paste("utterances-", params$bias, ".rd
                               fsep = .Platform$file.sep)
 params$cns_path <- file.path(TARGET_DIR, "cns-default.rds", fsep=.Platform$file.sep)            
 
+params$packages <- c("./node_modules/conditionalsHelpers",
+                     "./node_modules/conditionalsDefault")
 ## Generate/Retrieve tables
 tables_path <- file.path(TARGET_DIR, paste("tables-", params$bias, ".rds", sep=""), fsep=.Platform$file.sep)
 if(generate_tables){
@@ -65,8 +67,8 @@ params$tables=tables_to_wppl
 ## Generate/Retrieve utterances and causal nets
 if(generate_cns){
   cns <- run_webppl("./model/default-model/cns.wppl", params)
-  # cns <- cns %>% map(function(x){x %>% pull(value)}) %>% unlist()
-  cns %>% save(params$cns_path)
+  cns <- cns %>% map(function(x){x %>% pull(value)}) %>% unlist()
+  cns %>% save_data(params$cns_path)
 } else {
   cns <- readRDS(params$cns_path)
 }
@@ -74,8 +76,8 @@ params$cns <- cns
 
 if(generate_utterances){
   utterances <- run_webppl("./model/default-model/utterances.wppl", params)
-  # utterances <- utterances %>% map(function(x){x %>% pull(value)}) %>% unlist()
-  utterances %>% save(params$utts_path)
+  utterances <- utterances %>% map(function(x){x %>% pull(value)}) %>% unlist()
+  utterances %>% save_data(params$utts_path)
 } else {
   utterances <- readRDS(params$utts_path)
 }
@@ -83,8 +85,6 @@ params$utterances <- utterances
 
 # Run Model ---------------------------------------------------------------
 params$model_path="./model/default-model/model-general.wppl"
-params$packages <- c("./node_modules/conditionalsHelpers",
-                     "./node_modules/conditionalsDefault")
 params$save=TRUE
 params$save_voi=TRUE
 
