@@ -74,7 +74,7 @@ get_cp_values <- function(distr){
 }
 
 voi_conditional_perfection <- function(posterior, params){
-  val_cp <- get_cp_values(posterior) %>% add_params(params)
+  val_cp <- get_cp_values(posterior) %>% add_model_params(params)
   return(val_cp)
 }
 
@@ -95,21 +95,21 @@ get_speaker_uncertainty <- function(distr, theta, val){
 voi_epistemic_uncertainty <- function(posterior, params){
   val_pc <- get_speaker_uncertainty(posterior, params$theta, "C")
   val_pa <- get_speaker_uncertainty(posterior, params$theta, "A")
-  val_no_bias <- add_params(bind_rows(val_pc, val_pa), params)
+  val_no_bias <- add_model_params(bind_rows(val_pc, val_pa), params)
   return(val_no_bias)
 }
 
 voi_pc <- function(posterior, params){
   val_biscuits <- marginalize(posterior, c("C")) %>% expected_val("C") %>% select(-p) %>%
     rename(value=ev) %>% mutate(key="pc")
-  val_biscuits <- add_params(val_biscuits, params)
+  val_biscuits <- add_model_params(val_biscuits, params)
   return(val_biscuits)
 }
 
 voi_pa <- function(posterior, params){
   val_pa <- marginalize(posterior, c("A")) %>% expected_val("A") %>% select(-p) %>% 
     rename(value=ev) %>% mutate(key="pa")
-  val_pa <- val_pa %>% add_params(params)
+  val_pa <- val_pa %>% add_model_params(params)
   return(val_pa)
 }
 

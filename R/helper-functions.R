@@ -71,10 +71,9 @@ compute_cond_prob <- function(distr_wide, prob){
 
 
 # model ------------------------------------------------------------------
-add_params <- function(df, params){
-  df <- df %>% mutate(cost=params$cost_conditional, alpha=params$alpha,
-                      nor_beta=params$nor_beta,
-                      nor_theta=params$nor_theta,
+add_model_params <- function(df, params){
+  df <- df %>% mutate(cost=params$cost_conditional,
+                      alpha=params$alpha,
                       bias=params$bias,
                       value=as.character(value))
   return(df)

@@ -84,7 +84,7 @@ if(generate_utterances){
 params$utterances <- utterances
 
 # Run Model ---------------------------------------------------------------
-params$model_path="./model/default-model/model-general.wppl"
+params$model_path="./model/default-model/default-model.wppl"
 params$save=TRUE
 params$save_voi=TRUE
 
