@@ -21,7 +21,7 @@ run_webppl <- function(path_wppl_file, params){
                    data = params,
                    data_var = "data",
                    random_seed = params$seed,
-                   packages=c("./node_modules/conditionalsHelpers")
+                   packages=params$packages
                   )
   # data is a list of lists
   data <- data %>% map(function(x){as_tibble(x)})
@@ -30,16 +30,23 @@ run_webppl <- function(path_wppl_file, params){
 
 structure_model_data <- function(posterior, params){
   posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles() %>% mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val))
-  if(params$save){save(posterior_tibbles, paste(params$target, ".rds", sep=""))}
+  fn <- paste(params$target, ".rds", sep="")
+  if(params$save){save_data(posterior_tibbles, fn)}
   return(posterior_tibbles)
 }
 
 
-listener_beliefs <- function(posterior, level){
+listener_beliefs <- function(posterior, level, vars_condition_on=NA){
   df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
-  df <- df %>% group_by(cn, intention) %>% spread(key=cell, val=val)
-  listener <- df %>% summarize(ac=sum(`AC`), anc=sum(`A-C`), nac=sum(`-AC`), nanc=sum(`-A-C`),
-                marginal_cn=sum(prob))
+  listener <- df %>% group_by(cn, intention, cell) %>% summarize(val=sum(val), marginal_cn=sum(prob))
+  # df <- df %>% group_by(cn, intention, cell) %>% spread(key=cell, val=val)
+  # listener <- df %>% summarize(ac=sum(`AC`), anc=sum(`A-C`), nac=sum(`-AC`), nanc=sum(`-A-C`),
+  #               marginal_cn=sum(prob))
+  
+  if(!is.na(vars_condition_on)){
+    listener <- listener %>% filter_vars(vars_condition_on) %>%  filter(keep) %>% mutate(val=val/sum(val))
+  }
+  
   return(listener)
 }
 

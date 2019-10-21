@@ -20,7 +20,7 @@ params$bias <- "none"
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
 # params$level_max="speaker_all_bns" 
-params$level_max="LL"
+params$level_max="PL"
 params$speaker_intents=c("")
 
 params$alpha <- 3
@@ -64,7 +64,8 @@ params$tables=tables_to_wppl
 
 ## Generate/Retrieve utterances and causal nets
 if(generate_cns){
-  cns <- run_webppl("./R/default-model/cns.wppl", params)
+  cns <- run_webppl("./model/default-model/cns.wppl", params)
+  # cns <- cns %>% map(function(x){x %>% pull(value)}) %>% unlist()
   cns %>% save(params$cns_path)
 } else {
   cns <- readRDS(params$cns_path)
@@ -72,7 +73,8 @@ if(generate_cns){
 params$cns <- cns
 
 if(generate_utterances){
-  utterances <- run_webppl("./R/default-model/utterances.wppl", params)
+  utterances <- run_webppl("./model/default-model/utterances.wppl", params)
+  # utterances <- utterances %>% map(function(x){x %>% pull(value)}) %>% unlist()
   utterances %>% save(params$utts_path)
 } else {
   utterances <- readRDS(params$utts_path)
@@ -80,23 +82,15 @@ if(generate_utterances){
 params$utterances <- utterances
 
 # Run Model ---------------------------------------------------------------
-params$model_path="./model/model-general.wppl"
+params$model_path="./model/default-model/model-general.wppl"
+params$packages <- c("./node_modules/conditionalsHelpers",
+                     "./node_modules/conditionalsDefault")
 params$save=TRUE
 params$save_voi=TRUE
+
 
 posterior <- run_webppl(params$model_path, params)
 data <- posterior %>% structure_model_data(params)
 
 trust <- data %>% listener_beliefs("PL")
-
-
 data_voi <- voi_default(data, params)
-
-
-
-
-
-
-
-
-

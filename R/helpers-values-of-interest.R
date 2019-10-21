@@ -120,16 +120,22 @@ voi_default <- function(posterior, params){
   cp <- voi_conditional_perfection(posterior, params)
   
   results <- bind_rows(uncertainty, pa, pc, cp)
-  if(params$save_voi){results %>% save(paste(params$target, "-voi.rds", sep=""))}
+  if(params$save_voi){results %>% save_data(paste(params$target, "-voi.rds", sep=""))}
   return(results)
 }
 
 # Douven examples ---------------------------------------------------------
+voi_douven <- function(posterior, params, model){
+  if(model=="skiing"){voi <- voi_skiing(posterior, params)}
+  else if(model=="sundowners"){voi <- voi_sundowners(posterior, params)}
+  return(voi)
+}
+
 voi_skiing <- function(posterior, params){
   pe <- marginalize(posterior, c("E")) 
   ev_pe <- pe %>% expected_val("E") %>% rename(value=ev, key=p) %>% 
     mutate(alpha=params$alpha, cost=params$cost_conditional, pe=params$prior_pe)
-  if(params$save_voi){results %>% save(paste(params$target, "-voi.rds", sep=""))}
+  if(params$save_voi){ev_pe %>% save_data(paste(params$target, "-voi.rds", sep=""))}
   return(ev_pe)
 }
 
@@ -145,6 +151,6 @@ voi_sundowners <- function(posterior, params){
            pr1=params$prior_pr[1],
            pr2=params$prior_pr[2],
            pr3=params$prior_pr[3]) %>% nest(pr1,pr2,pr3, .key = "prior_pr")
-  if(params$save_voi){results %>% save(paste(params$target, "-voi.rds", sep=""))}
+  if(params$save_voi){vois %>% save_data(paste(params$target, "-voi.rds", sep=""))}
   return(vois)
 }

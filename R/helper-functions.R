@@ -1,13 +1,10 @@
-save <- function(data, target_path){
+save_data <- function(data, target_path){
   data %>% write_rds(target_path)
   print(paste("saved to:", target_path))
 }
 
-# Probabilities -----------------------------------------------------------
-marginalize <- function(data, vars){
-  # data must be in long format, such that cell is one column and marginals can
-  # be computed for any cell entries, returned object is in wide format
-  df <- data %>% add_column(keep=TRUE)
+filter_vars <- function(df_long, vars){
+  df <- df_long %>% mutate(keep=TRUE)
   for(var in vars){
     if(str_detect(var, "^-")){
       df <- df %>% mutate(keep=case_when(!keep ~ keep, TRUE ~ str_detect(cell, var)))
@@ -17,6 +14,14 @@ marginalize <- function(data, vars){
       df <- df %>% mutate(keep=case_when(!keep ~ keep, TRUE ~ !str_detect(cell, token)))
     }
   }
+  return(df)
+}
+
+# Probabilities -----------------------------------------------------------
+marginalize <- function(data, vars){
+  # data must be in long format, such that cell is one column and marginals can
+  # be computed for any cell entries, returned object is in wide format
+  df <- data %>% filter_vars(vars)
   df <- df %>%  mutate(p=case_when(keep ~ val, TRUE ~ 0)) %>%
           group_by(bn_id, level, intention) %>% mutate(p=sum(p))  %>%
           select(-keep) %>% spread(key=cell, val=val)
