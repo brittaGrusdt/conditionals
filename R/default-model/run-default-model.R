@@ -16,12 +16,14 @@ generate_cns <- FALSE
 # Model parameters
 params <- list()
 # params$bias="lawn"
-params$bias <- "none"
+# params$bias <- "none"
+params$bias <- "pizza"
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
 # params$level_max="speaker_all_bns" 
 params$level_max="PL"
-params$speaker_intents=c("")
+# params$speaker_intents=c("")
+params$speaker_intents=c("ISA", "PA")
 
 params$alpha <- 3
 params$cost_conditional <- 0
