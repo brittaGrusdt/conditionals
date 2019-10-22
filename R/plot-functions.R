@@ -25,7 +25,7 @@ plot_bns <- function(data_wide){
     return(p)
 }
 
-plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
+plot_cns_default <- function(data_wide, level=NULL){
     df <- data_wide %>% group_by(level, cn) %>% summarize(prob=round(sum(prob), 3))
     df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
     
@@ -53,11 +53,13 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
                                       "A || C"),
                              labels=c("A->C", "A->¬C", "¬A->C", "¬A->¬C",
                                       "C->A", "C->¬A", "¬C->A", "¬C->¬A",
-                                      "A indep. C")) +
+                                      "A indep. C"),
+                             position="top") +
           scale_y_continuous(limits=c(0, 1)) +
           coord_flip() + 
-            theme(axis.text.x = element_text(angle = 45, hjust = 1),
-                 text = element_text(size= 15),
+            theme(
+              # axis.text.x = element_text(angle = 30, hjust = 1),
+                 text = element_text(size= 11),
                  legend.position = "none", legend.title = element_blank(),
                  legend.direction = "horizontal")
     }else{
@@ -78,7 +80,6 @@ plot_cns_default <- function(data_wide, level=NULL, save_as=NULL){
                   text = element_text(size= 15),
                   legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
     }
-    if(!is.null(save_as)){ggsave(save_as, p, width=15, height=6)}
     return(p)
 }
 
@@ -264,8 +265,9 @@ plot_voi_alpha_cost <- function(data, model, key, level){
 }
 
 plot_cp_vois <- function(data, save_as=NULL){
-  data <- data %>% mutate(level=as.factor(level), value=round(as.numeric(value),2))
-  
+  data <- data %>% mutate(level=as.factor(level),
+                          bias=factor(bias, levels=c("none", "lawn")),
+                          value=round(as.numeric(value),2))
   p <- data %>%
     # filter(key=="cp_bns_ac" | key=="p_nc_given_na") %>%
     filter(key=="p_nc_given_na") %>%
@@ -280,7 +282,7 @@ plot_cp_vois <- function(data, save_as=NULL){
     #                           biconditional distribution and joint probability
     #                           tables", width=50), collapse="\n"),
     #           `p_nc_given_na`= paste(strwrap(
-    #                             "belief in consequent to be false given
+    #                             "Belief in consequent to be false given
     #                             antecedent is false", width=40), collapse="\n"))
     # )) +
     facet_wrap(~bias, labeller = labeller(
@@ -288,9 +290,9 @@ plot_cp_vois <- function(data, save_as=NULL){
     )) + 
     labs(x="", y="Expected degree of belief in ¬C given ¬A") +
     scale_x_discrete(limits = c("PL", "LL", "prior"), 
-                    labels=c("pragmatic interpretation",
-                             "literal interpretation",
-                            "belief before hearing 'If A, C'"
+                    labels=c("Pragmatic interpretation",
+                             "Literal interpretation",
+                            "Belief before hearing 'If A, C'"
                              ), 
                     position = "top") +
     coord_flip() + 
