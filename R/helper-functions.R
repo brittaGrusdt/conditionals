@@ -86,6 +86,34 @@ filter_by_model_params <- function(df, params){
   return(df)
 }
 
+
+# other functions ---------------------------------------------------------
 hellinger <- function(p, q){
   (1/sqrt(2)) * sqrt(sum((sqrt(p)-sqrt(q))^2))
+}
+
+adapt_bn_ids <- function(data_wide){
+  # only considers levels PL, LL and prior
+  df <- data_wide %>% dplyr::select(-prob, -level, -bn_id, -cn)
+  cell_names <- names(df)
+  data_wide <- data_wide %>% unite(cells, names(df), sep="__")
+  
+  # makes sure that bn_ids are identical across levels PL/LL/prior
+  prior <- data_wide %>% filter(level=="prior") %>% arrange(cn, cells)
+  ll <- data_wide %>% filter(level=="LL") %>% arrange(cn, cells)
+  pl <- data_wide %>% filter(level=="PL") %>% arrange(cn, cells)
+  df <- bind_rows(ll, prior)
+  
+  # not all Bayes nets that are in the prior also occur in the literal/pragmatic listener
+  # (but there is no diff btw. those in LL/PL)
+  idx_dups <- df %>% dplyr::select(-level, -prob, -bn_id) %>% duplicated()
+  duplicates_prior <- df[idx_dups, ] %>%  arrange(cn, cells)
+  # duplicates_prior$level %>% unique()
+  
+  pl <- pl %>% mutate(bn_id=duplicates_prior$bn_id)
+  ll <- ll %>% mutate(bn_id=duplicates_prior$bn_id)
+  
+  df <- bind_rows(prior, ll, pl)
+  df <- df %>% separate(cells, cell_names, sep="__", convert=TRUE) 
+  return(df)
 }
