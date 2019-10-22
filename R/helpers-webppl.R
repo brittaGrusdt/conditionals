@@ -38,7 +38,7 @@ structure_model_data <- function(posterior, params){
 
 listener_beliefs <- function(posterior, level, vars_condition_on=NA){
   df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
-  listener <- df %>% group_by(cn, intention, cell) %>% summarize(val=sum(val), marginal_cn=sum(prob))
+  listener <- df %>% group_by(cn, intention, cell) %>% summarize(val=sum(val), marginal_cn_int=sum(prob))
   # df <- df %>% group_by(cn, intention, cell) %>% spread(key=cell, val=val)
   # listener <- df %>% summarize(ac=sum(`AC`), anc=sum(`A-C`), nac=sum(`-AC`), nanc=sum(`-A-C`),
   #               marginal_cn=sum(prob))
