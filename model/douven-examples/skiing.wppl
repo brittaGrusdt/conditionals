@@ -11,6 +11,7 @@ var prior_cns = Categorical({"vs": ["cn1", "cn2"], "ps": [0.05, 0.95]})
 var powerset = get_var_powerset(vars, false)
 var utterances = make_utterances(powerset)
 var BIAS = ""
+var speaker_intents = [""]
 
 var verbose = data["verbose"][0]
 var prior_pe = data["prior_pe"][0]
@@ -39,14 +40,14 @@ var probabilities = {"cn1": {"p_clothes": {"S": 0.7, "-S": 0.1},
 // States ----------------------------------------------------------------
 var joint_probs = function(token, cn){
   var probs = probabilities[cn]
-  var p_e = token.includes("-E") ? 1-probs["p_exam"] : probs["p_exam"]
+  var p_e = token.indexOf("-E") != -1 ? 1-probs["p_exam"] : probs["p_exam"]
 
-  var cs = token.includes("-S") ? probs["p_clothes"]["-S"] : probs["p_clothes"]["S"]
-  var p_cs = token.includes("-C") ? 1-cs : cs
+  var cs = token.indexOf("-S") != -1 ? probs["p_clothes"]["-S"] : probs["p_clothes"]["S"]
+  var p_cs = token.indexOf("-C") != -1 ? 1-cs : cs
 
   var se = cn=="cn1" ? probs["p_skiing"] :
-         token.includes("-E") ? probs["p_skiing"]["-E"] : probs["p_skiing"]["E"]
-  var p_se =  token.includes("-S") ? 1-se : se
+         token.indexOf("-E") != -1 ? probs["p_skiing"]["-E"] : probs["p_skiing"]["E"]
+  var p_se =  token.indexOf("-S") != -1 ? 1-se : se
 
   return p_cs * p_se * p_e
 }
@@ -66,12 +67,14 @@ var build_table_distr = cache(function(cn){
 var get_bn = function(cn){
   var Table = build_table_distr(cn)
   var bn = {"cn": causal_nets[cn], "table": Table}
-  return {bn}
+  return bn
 }
 
 var state_prior = Infer({model:function(){
   var cn = sample(prior_cns)
-  return get_bn(cn)
+  var bn = get_bn(cn)
+  var intention = uniformDraw(speaker_intents)
+  return {bn, intention}
 }})
 
 globalStore.state_prior = state_prior
@@ -99,7 +102,7 @@ if(verbose){
 // //     viz(old_table)
 //     var new_table = Infer({model:function(){
 //       var entry = sample(old_table)
-//       condition(!entry.includes(negate(evidence_var)))
+//       condition(entry.indexOf(negate(evidence_var)) == -1)
 //       return entry
 //     }})
 // //     viz(new_table)

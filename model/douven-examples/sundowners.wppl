@@ -9,6 +9,7 @@
   var powerset = get_var_powerset(vars, false)
   var utterances = make_utterances(powerset)
   var BIAS = ""
+  var speaker_intents = [""]
 
   var verbose = data["verbose"][0]
   var LEVEL_MAX = data["level_max"] ? data["level_max"][0] : "PL"
@@ -56,7 +57,8 @@
 
   var var_combinations = {"cn1": filter(function(tokens){tokens.length==3}, powerset),
                           "cn2": filter(function(tokens){
-                            tokens.length==2 && !tokens.includes("W") && !tokens.includes("-W")
+                            tokens.length==2 && tokens.indexOf("W") == -1 &&
+                            tokens.indexOf("-W") == -1
                           }, powerset)}
 
   var build_table_distributions = cache(function(cn, p_r){
@@ -81,7 +83,8 @@
     // var cn = flip(prior_cn2) ? "cn2" : "cn1"
     var cn = sample(prior_cns)
     var bn = uniform_draw_bn(cn)
-    return {bn}
+    var intention = uniformDraw(speaker_intents)
+    return {bn, intention}
   }})
 
   globalStore.state_prior = state_prior

@@ -4,8 +4,8 @@ source("R/helpers-values-of-interest.R")
 library(rwebppl)
 library(tidyverse)
 
-# model <- "skiing"
-model <- "sundowners"
+model <- "skiing"
+# model <- "sundowners"
 
 # Parameters --------------------------------------------------------------
 params <- list()
@@ -45,8 +45,6 @@ params$packages <- c("./node_modules/conditionalsHelpers")
 
 # Run Model ---------------------------------------------------------------
 posterior <- run_webppl(params$model_path, params)
-data <- posterior %>% structure_model_data(params) %>% add_column(intention="")
+data <- posterior %>% structure_model_data(params)
 data_voi <- voi_douven(data, params, model)
-trust <- data %>% listener_beliefs("PL", params$condition_on)
-
 
