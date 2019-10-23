@@ -15,21 +15,30 @@ generate_cns <- FALSE
 
 # Model parameters
 params <- list()
-# params$bias="lawn"
-# params$bias <- "none"
-params$bias <- "pizza"
-# params$level_max <- "prior_conditioned"
-# params$level_max="ll_all_utts"
-# params$level_max="speaker_all_bns" 
-params$level_max="PL"
-# params$speaker_intents=c("")
-params$speaker_intents=c("ISA", "PA")
-
 params$alpha <- 3
 params$cost_conditional <- 0
 params$theta <- 0.9
-params$utt <- "A > C"
-# params$utt="likely -C"
+
+# params$bias="lawn"
+# params$bias <- "none"
+params$bias <- "pizza"
+
+# params$level_max <- "prior_conditioned"
+# params$level_max="ll_all_utts"
+# params$level_max="LL"
+# params$speaker_intents=c("")
+params$speaker_intents=c("ISA", "PA")
+# params$utt <- "A > C"
+# params$utt <- "C"
+
+params$level_max="speaker"
+params$n_samples=1000 # use 0 if all bns for all bns from prior
+params$utt <- "C"
+# params$utt <- "A > C"
+
+
+
+# params$level_max="judy-benjamin"
 # params$degree=0.95
 
 # Setup -------------------------------------------------------------------
@@ -92,7 +101,16 @@ params$save_voi=TRUE
 
 
 posterior <- run_webppl(params$model_path, params)
-data <- posterior %>% structure_model_data(params)
 
-trust <- data %>% listener_beliefs("PL")
-data_voi <- voi_default(data, params)
+if(params$level_max == "speaker"){
+  data <- posterior[names(posterior) != "bns"]   
+  data <- data %>% average_speaker()
+  bns <- posterior$bns %>% rowid_to_column("bn_id") %>% unnest() %>% 
+          spread(key=table.support, val=table.probs)
+  
+} else{
+  data <- posterior %>% structure_model_data(params)
+  data_wide <- data %>% spread(key=cell, val=val)
+  trust <- data %>% listener_beliefs("PL")
+  data_voi <- voi_default(data, params)
+}

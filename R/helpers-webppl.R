@@ -29,13 +29,15 @@ run_webppl <- function(path_wppl_file, params){
 }
 
 structure_model_data <- function(posterior, params){
-  posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles() %>% mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val))
+  posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles() %>%
+    mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val))
   fn <- paste(params$target, ".rds", sep="")
   if(params$save){save_data(posterior_tibbles, fn)}
   return(posterior_tibbles)
 }
 
 
+# Summarize webppl distributions ------------------------------------------
 listener_beliefs <- function(posterior, level, vars_condition_on=NA){
   df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
   listener <- df %>% group_by(cn, intention, cell) %>% summarize(val=sum(val), marginal_cn_int=sum(prob))
@@ -48,6 +50,25 @@ listener_beliefs <- function(posterior, level, vars_condition_on=NA){
   }
   
   return(listener)
+}
+
+
+webppl_speaker_distrs_to_tibbles <- function(posterior){
+  posterior_tibbles <- map2(posterior, names(posterior), function(x, y){
+    data_tibble <- x %>% rowid_to_column("bn_id") %>% unnest() %>% 
+      rename(utterance=support) %>% 
+      add_column(level=y) %>% separate(level, sep="_", into=c("level", "intention"))
+    return(data_tibble)             
+  })
+  
+  return(bind_rows(posterior_tibbles))
+}
+
+average_speaker <- function(distrs){
+  data <- distrs %>% webppl_speaker_distrs_to_tibbles()
+  df <- data %>% group_by(utterance, intention) %>%
+    summarize(mean_per_intention=mean(probs))
+  return(df)
 }
 
 

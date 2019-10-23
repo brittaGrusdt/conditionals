@@ -46,19 +46,15 @@ var run = function(level){
 }
 
 globalStore.state_prior = run("prior")
-var all_states = map(function(obj){obj["bn"]}, (globalStore.state_prior).support())
-if(verbose){display('# states: ' + all_states.length)}
-// display('single state: ')
-// display(all_states[0])
+var all_bns = map(function(obj){obj["bn"]}, (globalStore.state_prior).support())
+if(verbose){display('# states: ' + all_bns.length)}
+// display('single bn: ')
+// display(all_bns[0])
 
-// ------ debugging ------------------ //
-var wrap_speaker = function(bn){
-  display(bn)
-  // var intention = "PA"
-  // var intention = "ISA"
-  var intention = ""
-  var state = {"bn": bn, "intention": intention}
-  speaker(state, "none", false)
+var wrap_speaker = function(bn, intention){
+  var state = {bn, intention}
+  // display(state)
+  speaker(state, BIAS, false)
 }
 
 var wrap_ll = function(u){
@@ -66,19 +62,38 @@ var wrap_ll = function(u){
   literal_listener(u, BIAS)
 }
 
-// ------ debugging ------------------ //
-
 // RUN MODEL
-if(LEVEL_MAX == "speaker_all_bns"){
-  var bns = filter(function(bn){
-    meaning(UTT, bn.table)
-  }, all_states)
-  display('bns: ' + bns)
-  var distributions = {"distributions": map(wrap_speaker, bns)}
-  distributions
+if(LEVEL_MAX == "speaker"){
+  // use only bayes nets for which meaning of UTT is true
+  // either all such bayes nets in prior (n_samples=0) or sample n_samples from prior
+  var n_samples = data["n_samples"][0]
+  if(n_samples != 0){
+    var prior_conditioned = Infer({model:function(){
+      var state = sample(globalStore.state_prior)
+      var Table = state["bn"]["table"]
+      condition(meaning(UTT, Table))
+      return state.bn
+    }})
+    var bns = repeat(n_samples, function(){sample(prior_conditioned)})
+    display('# samples from prior: ' + bns.length)
+    var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
+    var distrs_pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
 
+    var distributions = {"speaker_isa": distrs_isa, "speaker_pa": distrs_pa,
+                         "bns": bns}
+    distributions
+
+  } else{
+    var bns = filter(function(bn){meaning(UTT, bn.table)}, all_bns)
+    display('# bns: ' + bns.length)
+
+    var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
+    var distrs_pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
+    var distributions = {"speaker_isa": distrs_isa, "speaker_pa": distrs_pa}
+    distributions
+  }
 } else if(LEVEL_MAX == "ll_all_utts"){
-  var distributions = {"distributions": map(wrap_ll, globalStore.utterances)}
+  var distributions = {"ll": map(wrap_ll, globalStore.utterances)}
   distributions
 
 } else if(LEVEL_MAX == "prior_conditioned"){
