@@ -81,11 +81,9 @@ add_model_params <- function(df, params){
 
 filter_by_model_params <- function(df, params){
   df <- df %>% filter(cost==params$cost_conditional &
-                      alpha==params$alpha &
-                      bias==params$bias)
+                      alpha==params$alpha)
   return(df)
 }
-
 
 # other functions ---------------------------------------------------------
 hellinger <- function(p, q){

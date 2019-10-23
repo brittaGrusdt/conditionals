@@ -12,7 +12,7 @@ plot_evs <- function(data){
   p <- data %>% ggplot() +
     geom_bar(mapping = aes(x=level, y=ev, fill=level), stat="identity", position="dodge") +
     labs(x="", y="", title="") +
-    theme(axis.text.x = element_text(angle = 30, hjust = 1, size=25),
+    theme(axis.text.x = element_text(angle = 30, hjust = 1, size=12),
           text = element_text(size= 25),
           legend.position = "none") 
   return(p)
