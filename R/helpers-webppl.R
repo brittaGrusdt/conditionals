@@ -30,9 +30,12 @@ run_webppl <- function(path_wppl_file, params){
 
 structure_model_data <- function(posterior, params){
   posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles() %>%
-    mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val))
+                        mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val)) %>% 
+                        add_column(bias=params$bias)
   fn <- paste(params$target, ".rds", sep="")
-  if(params$save){save_data(posterior_tibbles, fn)}
+  if(params$save){
+    posterior_tibbles %>% save_data(fn)
+  }
   return(posterior_tibbles)
 }
 
@@ -40,15 +43,15 @@ structure_model_data <- function(posterior, params){
 # Summarize webppl distributions ------------------------------------------
 listener_beliefs <- function(posterior, level, params, vars_condition_on=NA){
   df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
-  listener <- df %>% group_by(cn, intention, cell) %>% summarize(val=sum(val), marginal_cn_int=sum(prob))
-  # df <- df %>% group_by(cn, intention, cell) %>% spread(key=cell, val=val)
-  # listener <- df %>% summarize(ac=sum(`AC`), anc=sum(`A-C`), nac=sum(`-AC`), nanc=sum(`-A-C`),
-  #               marginal_cn=sum(prob))
-  
+  listener <- df %>% group_by(cn, intention, cell) %>%
+              summarize(val=sum(val), marginal_cn_int=sum(prob)) %>% 
+              add_column(bias=params$bias)
+
   if(!is.na(vars_condition_on)){
-    listener <- listener %>% filter_vars(vars_condition_on) %>%  filter(keep) %>% mutate(val=val/sum(val))
+    listener <- listener %>% filter_vars(vars_condition_on) %>%  filter(keep) %>%
+      mutate(val=val/sum(val))
   }
-  if(params$save){listener %>%
+  if(params$save){listener %>% 
       save_data(paste(params$target, "-listener-beliefs-world.rds", sep=""))}
   
   return(listener)
@@ -68,7 +71,7 @@ webppl_speaker_distrs_to_tibbles <- function(posterior){
 
 average_speaker <- function(distrs, params){
   df <- distrs %>% group_by(utterance, intention) %>%
-    summarize(mean_per_intention=mean(probs))
+    summarize(mean_per_intention=mean(probs)) %>% add_column(bias=params$bias)
   if(params$save){df %>% save_data(paste(params$target, "-avg-speaker.rds", sep=""))}
   return(df)
 }
