@@ -38,7 +38,7 @@ structure_model_data <- function(posterior, params){
 
 
 # Summarize webppl distributions ------------------------------------------
-listener_beliefs <- function(posterior, level, vars_condition_on=NA){
+listener_beliefs <- function(posterior, level, params, vars_condition_on=NA){
   df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
   listener <- df %>% group_by(cn, intention, cell) %>% summarize(val=sum(val), marginal_cn_int=sum(prob))
   # df <- df %>% group_by(cn, intention, cell) %>% spread(key=cell, val=val)
@@ -48,6 +48,8 @@ listener_beliefs <- function(posterior, level, vars_condition_on=NA){
   if(!is.na(vars_condition_on)){
     listener <- listener %>% filter_vars(vars_condition_on) %>%  filter(keep) %>% mutate(val=val/sum(val))
   }
+  if(params$save){listener %>%
+      save_data(paste(params$target, "-listener-beliefs-world.rds", sep=""))}
   
   return(listener)
 }
@@ -64,10 +66,10 @@ webppl_speaker_distrs_to_tibbles <- function(posterior){
   return(bind_rows(posterior_tibbles))
 }
 
-average_speaker <- function(distrs){
-  data <- distrs %>% webppl_speaker_distrs_to_tibbles()
-  df <- data %>% group_by(utterance, intention) %>%
+average_speaker <- function(distrs, params){
+  df <- distrs %>% group_by(utterance, intention) %>%
     summarize(mean_per_intention=mean(probs))
+  if(params$save){df %>% save_data(paste(params$target, "-avg-speaker.rds", sep=""))}
   return(df)
 }
 
