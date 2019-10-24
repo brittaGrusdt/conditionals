@@ -115,3 +115,16 @@ adapt_bn_ids <- function(data_wide){
   df <- df %>% separate(cells, cell_names, sep="__", convert=TRUE) 
   return(df)
 }
+
+
+# plotting functions ------------------------------------------------------
+
+plot_evs <- function(data){
+  p <- data %>% ggplot() +
+    geom_bar(mapping = aes(x=level, y=ev, fill=level), stat="identity", position="dodge") +
+    labs(x="", y="", title="") +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1, size=12),
+          text = element_text(size= 25),
+          legend.position = "none") 
+  return(p)
+}

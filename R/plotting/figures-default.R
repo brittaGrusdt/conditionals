@@ -3,7 +3,6 @@ library(ggplot2)
 source("R/helper-functions.R")
 source("R/plot-functions.R")
 
-
 # Data --------------------------------------------------------------------
 TARGET_DIR <- file.path("data", "default-model", "figs", fsep=.Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
@@ -17,6 +16,8 @@ none_voi <- read_rds(file.path("data", "default-model", "results-none-voi.rds"))
 cp_voi <- read_rds(file.path("data", "default-model", "results-lawn-voi.rds"))
 data_voi <- bind_rows(biscuit_voi, none_voi, cp_voi) %>% filter_by_model_params(model_params)
 
+data_biscuits <- read_rds(file.path("data", "default-model", "results-pizza.rds"))
+data_default <- read_rds(file.path("data", "default-model", "results-none.rds"))
 
 # Values-of-interest ------------------------------------------------------
 # 1. speaker's uncertainty 
@@ -95,13 +96,8 @@ p
 
 
 # Biscuit conditionals ----------------------------------------------------
-data <- read_rds(file.path("data", "default-model", "results-pizza.rds"))
-data_wide <- data %>% spread(key=cell, val=val)# %>% adapt_bn_ids()
-
-# marginal_intents <- data_wide %>% group_by(level, intention) %>% summarize(p=sum(prob))
-
 # 1. Speaker intents
-pc <- marginalize(data, c("C")) 
+pc <- marginalize(data_biscuits, c("C")) 
 ev_pc <-  pc %>% expected_val("C") %>% mutate(level=as.factor(level))
 
 p <- plot_evs(ev_pc) + facet_wrap(~intention, 
@@ -119,15 +115,23 @@ p <- plot_evs(ev_pc) + facet_wrap(~intention,
 fn <- paste(TARGET_DIR, "pizza-pc.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=15, height=4)
 
-# 2. Speaker's degree of belief in antecedent/consequent
-# data <- data_voi %>% filter(startsWith(key, "epistemic_uncertainty") & bias=="pizza") %>%
-#           mutate(value=round(as.numeric(value), 2))
-
-data <- data_voi %>% filter((key=="pc" | key=="pa") & bias=="pizza") %>%
+# 2. Speaker's degree of belief in consequent and marginal speaker_intents
+evs_pc <- data_voi %>% filter((key=="pc") & (bias=="pizza" | bias=="none")) %>%
           mutate(value=round(as.numeric(value), 2))
 
+data_wide_bc <- data_biscuits %>% spread(key=cell, val=val)# %>% adapt_bn_ids()
+marginal_intents_bc <- data_wide_bc %>% group_by(level, intention, bias) %>%
+                      summarize(p=sum(prob))
 
-p <-  data %>% ggplot(aes(x=level, y=value, fill=intention)) + 
+# data_wide_default <- data_default %>% spread(key=cell, val=val)
+# marginal_intents_default <- data_wide_default %>% group_by(level, intention, bias) %>%
+#                               summarize(p=sum(prob))
+
+# todo!
+
+
+# ....
+p <-  data_biscuits %>% ggplot(aes(x=level, y=value, fill=intention)) + 
       geom_bar(stat="identity", position=position_dodge()) +
       geom_text(aes( label = value, x = level,  y = value ),
                 position = position_dodge(0.9), size=3.5, vjust=-0.1) +
@@ -152,4 +156,34 @@ p <-  data %>% ggplot(aes(x=level, y=value, fill=intention)) +
 p
 fn <- paste(TARGET_DIR, "pizza-pc-intents.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=12, height=5)
+
+
+
+# 3. Speaker Average distributions
+fn <- "results-pizza-given-C-without-intents-avg-speaker.rds"
+speaker_bc <- read_rds(file.path("data", "default-model", fn))
+fn <- "results-none-given-C-without-intents-avg-speaker.rds"
+speaker_default <- read_rds(file.path("data", "default-model", fn))
+speaker <- bind_rows(speaker_default, speaker_bc) 
+
+p <- speaker %>% ggplot() +
+      geom_bar(mapping = aes(x=utterance, y=mean_per_intention, fill=bias),
+               stat="identity", position="dodge") +
+      # facet_wrap(~bias) +
+      labs(x="", y="", title="Average speaker") +
+      theme(axis.text.x = element_text(angle = 30, hjust = 1, size=15),
+            text = element_text(size= 15),
+            legend.position = c(0.8, 0.9), legend.direction = "horizontal") +
+      scale_fill_discrete(name="Context",
+                          breaks=c("none", "pizza"),
+                          labels=c("Default", "Biscuit"))
+
+fn <- paste(TARGET_DIR, "speaker-default-biscuits.png", sep=.Platform$file.sep)
+ggsave(fn, p, width=12, height=5)
+
+
+
+
+
+
 

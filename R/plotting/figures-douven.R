@@ -2,21 +2,12 @@ library(tidyverse)
 library(ggplot2)
 source("R/helper-functions.R")
 source("R/helpers-webppl.R")
+source("R/helper-functions.R")
 # source("R/plot-functions.R")
 
 RESULT_DIR <- file.path("data", "douven-examples", fsep=.Platform$file.sep)
 TARGET_DIR <- file.path(RESULT_DIR, "figs", fsep=.Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
-
-plot_evs <- function(data){
-  p <- data %>% ggplot() +
-    geom_bar(mapping = aes(x=level, y=ev, fill=level), stat="identity", position="dodge") +
-    labs(x="", y="", title="") +
-    theme(axis.text.x = element_text(angle = 30, hjust = 1, size=12),
-          text = element_text(size= 25),
-          legend.position = "none") 
-  return(p)
-}
 
 # 1. Skiing ---------------------------------------------------------------
 # Data
