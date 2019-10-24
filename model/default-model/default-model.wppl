@@ -31,7 +31,7 @@ if(verbose){
   display('# utterances:' + (globalStore.utterances).length)
   display("utterance for listeners: " + UTT)
   display("cost conditional:" + globalStore.cost_conditional)
-  display("cns:" + globalStore.cns)
+  display("# cns:" + (globalStore.cns).length)
   display("bias: " + BIAS)
   display("alpha:" + globalStore.alpha)
   display("# tables:" + tables_list.length)
@@ -53,7 +53,6 @@ if(verbose){display('# states: ' + all_bns.length)}
 
 var wrap_speaker = function(bn, intention){
   var state = {bn, intention}
-  // display(state)
   speaker(state, BIAS, false)
 }
 
@@ -62,34 +61,56 @@ var wrap_ll = function(u){
   literal_listener(u, BIAS)
 }
 
+var run_speaker = function(bns){
+  if(globalStore.speaker_intents.indexOf("ISA") != -1 &&
+     globalStore.speaker_intents.indexOf("PA") != -1){
+       var isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
+       var pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
+
+       var distributions = {"speaker_isa": isa, "speaker_pa": pa, "bns": bns}
+       distributions
+     } else{
+       var distrs = map(function(bn){wrap_speaker(bn, "")}, bns)
+       var distributions = {"speaker_": distrs, "bns": bns}
+       distributions
+     }
+}
+
+
 // RUN MODEL
 if(LEVEL_MAX == "speaker"){
-  // use only bayes nets for which meaning of UTT is true
-  // either all such bayes nets in prior (n_samples=0) or sample n_samples from prior
+  // run speaker with only bayes nets for which meaning of UTT is true
+  // use (UTT="" for all)
+  // 1. sample n_samples bayes  nets from prior or
   var n_samples = data["n_samples"][0]
   if(n_samples != 0){
     var prior_conditioned = Infer({model:function(){
       var state = sample(globalStore.state_prior)
       var Table = state["bn"]["table"]
       condition(meaning(UTT, Table))
+
+      // when C is true, but not A and C, and not -A and C
+      // var meaning_ac = meaning("A and C", Table)
+      // var meaning_nac = meaning("-A and C", Table)
+      // condition(!meaning_ac && !meaning_nac)
+
       return state.bn
     }})
     var bns = repeat(n_samples, function(){sample(prior_conditioned)})
     display('# samples from prior: ' + bns.length)
-    var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
-    var distrs_pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
-
-    var distributions = {"speaker_isa": distrs_isa, "speaker_pa": distrs_pa,
-                         "bns": bns}
+    // var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
+    // var distrs_pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
+    //
+    // var distributions = {"speaker_isa": distrs_isa, "speaker_pa": distrs_pa,
+    //                      "bns": bns}
+    var distributions = run_speaker(bns)
     distributions
 
   } else{
+    // 2. run speaker with all bayes nets in prior (use n_samples=0)
     var bns = filter(function(bn){meaning(UTT, bn.table)}, all_bns)
     display('# bns: ' + bns.length)
-
-    var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
-    var distrs_pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
-    var distributions = {"speaker_isa": distrs_isa, "speaker_pa": distrs_pa}
+    var distributions = run_speaker(bns)
     distributions
   }
 } else if(LEVEL_MAX == "ll_all_utts"){

@@ -25,18 +25,14 @@ params$bias <- "pizza"
 
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
-# params$level_max="LL"
+params$level_max="PL"
 # params$speaker_intents=c("")
 params$speaker_intents=c("ISA", "PA")
-# params$utt <- "A > C"
-# params$utt <- "C"
+params$utt <- "A > C"
+# params$utt <- "A and C"
 
-params$level_max="speaker"
-params$n_samples=1000 # use 0 if all bns for all bns from prior
-params$utt <- "C"
-# params$utt <- "A > C"
-
-
+# params$level_max="speaker"
+# params$n_samples=1000 # use 0 if all bns for all bns from prior
 
 # params$level_max="judy-benjamin"
 # params$degree=0.95
@@ -48,6 +44,7 @@ params$target <- file.path(TARGET_DIR, paste("results-", params$bias, sep=""), f
 
 # table/cns parameters
 params$n_tables <- 500
+if(params$bias == "pizza"){params$n_tables = 4500}
 params$nor_beta <- NA
 params$nor_theta <- NA
 params$verbose=TRUE
@@ -97,20 +94,28 @@ params$utterances <- utterances
 # Run Model ---------------------------------------------------------------
 params$model_path="./model/default-model/default-model.wppl"
 params$save=TRUE
-params$save_voi=TRUE
-
 
 posterior <- run_webppl(params$model_path, params)
 
 if(params$level_max == "speaker"){
-  data <- posterior[names(posterior) != "bns"]   
-  data <- data %>% average_speaker()
+  speaker <- posterior[names(posterior) != "bns"] %>%
+              webppl_speaker_distrs_to_tibbles() %>% 
+              spread(key=utterance, val=probs, fill=0) %>% 
+              gather(key="utterance", value="probs", -bn_id, -level, -intention)
+  
+  if(params$speaker_intents %>% length > 1){s <- "with-intents"}
+  else{s <- "without-intents"}
+  # params$target <- paste(params$target, "given", params$utt, "not-conj", s, sep="-")
+  # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
+  
+  params$target <- paste(params$target, "given", params$utt, s, sep="-")
+  speaker_avg <- speaker %>% average_speaker(params)
   bns <- posterior$bns %>% rowid_to_column("bn_id") %>% unnest() %>% 
           spread(key=table.support, val=table.probs)
-  
+  speaker_avg
 } else{
   data <- posterior %>% structure_model_data(params)
-  data_wide <- data %>% spread(key=cell, val=val)
-  trust <- data %>% listener_beliefs("PL")
+  # data_wide <- data %>% spread(key=cell, val=val)
+  trust <- data %>% listener_beliefs("PL", params)
   data_voi <- voi_default(data, params)
 }
