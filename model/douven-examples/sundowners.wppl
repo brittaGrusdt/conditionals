@@ -9,6 +9,7 @@
   var powerset = get_var_powerset(vars, false)
   var utterances = make_utterances(powerset)
   var BIAS = ""
+  globalStore.bias = BIAS
   var speaker_intents = [""]
 
   var verbose = data["verbose"][0]

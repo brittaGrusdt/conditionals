@@ -19,8 +19,9 @@ data_voi <- bind_rows(biscuit_voi, none_voi, cp_voi) %>% filter_by_model_params(
 data_biscuits <- read_rds(file.path("data", "default-model", "results-pizza.rds"))
 data_default <- read_rds(file.path("data", "default-model", "results-none.rds"))
 data_cp <- read_rds(file.path("data", "default-model", "results-lawn.rds"))
+data_judy <- read_rds(file.path("data", "default-model", "results-judy.rds"))
 
-data <- bind_rows(data_biscuits, data_default, data_cp) 
+data <- bind_rows(data_biscuits, data_default, data_cp, data_judy) 
 data_wide <- data %>% spread(key=cell, val=val)
 
 # Values-of-interest ------------------------------------------------------
@@ -224,6 +225,13 @@ ggsave(fn, p, width=12, height=5)
 
 
 
-
-
+# Judy Benjamin -----------------------------------------------------------
+df <- data %>% filter(bias=="judy")
+df_wide <- data_wide %>% filter(bias=="judy")
+pa <- df %>% marginalize(c("A"))
+pc <- df %>% marginalize(c("C"))
+expected_val(pa, "P(A)")
+expected_val(pc, "P(C)")
+pca <- df_wide %>% compute_cond_prob("P(C|A)")
+expected_val(pca, "P(C|A)")
 

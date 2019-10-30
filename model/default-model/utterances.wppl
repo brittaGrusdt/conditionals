@@ -8,6 +8,10 @@
 var verbose = data["verbose"][0]
 var variables = data["vars"]
 var bias = data["bias"][0]
+globalStore.bias = bias
+if(globalStore.bias == "judy"){
+  globalStore.judy_q = data["judy_q"][0]
+}
 var tables_list = data["tables"]
 
 globalStore.Tables = map(function(obj){
@@ -32,8 +36,7 @@ var powerset = get_var_powerset(variables, false)
 globalStore.cns = connect_variables(powerset, " implies ")
 
 if(verbose){
-  display('cns: ')
-  display(globalStore.cns)
+  display('# cns: ' + globalStore.cns.length)
 }
 
 var utterances = make_utterances(powerset)

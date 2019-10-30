@@ -15,21 +15,26 @@ generate_cns <- FALSE
 
 # Model parameters
 params <- list()
+params$save=TRUE
+# params$save <- FALSE
 params$alpha <- 3
 params$cost_conditional <- 0
 params$theta <- 0.9
 
 # params$bias="lawn"
 # params$bias <- "none"
-params$bias <- "pizza"
+# params$bias <- "pizza"
+params$bias <- "judy"
+params$judy_q <- 0.75
 
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
 params$level_max="PL"
-# params$speaker_intents=c("")
-params$speaker_intents=c("ISA", "PA")
-params$utt <- "A > C"
-# params$utt <- "A and C"
+params$speaker_intents=c("")
+# params$speaker_intents=c("ISA", "PA")
+# params$utt <- "A > C"
+# params$utt <- "-C"
+params$utt <- "A >q C"
 
 # params$level_max="speaker"
 # params$n_samples=1000 # use 0 if all bns for all bns from prior
@@ -93,18 +98,17 @@ params$utterances <- utterances
 
 # Run Model ---------------------------------------------------------------
 params$model_path="./model/default-model/default-model.wppl"
-params$save=TRUE
 
 posterior <- run_webppl(params$model_path, params)
-
 if(params$level_max == "speaker"){
   speaker <- posterior[names(posterior) != "bns"] %>%
               webppl_speaker_distrs_to_tibbles() %>% 
               spread(key=utterance, val=probs, fill=0) %>% 
               gather(key="utterance", value="probs", -bn_id, -level, -intention)
   
-  if(params$speaker_intents %>% length > 1){s <- "with-intents"}
-  else{s <- "without-intents"}
+  if(params$speaker_intents %>% length > 1){
+    s <- "with-intents"
+  } else{s <- "without-intents"}
   # params$target <- paste(params$target, "given", params$utt, "not-conj", s, sep="-")
   # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
   

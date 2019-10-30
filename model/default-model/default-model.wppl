@@ -18,6 +18,10 @@ globalStore.speaker_intents = data["speaker_intents"]
 
 // var degree = data["degree"][0]
 var BIAS = data["bias"][0]
+globalStore.bias = BIAS
+if(globalStore.bias == "judy"){
+  globalStore.judy_q = data["judy_q"][0]
+}
 var UTT = data["utt"][0]
 
 // parameter for likelihood functions
@@ -36,6 +40,7 @@ if(verbose){
   display("alpha:" + globalStore.alpha)
   display("# tables:" + tables_list.length)
   // display("degree: " + degree)
+  BIAS == "judy" ? display('judy q: ' + globalStore.judy_q) : ''
 }
 
 // Run from R ----------------------------------------------------------------
