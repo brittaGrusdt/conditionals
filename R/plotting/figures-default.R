@@ -31,7 +31,7 @@ voi_none <- data_voi %>% filter(startsWith(key, "epistemic_uncertainty") & bias=
 p <- voi_none %>% mutate(value=round(as.numeric(value), 2)) %>% 
   ggplot(aes(x=level, y=value, fill=key)) + 
   geom_bar(stat="identity", position=position_dodge())  +
-  geom_text(aes( label = value, x = level,  y = value ), size=3.5, vjust=-0.1,
+  geom_text(aes( label = value, x = level,  y = value ), size=5, vjust=-0.1,
             position=position_dodge(0.9)) + 
   scale_x_discrete(limits = c("prior", "LL", "PL"),
                    labels = c("Prior Belief",
@@ -49,10 +49,10 @@ p <- voi_none %>% mutate(value=round(as.numeric(value), 2)) %>%
         axis.title.y = element_text(size = 20),
         axis.title.x = element_text(size = 20),
         strip.text = element_text(size = 20),
-        legend.position = "bottom", legend.text = element_text(size=20))
+        legend.position = "bottom", legend.text = element_text(size=18))
 p
 ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png",
-             sep=.Platform$file.sep), p, width=8, height=4)
+             sep=.Platform$file.sep), p, width=11, height=5)
 
 # 2. CP-reading
 voi_lawn_none <- data_voi %>%
@@ -66,7 +66,7 @@ voi_lawn_none <- data_voi %>%
 p <- voi_lawn_none %>% filter(key=="p_nc_given_na") %>%
   ggplot(aes(x=level, y=value, fill=bias)) +
   geom_bar(stat="identity", position=position_dodge()) +
-  geom_text(aes( label = value, x = level,  y = value),  size=3.5, vjust=-0.1,
+  geom_text(aes( label = value, x = level,  y = value),  size=5, vjust=-0.1,
             position=position_dodge(0.9)) +
   labs(x="", y="", title="Expected degree of belief in P(¬C|¬A)") +
   scale_x_discrete(limits = c("prior", "LL", "PL"),
@@ -83,7 +83,7 @@ p <- voi_lawn_none %>% filter(key=="p_nc_given_na") %>%
                       )
 p
 ggsave(paste(TARGET_DIR, "comparison-vois-cp.png", sep=.Platform$file.sep),
-       p, width=12, height=4.5)
+       p, width=15, height=8)
 
 ####
 # p <- plot_cp_vois(data %>% filter(bias=="none"))
@@ -93,16 +93,16 @@ ggsave(paste(TARGET_DIR, "comparison-vois-cp.png", sep=.Platform$file.sep),
 
 # 3. marginal distribution over causal nets
 df_none <- data_wide %>% filter(bias=="none") %>% group_by(level, cn) %>%
-            summarize(prob=round(sum(prob), 3))
+            summarize(prob=round(sum(prob), 2))
 df_none$level <- factor(df_none$level, levels = c("prior", "LL", "PL"))
 df_cp <- data_wide %>% filter(bias=="lawn") %>% group_by(level, cn) %>%
-          summarize(prob=round(sum(prob), 3))
+          summarize(prob=round(sum(prob), 2))
 df_cp$level <- factor(df_cp$level, levels = c("prior", "LL", "PL"))
 
 plot_cns <- function(data){
-  p <- data %>% ggplot(aes(x=cn, y=prob, fill=level)) + 
+  p <- data %>% ggplot(aes(x=level, y=prob, fill=cn)) + 
     geom_bar(stat="identity", position=position_dodge()) + 
-    geom_text(aes(x=cn, y=prob, label=prob), size=3, vjust=-0.01,
+    geom_text(aes(x=level, y=prob, label=prob), size=5, vjust=-0.01,
               position=position_dodge(0.9)) +
     # facet_wrap(~level, labeller = labeller(
     #   level = c(`prior` = "Prior belief",
@@ -112,7 +112,7 @@ plot_cns <- function(data){
     #                         collapse="\n")))
     # ) + 
     labs(x="causal nets", y="probability") +
-    scale_x_discrete(limits=c("A implies C", "A implies -C",
+    scale_fill_discrete(limits=c("A implies C", "A implies -C",
                               "-A implies C", "-A implies -C",
                               "C implies A", "C implies -A",
                               "-C implies A", "-C implies -A",
@@ -123,24 +123,25 @@ plot_cns <- function(data){
                      ) +
     # scale_y_continuous(limits=c(0, 1)) +
     theme(text = element_text(size= 20),
-          axis.text.x = element_text(size=12),
-          legend.position = "bottom", legend.title = element_blank()
+          axis.text.x = element_text(size=20, angle=0),
+          legend.position = "bottom", legend.title = element_blank(),
+          legend.text = element_text(size=18)
     ) + 
-    scale_fill_discrete(name="",
+    scale_x_discrete(name="",
                         breaks=c("prior", "LL", "PL"),
                         labels=c("Prior belief", "Literal interpretation",
                                  "Pragmatic interpretation"))
   return(p)
 }
 # no bias
-p <- df_none %>% plot_cns()
+p <- df_none %>% filter(prob > 0) %>%  plot_cns()
 p
-ggsave(paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep), p, width=10, height=3)
+ggsave(paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep), p, width=15, height=7)
 
 # cp-bias
-p <- df_cp %>% plot_cns()
+p <- df_cp %>% filter(prob > 0) %>% plot_cns()
 p    
-ggsave(paste(TARGET_DIR, "lawn-cns.png", sep=.Platform$file.sep), p, width=10, height=3)
+ggsave(paste(TARGET_DIR, "lawn-cns.png", sep=.Platform$file.sep), p, width=15, height=7)
 
 
 
@@ -162,7 +163,7 @@ biscuit_plots <- function(data, plot_title){
   p <-  data %>% ggplot(aes(x=level, y=value, fill=intention)) + 
     geom_bar(stat="identity", position=position_dodge()) +
     geom_text(aes( label = value, x = level,  y = value ),
-              position = position_dodge(0.9), size=3.5, vjust=-0.1) +
+              position = position_dodge(0.9), size=5, vjust=-0.1) +
     scale_x_discrete(limits = c("prior", "LL", "PL"),
                      labels = c("Prior belief",
                                 paste(strwrap("Literal interpretation", width=15),
@@ -174,7 +175,7 @@ biscuit_plots <- function(data, plot_title){
     theme(axis.ticks.y = element_blank(), 
           axis.text.y = element_text(size= 20),
           axis.title.x = element_text(size = 20),
-          axis.text.x = element_text(size= 15,  angle=0),
+          axis.text.x = element_text(size= 20,  angle=0),
           strip.text = element_text(size = 20),
           legend.position = "bottom"
           #, panel.spacing = unit(1, "lines")
@@ -186,12 +187,12 @@ p <- biscuit_plots(df %>% filter(key=="sp_intent"),
                    "Marginal distribution over intentions") 
 p
 fn <- paste(TARGET_DIR, "pizza-intents.png", sep=.Platform$file.sep)
-ggsave(fn, p, width=6, height=5)
+ggsave(fn, p, width=8, height=6)
 
 p <- biscuit_plots(df %>% filter(key=="pc"),"Expected value of consequent") 
 p
 fn <- paste(TARGET_DIR, "pizza-pc.png", sep=.Platform$file.sep)
-ggsave(fn, p, width=6, height=5)
+ggsave(fn, p, width=8, height=6)
 
 
 
@@ -206,7 +207,7 @@ speaker <- bind_rows(speaker_default, speaker_bc) %>% rename(value=mean_per_inte
 p <- speaker %>% ggplot(aes(x=utterance, y=value, fill=bias)) +
       geom_bar(stat="identity", position="dodge") +
       geom_text(aes( label = value, x = utterance,  y = value),
-            position = position_dodge(0.9), size=3.5, vjust=-0.1) +
+            position = position_dodge(0.9), size=5, vjust=-0.1) +
       # facet_wrap(~bias) +
       labs(x="", y="", title="Average speaker") +
       theme(axis.text.x = element_text(angle = 30, hjust = 1, size=20),
@@ -219,6 +220,50 @@ p
 fn <- paste(TARGET_DIR, "speaker-default-biscuits.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=12, height=5)
 
+
+# Default context ---------------------------------------------------------
+default <- data_wide %>% filter(bias=="none") %>% compute_cond_prob("P(C|A)")
+
+prior <- default %>% filter(level=="prior") %>%
+        mutate(p=case_when(p>=0.9 ~ TRUE, TRUE ~ FALSE)) %>% 
+        mutate(cn=case_when(cn=="A || C" ~ "indep", TRUE ~ "dep")) %>%
+        group_by(cn, p) %>% summarize(s=sum(prob)) %>% add_column(level="prior")
+
+posterior <- default %>% filter(level!="prior") %>%
+              mutate(cn=case_when(cn=="A || C" ~ "indep", TRUE ~ "dep")) %>% 
+              group_by(cn, level) %>% summarize(s=sum(prob)) %>% add_column(p=TRUE)
+  
+df <- bind_rows(posterior, prior) %>% mutate(s=round(s, 2)) %>% unite("cn_p", cn, p) %>% 
+        mutate(level=factor(level, levels=c("prior", "LL", "PL")))
+
+# todo legend size axes!
+p <- df %>% ggplot(aes(x=level, y=s, fill=cn_p)) +
+      geom_bar(aes(x=level, y=s, fill=cn_p), stat="identity") +
+      geom_text(aes( label = s, x = level,  y = s ), size=5, vjust=-0.1,
+                position=position_stack(vjust = 0.25)) +
+      labs(x="", y="probability") + 
+      scale_x_discrete(limits = c("prior", "LL", "PL"),
+                       labels = c("Prior belief",
+                                paste(strwrap("Literal interpretation", width=15),
+                                      collapse="\n"),
+                                paste(strwrap("Pragmatic interpretation", width=15),
+                                      collapse="\n"))) +
+      scale_fill_discrete(name="",
+                          breaks=c("dep_FALSE", "dep_TRUE", "indep_FALSE", "indep_TRUE"),
+                          labels=c("P(dep. ∧ P(C|A)<0.9)",
+                                   "P(dep. ∧ P(C|A)>=0.9)",
+                                   "P(indep. ∧ P(C|A)<0.9)",
+                                   "P(indep. ∧ P(C|A)>=0.9)"),
+                          ) +
+      theme(axis.text = element_text(size=20),
+            axis.title = element_text(size=20),
+            legend.position = "right", legend.direction = "vertical",
+            legend.text = element_text(size=18),
+            legend.key.size = unit(1.5, "cm"))
+
+p
+fn <- paste(TARGET_DIR, "prior-ll-pl-dep-indep-ifac-true.png", sep=.Platform$file.sep)
+ggsave(fn, p, width=14, height=4)
 
 
 
