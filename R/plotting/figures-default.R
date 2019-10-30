@@ -132,7 +132,6 @@ plot_cns <- function(data){
                                  "Pragmatic interpretation"))
   return(p)
 }
-
 # no bias
 p <- df_none %>% plot_cns()
 p
@@ -162,9 +161,7 @@ df <- marginal_intents_bc %>% add_column(key="sp_intent") %>% rename(value=p) %>
 biscuit_plots <- function(data, plot_title){
   p <-  data %>% ggplot(aes(x=level, y=value, fill=intention)) + 
     geom_bar(stat="identity", position=position_dodge()) +
-    geom_text(p <- df %>% plot_cns()
-              p    
-              aes( label = value, x = level,  y = value ),
+    geom_text(aes( label = value, x = level,  y = value ),
               position = position_dodge(0.9), size=3.5, vjust=-0.1) +
     scale_x_discrete(limits = c("prior", "LL", "PL"),
                      labels = c("Prior belief",
