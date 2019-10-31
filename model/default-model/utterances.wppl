@@ -33,13 +33,19 @@ var variables = reduce(function(token, acc){
 }, [], variables)
 
 var powerset = get_var_powerset(variables, false)
-globalStore.cns = connect_variables(powerset, " implies ")
+var dependent_nets = connect_variables(powerset, " implies ")
+globalStore.cns = dependent_nets.concat("A || C")
 
 if(verbose){
   display('# cns: ' + globalStore.cns.length)
 }
 
 var utterances = make_utterances(powerset)
+if(verbose){
+  display("all utterances:")
+  map(display, utterances)
+  display('# all utterances: ' + utterances.length)
+}
 
 var all_states = state_prior(bias).support()
 if(verbose){
