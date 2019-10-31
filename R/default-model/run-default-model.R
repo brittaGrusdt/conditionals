@@ -29,15 +29,15 @@ params$bias <- "none"
 
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
-# params$level_max="PL"
+params$level_max="PL"
 params$speaker_intents=c("")
 # params$speaker_intents=c("ISA", "PA")
-# params$utt <- "A > C"
-params$utt <- "C"
+params$utt <- "A > C"
+# params$utt <- "C"
 # params$utt <- "A >q C"
 
-params$level_max="speaker"
-params$n_samples=1000 # use 0 if all bns for all bns from prior
+# params$level_max="speaker"
+# params$n_samples=1000 # use 0 if all bns for all bns from prior
 
 # Setup -------------------------------------------------------------------
 TARGET_DIR <- file.path(".", "data", "default-model", fsep = .Platform$file.sep)
@@ -60,7 +60,10 @@ params$cns_path <- file.path(TARGET_DIR, "cns-default.rds", fsep=.Platform$file.
 params$packages <- c("./node_modules/conditionalsHelpers",
                      "./node_modules/conditionalsDefault")
 ## Generate/Retrieve tables
-tables_path <- file.path(TARGET_DIR, paste("tables-", params$bias, ".rds", sep=""), fsep=.Platform$file.sep)
+if(params$bias == "pizza" || params$bias=="dutchman"){
+  fn <- "independent"} else{ fn <- "default"}
+tables_path <- file.path(TARGET_DIR, paste("tables-", fn, ".rds", sep=""), fsep=.Platform$file.sep)
+
 if(generate_tables){
   tables <- create_tables(params, tables_path)
 } else {

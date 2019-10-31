@@ -90,7 +90,6 @@ create_tables <- function(params, target_path){
               mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,
                      indep_sigma=params$indep_sigma,
                      n_tables=params$n_tables,
-                     bias=params$bias,
                      seed=SEED
               )
   tables %>% save_data(target_path)
@@ -104,7 +103,6 @@ filter_tables <- function(tables, params){
     df <- tables %>% filter(nor_beta == params$nor_beta & nor_theta == params$nor_theta)
   }
   df <- df %>% filter(n_tables == params$n_tables & indep_sigma == params$indep_sigma & 
-                      bias == params$bias &
                       seed == params$seed)
   return(df)
 }
