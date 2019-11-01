@@ -197,32 +197,35 @@ ggsave(fn, p, width=8, height=6)
 
 
 # 3. Speaker Average distributions
-# fn_bc <- "results-pizza-given-C-without-intents-avg-speaker.rds"
-fn_bc <- "results-pizza-given-C-with-intents-avg-speaker.rds"
-speaker_bc <- read_rds(file.path("data", "default-model", fn_bc))
+fn_default <- "results-none-given-C-without-intents-avg-speaker.rds"
+speaker_default <- read_rds(file.path("data", "default-model", fn_default)) %>% 
+                    select(-intention)
 
-# fn_default <- "results-none-given-C-without-intents-avg-speaker.rds"
-fn_default <- "results-none-given-C-with-intents-avg-speaker.rds"
-speaker_default <- read_rds(file.path("data", "default-model", fn_default))
-speaker <- bind_rows(speaker_default, speaker_bc) %>% rename(value=mean_per_intention) %>% 
-            mutate(value=round(value, 2)) %>% filter(value>0)
+# fn_bc <- "results-pizza-given-C-with-intents-avg-speaker.rds"
+fn_bc <- "results-pizza-given-C-without-intents-avg-speaker.rds"
+speaker_bc <- read_rds(file.path("data", "default-model", fn_bc)) %>% 
+                unite("bias", c("intention", "bias")) %>% 
+                mutate(bias=factor(bias,levels=c("isa_none", "pa_none",
+                                                 "isa_pizza", "pa_pizza")))
+speaker <- bind_rows(speaker_default, speaker_bc) %>%
+              rename(value=mean_per_intention) %>% 
+              mutate(value=round(value, 2)) %>% filter(value>0)
 
-p <- speaker %>% ggplot(aes(x=utterance, y=value, fill=bias)) +
-      geom_bar(stat="identity", position="dodge") +
-      geom_text(aes( label = value, x = utterance,  y = value),
-            position = position_dodge(0.9), size=5, vjust=-0.1) +
-      # facet_wrap(~bias) +
-      labs(x="", y="", title="Average speaker") +
-      theme(axis.text.x = element_text(angle = 30, hjust = 1, size=20),
-            text = element_text(size= 20),
-            legend.position = c(0.8, 0.9), legend.direction = "horizontal") +
-      scale_fill_discrete(name="Context",
-                          breaks=c("none", "pizza"),
-                          labels=c("Default", "Biscuit"))
+p <- speaker %>%
+      ggplot(aes(x=utterance, y=value, fill=bias)) +
+        geom_bar(stat="identity", position="dodge") + 
+        geom_text(aes(label=value, x=utterance,  y=value),
+                  position = position_dodge(0.9), size=3.5, vjust=-0.1) +
+        labs(x="", y="", title="Average speaker") +
+        theme(axis.text.x = element_text(angle = 30, hjust = 1, size=20),
+              text = element_text(size= 20),
+              legend.position = "bottom", legend.direction = "horizontal") + 
+        scale_fill_discrete(name="context/intention",
+                            breaks=c("none", "isa_pizza", "pa_pizza"),
+                            labels=c("default", "biscuit/isa", "biscuit/pa"))
 p
-fn <- paste(TARGET_DIR, "speaker-default-biscuits.png", sep=.Platform$file.sep)
-ggsave(fn, p, width=12, height=5)
-
+ggsave(paste(TARGET_DIR, "speaker-default-biscuits.png",
+             sep=.Platform$file.sep), p1, width=12, height=6)
 
 # Default context ---------------------------------------------------------
 default <- data_wide %>% filter(bias=="none") %>% compute_cond_prob("P(C|A)")
