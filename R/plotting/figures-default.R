@@ -197,12 +197,15 @@ ggsave(fn, p, width=8, height=6)
 
 
 # 3. Speaker Average distributions
-fn <- "results-pizza-given-C-without-intents-avg-speaker.rds"
-speaker_bc <- read_rds(file.path("data", "default-model", fn))
-fn <- "results-none-given-C-without-intents-avg-speaker.rds"
-speaker_default <- read_rds(file.path("data", "default-model", fn))
+# fn_bc <- "results-pizza-given-C-without-intents-avg-speaker.rds"
+fn_bc <- "results-pizza-given-C-with-intents-avg-speaker.rds"
+speaker_bc <- read_rds(file.path("data", "default-model", fn_bc))
+
+# fn_default <- "results-none-given-C-without-intents-avg-speaker.rds"
+fn_default <- "results-none-given-C-with-intents-avg-speaker.rds"
+speaker_default <- read_rds(file.path("data", "default-model", fn_default))
 speaker <- bind_rows(speaker_default, speaker_bc) %>% rename(value=mean_per_intention) %>% 
-            mutate(value=round(value, 2))
+            mutate(value=round(value, 2)) %>% filter(value>0)
 
 p <- speaker %>% ggplot(aes(x=utterance, y=value, fill=bias)) +
       geom_bar(stat="identity", position="dodge") +
@@ -236,7 +239,6 @@ posterior <- default %>% filter(level!="prior") %>%
 df <- bind_rows(posterior, prior) %>% mutate(s=round(s, 2)) %>% unite("cn_p", cn, p) %>% 
         mutate(level=factor(level, levels=c("prior", "LL", "PL")))
 
-# todo legend size axes!
 p <- df %>% ggplot(aes(x=level, y=s, fill=cn_p)) +
       geom_bar(aes(x=level, y=s, fill=cn_p), stat="identity") +
       geom_text(aes( label = s, x = level,  y = s ), size=5, vjust=-0.1,
