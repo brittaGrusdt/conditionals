@@ -189,10 +189,11 @@ p
 fn <- paste(TARGET_DIR, "pizza-intents.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=8, height=6)
 
-p <- biscuit_plots(df %>% filter(key=="pc"),"Expected value of consequent") 
+p <- biscuit_plots(df %>% filter(key=="pc"),"Expected value of P(C)") 
+p <- p + theme(legend.position="none") + labs(title="")
 p
 fn <- paste(TARGET_DIR, "pizza-pc.png", sep=.Platform$file.sep)
-ggsave(fn, p, width=8, height=6)
+ggsave(fn, p, width=10, height=4.8)
 
 
 
@@ -201,12 +202,13 @@ fn_default <- "results-none-given-C-without-intents-avg-speaker.rds"
 speaker_default <- read_rds(file.path("data", "default-model", fn_default)) %>% 
                     select(-intention)
 
-# fn_bc <- "results-pizza-given-C-with-intents-avg-speaker.rds"
-fn_bc <- "results-pizza-given-C-without-intents-avg-speaker.rds"
+fn_bc <- "results-pizza-given-C-with-intents-avg-speaker.rds"
+# fn_bc <- "results-pizza-given-C-without-intents-avg-speaker.rds"
 speaker_bc <- read_rds(file.path("data", "default-model", fn_bc)) %>% 
                 unite("bias", c("intention", "bias")) %>% 
                 mutate(bias=factor(bias,levels=c("isa_none", "pa_none",
-                                                 "isa_pizza", "pa_pizza")))
+                                                 "isa_pizza", "pa_pizza",
+                                                 "_pizza")))
 speaker <- bind_rows(speaker_default, speaker_bc) %>%
               rename(value=mean_per_intention) %>% 
               mutate(value=round(value, 2)) %>% filter(value>0)
@@ -221,11 +223,11 @@ p <- speaker %>%
               text = element_text(size= 20),
               legend.position = "bottom", legend.direction = "horizontal") + 
         scale_fill_discrete(name="context/intention",
-                            breaks=c("none", "isa_pizza", "pa_pizza"),
-                            labels=c("default", "biscuit/isa", "biscuit/pa"))
+                            breaks=c("none", "isa_pizza", "pa_pizza", "_pizza"),
+                            labels=c("default", "biscuit/isa", "biscuit/pa", "biscuit"))
 p
 ggsave(paste(TARGET_DIR, "speaker-default-biscuits.png",
-             sep=.Platform$file.sep), p1, width=12, height=6)
+             sep=.Platform$file.sep), p, width=12, height=6)
 
 # Default context ---------------------------------------------------------
 default <- data_wide %>% filter(bias=="none") %>% compute_cond_prob("P(C|A)")
