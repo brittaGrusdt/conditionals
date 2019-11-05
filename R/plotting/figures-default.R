@@ -2,6 +2,7 @@ library(tidyverse)
 library(ggplot2)
 source("R/helper-functions.R")
 source("R/plot-functions.R")
+source("R/default-model/helpers-tables.R")
 
 # Data --------------------------------------------------------------------
 TARGET_DIR <- file.path("data", "default-model", "figs", fsep=.Platform$file.sep)
@@ -23,6 +24,39 @@ data_judy <- read_rds(file.path("data", "default-model", "results-judy.rds"))
 
 data <- bind_rows(data_biscuits, data_default, data_cp, data_judy) 
 data_wide <- data %>% spread(key=cell, val=val)
+
+
+# Tables ------------------------------------------------------------------
+table_params <- list()
+table_params$n_tables <- 100000
+table_params$nor_beta <- NA
+table_params$nor_theta <- NA
+table_params$indep_sigma <- 0.01
+table_params$seed <- 1234
+table_params$bias <- "none"
+
+fn <- paste("tables-dependent-", table_params$n_tables, ".rds", sep="")
+# fn <- "tables-dependent.rds"
+tables_path <- file.path("data", "default-model", fn, fsep=.Platform$file.sep)
+
+if(!file.exists(tables_path)){
+  tables <- create_tables(table_params, tables_path)
+} else {
+  tables <- readRDS(tables_path) %>% filter_tables(table_params)
+  if(nrow(tables)==0){
+    tables <- create_tables(table_params, tables_path)
+  }
+}
+
+tables <- tables %>% unnest_tables()
+tables_filtered <- tables %>% filter(cn=="A implies C" | cn=="A || C" | cn=="C implies A")
+
+table_plots <- plot_tables(tables_filtered)
+for(i in seq(1, length(table_plots))){
+  fn <- paste("table-plot-", i, ".png", sep="")
+  p <- table_plots[[i]]
+  ggsave(paste(TARGET_DIR, fn, sep=.Platform$file.sep), p, width=7, height=3.5)
+}
 
 # Values-of-interest ------------------------------------------------------
 # 1. speaker's uncertainty 

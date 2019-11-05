@@ -133,6 +133,35 @@ adapt_bn_ids <- function(data_wide){
   return(df)
 }
 
+
+plot_tables <- function(data){
+  cns <- data$cn %>% as.factor() %>% levels()
+  data <- data %>% mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")))
+  plots <- list(); idx = 1
+  for(causal_net in cns){
+    if(causal_net == "A || C"){
+      cn_title <- "A independent C"
+    } else {
+      cn_title <- causal_net
+    }
+    p <- data %>% filter(cn==causal_net) %>%
+      ggplot(aes(x=val,  color = cell)) +
+      geom_density() +
+      facet_wrap(~cell, scales = "free_y",
+                 labeller = labeller(
+                   cell = c(`AC` = "A ∧ C", `A-C` = "A ∧ ¬C",
+                            `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C"))
+      ) +
+      labs(title = "", x="probability") +
+      theme(legend.position = "none", text = element_text(size=20),
+            axis.text.x = element_text(size=15), axis.text.y=element_text(size=15))
+    plots[[idx]] <- p
+    idx <- idx + 1
+    print(p)
+  }
+  return(plots)
+}
+
 # analysis generated tables
 # tables_data <- marginalize(tables_long %>% rename(level=cn), c("A")) %>%
 #   mutate(p=case_when(p==0 ~ 0.00001, TRUE~p), `P(C|A)`=AC/p)
