@@ -40,6 +40,7 @@ params$utt <- "A > C"
 # params$n_samples=1000 # use 0 if all bns for all bns from prior
 
 # Setup -------------------------------------------------------------------
+# time_id <- str_replace_all(Sys.time(), c(" "="_", ":"="_"))
 TARGET_DIR <- file.path(".", "data", "default-model", fsep = .Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
 params$target <- file.path(TARGET_DIR, paste("results-", params$bias, sep=""), fsep=.Platform$file.sep)
@@ -119,7 +120,8 @@ if(params$level_max == "speaker"){
   speaker_avg
 } else{
   data <- posterior %>% structure_model_data(params)
-  # data_wide <- data %>% spread(key=cell, val=val)
   trust <- data %>% listener_beliefs("PL", params)
   data_voi <- voi_default(data, params)
+  data_wide <- data %>% spread(key=cell, val=val)
+  data_acceptability <- acceptability_conditions(data_wide, params)
 }
