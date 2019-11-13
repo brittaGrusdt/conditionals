@@ -71,7 +71,8 @@ webppl_speaker_distrs_to_tibbles <- function(posterior){
       add_column(level=y) %>% separate(level, sep="_", into=c("level", "intention"))
     return(data_tibble)             
   })
-  data <- bind_rows(posterior_tibbles)
+  data <- bind_rows(posterior_tibbles) %>% spread(key=utterance, val=probs, fill=0) %>% 
+            gather(key="utterance", value="probs", -bn_id, -level, -intention)
   
   bns <- bns_unique[data$bn_id,]$data
   data <- data %>% add_column(bn=bns) %>% unnest()

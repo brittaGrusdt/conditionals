@@ -103,20 +103,18 @@ params$model_path="./model/default-model/default-model.wppl"
 
 posterior <- run_webppl(params$model_path, params)
 if(params$level_max == "speaker"){
-  speaker <- posterior %>% webppl_speaker_distrs_to_tibbles() 
-  speaker_if_a_c <- speaker %>% filter(utterance=="A > C") %>% arrange(desc(probs))
-  # compute assertability conditions
-  
   if(params$speaker_intents %>% length > 1){
     s <- "with-intents"
   } else{s <- "without-intents"}
   # params$target <- paste(params$target, "given", params$utt, "not-conj", s, sep="-")
   # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
-  
   params$target <- paste(params$target, "given", params$utt, s, sep="-")
+
+  speaker <- posterior %>% webppl_speaker_distrs_to_tibbles()
+  speaker_if_a_c <- speaker %>% filter(utterance=="A > C") %>% arrange(desc(probs))
+  # compute assertability conditions
+
   speaker_avg <- speaker %>% average_speaker(params)
-  bns <- posterior$bns %>% rowid_to_column("bn_id") %>% unnest() %>% 
-          spread(key=table.support, val=table.probs)
   speaker_avg
 } else{
   data <- posterior %>% structure_model_data(params)
