@@ -59,14 +59,23 @@ listener_beliefs <- function(posterior, level, params, vars_condition_on=NA){
 
 
 webppl_speaker_distrs_to_tibbles <- function(posterior){
-  posterior_tibbles <- map2(posterior, names(posterior), function(x, y){
+  speaker <- posterior[names(posterior) != "bns"] 
+  bns_unique <- posterior$bns %>% rowid_to_column("bn_id") %>% unnest() %>% 
+                  rename(cell=table.support, val=table.probs) %>%
+                  spread(key=cell, val=val) %>% 
+                  nest(-bn_id)
+          
+  posterior_tibbles <- map2(speaker, names(speaker), function(x, y){
     data_tibble <- x %>% rowid_to_column("bn_id") %>% unnest() %>% 
       rename(utterance=support) %>% 
       add_column(level=y) %>% separate(level, sep="_", into=c("level", "intention"))
     return(data_tibble)             
   })
+  data <- bind_rows(posterior_tibbles)
   
-  return(bind_rows(posterior_tibbles))
+  bns <- bns_unique[data$bn_id,]$data
+  data <- data %>% add_column(bn=bns) %>% unnest()
+  return(data)
 }
 
 average_speaker <- function(distrs, params){

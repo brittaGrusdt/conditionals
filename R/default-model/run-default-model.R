@@ -29,15 +29,16 @@ params$bias <- "none"
 
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
-params$level_max="PL"
+# params$level_max="PL"
 params$speaker_intents=c("")
 # params$speaker_intents=c("ISA", "PA")
-params$utt <- "A > C"
+params$utt <- ""
+# params$utt <- "A > C"
 # params$utt <- "C"
 # params$utt <- "A >q C"
 
-# params$level_max="speaker"
-# params$n_samples=1000 # use 0 if all bns for all bns from prior
+params$level_max="speaker"
+params$n_samples=0 # use 0 if all bns for all bns from prior
 
 # Setup -------------------------------------------------------------------
 # time_id <- str_replace_all(Sys.time(), c(" "="_", ":"="_"))
@@ -102,10 +103,9 @@ params$model_path="./model/default-model/default-model.wppl"
 
 posterior <- run_webppl(params$model_path, params)
 if(params$level_max == "speaker"){
-  speaker <- posterior[names(posterior) != "bns"] %>%
-              webppl_speaker_distrs_to_tibbles() %>% 
-              spread(key=utterance, val=probs, fill=0) %>% 
-              gather(key="utterance", value="probs", -bn_id, -level, -intention)
+  speaker <- posterior %>% webppl_speaker_distrs_to_tibbles() 
+  speaker_if_a_c <- speaker %>% filter(utterance=="A > C") %>% arrange(desc(probs))
+  # compute assertability conditions
   
   if(params$speaker_intents %>% length > 1){
     s <- "with-intents"
