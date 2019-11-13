@@ -114,6 +114,7 @@ voi_pa <- function(posterior, params){
 }
 
 voi_default <- function(posterior, params){
+  # @posterior: in long format, must have columns *cell* and *val* 
   uncertainty <- voi_epistemic_uncertainty(posterior, params)
   pa <- voi_pa(posterior, params)
   pc <- voi_pc(posterior, params)
@@ -126,13 +127,13 @@ voi_default <- function(posterior, params){
 # Acceptability/Assertability conditions ----------------------------------
 # p_rooij: (P(e|i) - P(e|¬i)) / (1-P(e|¬i))
 # p_delta: P(e|i) - P(e|¬i)
-acceptability_conditions <- function(data_wide, params){
+acceptability_conditions <- function(data_wide){
   df <- data_wide %>% compute_cond_prob("P(C|A)") %>% rename(p_c_given_a=p) %>% 
           compute_cond_prob("P(C|-A)") %>% rename(p_c_given_na=p) %>%
           mutate(p_delta=round(p_c_given_a - p_c_given_na, 3),
                  p_nc_given_na=round(1-p_c_given_na, 3),
-                 p_rooij=round(p_delta/p_nc_given_na, 3))
-  if(params$save){df %>% save_data(paste(params$target, "-acceptability-conditions.rds", sep=""))}
+                 p_rooij=round(p_delta/p_nc_given_na, 3)) %>% 
+          select(-p_nc_given_na, -p_c_given_a, -p_c_given_na)
   return(df)
 }
 

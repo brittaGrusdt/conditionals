@@ -45,6 +45,6 @@ params$packages <- c("./node_modules/conditionalsHelpers")
 
 # Run Model ---------------------------------------------------------------
 posterior <- run_webppl(params$model_path, params)
-data <- posterior %>% structure_model_data(params)
+data <- posterior %>% structure_listener_data(params)
 data_voi <- voi_douven(data, params, model)
 

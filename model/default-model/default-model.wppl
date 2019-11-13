@@ -39,7 +39,7 @@ if(verbose){
   display("bias: " + BIAS)
   display("alpha:" + globalStore.alpha)
   display("# tables:" + tables_list.length)
-  // display("degree: " + degree)
+  display("speaker intentions: " + globalStore.speaker_intents)
   BIAS == "judy" ? display('judy q: ' + globalStore.judy_q) : ''
 }
 

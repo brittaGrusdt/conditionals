@@ -106,20 +106,17 @@ if(params$level_max == "speaker"){
   if(params$speaker_intents %>% length > 1){
     s <- "with-intents"
   } else{s <- "without-intents"}
-  # params$target <- paste(params$target, "given", params$utt, "not-conj", s, sep="-")
-  # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
-  params$target <- paste(params$target, "given", params$utt, s, sep="-")
-
-  speaker <- posterior %>% webppl_speaker_distrs_to_tibbles()
-  speaker_if_a_c <- speaker %>% filter(utterance=="A > C") %>% arrange(desc(probs))
-  # compute assertability conditions
-
+  if(params$utt != ""){
+    params$target <- paste(params$target, "given", params$utt, s, sep="-")
+    # params$target <- paste(params$target, "given", params$utt, "not-conj", s, sep="-")
+    # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
+  }
+  speaker <- posterior %>% structure_speaker_data(params)
   speaker_avg <- speaker %>% average_speaker(params)
   speaker_avg
+
 } else{
-  data <- posterior %>% structure_model_data(params)
+  data <- posterior %>% structure_listener_data(params)
   trust <- data %>% listener_beliefs("PL", params)
   data_voi <- voi_default(data, params)
-  data_wide <- data %>% spread(key=cell, val=val)
-  data_acceptability <- acceptability_conditions(data_wide, params)
 }
