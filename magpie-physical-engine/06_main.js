@@ -16,13 +16,13 @@ $("document")
     window.magpie_monitor = magpieInit({
       // You have to specify all views you want to use in this experiment and the order of them
       views_seq: [
-            intro,
-            instructions,
-            slider_choice_2A,
-            forced_choice_2A,
-            post_test,
-            thanks,
-        ],
+      intro,
+      instructions,
+      multiple_slider,
+      //forced_choice_2A,
+      post_test,
+      thanks
+    ],
       // Here, you can specify all information for the deployment
       deploy: {
         experimentID: "INSERT_A_NUMBER",
@@ -37,9 +37,9 @@ $("document")
       // Here, you can specify how the progress bar should look like
       progress_bar: {
         in: [
-                // list the view-names of the views for which you want a progress bar
-                forced_choice_2A.name,
-            ],
+        // list the view-names of the views for which you want a progress bar
+        forced_choice_2A.name
+      ],
         // Possible styles are "default", "separate" and "chunks"
         style: "separate",
         width: 100

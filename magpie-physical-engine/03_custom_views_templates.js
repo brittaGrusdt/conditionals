@@ -201,35 +201,40 @@ const multi_slider_generator = {
     response3 = $("#response3");
     response3 = $("#response4");
 
-    var response_flags = [0, 0, 0, 0];
+    var response_flags = [0, 0, 0];
 
     const display_button_checker = function(response_number) {
       response_flags[response_number] = 1;
 
-      if (response_flags.toString() == [1, 1, 1, 1].toString()) {
+      if (response_flags.toString() == [1, 1, 1].toString()) {
         $("#next").removeClass("magpie-nodisplay");
       }
     };
 
     console.log(response_flags);
+    console.log(display_button_checker);
 
-    // check all 3 lists
-    response1.on("click", function() {
+    // check all 4 sliders
+    response1.on("change", function() {
       response_flags[0] = 1;
       display_button_checker(0);
     });
-    response2.on("click", function() {
+
+    response2.on("change", function() {
       response_flags[1] = 1;
       display_button_checker(1);
     });
-    response3.on("click", function() {
+    response3.on("change", function() {
       response_flags[2] = 1;
       display_button_checker(2);
     });
-    response4.on("click", function() {
-      response_flags[3] = 1;
-      display_button_checker(3);
-    });
+    // response4.on("change", function() {
+    //   response_flags[3] = 1;
+    //   display_button_checker(3);
+    // });
+
+    console.log(response_flags);
+    console.log(display_button_checker);
 
     $("#next").on("click", function() {
       const RT = Date.now() - startingTime; // measure RT before anything else
@@ -237,10 +242,10 @@ const multi_slider_generator = {
         trial_name: config.name,
         trial_number: CT + 1,
         response: [
-          $("input[name=answer1]:checked").val(),
-          $("input[name=answer2]:checked").val(),
-          $("input[name=answer3]:checked").val(),
-          $("input[name=answer4]:checked").val()
+          $("#response1").val(),
+          $("#response2").val(),
+          $("#response3").val(),
+          $("#response4").val()
         ], //[response1.val(), response2.val(), response3.val(), response4.val()],
         RT: RT
       };
