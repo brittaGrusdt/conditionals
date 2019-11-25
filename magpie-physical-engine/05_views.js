@@ -99,28 +99,7 @@ const thanks = magpieViews.view_generator("thanks", {
   prolificConfirmText: "Press the button"
 });
 
-/** trial (magpie's Trial Type Views) below
-
-* Obligatory properties
-
-    - trials: int - the number of trials this view will appear
-    - name: string - the name of the view type as it shall be known to _magpie (e.g. for use with a progress bar)
-            and the name of the trial as you want it to appear in the submitted data
-    - data: array - an array of trial objects
-
-* Optional properties
-
-    - pause: number (in ms) - blank screen before the fixation point or stimulus show
-    - fix_duration: number (in ms) - blank screen with fixation point in the middle
-    - stim_duration: number (in ms) - for how long to have the stimulus on the screen
-      More about trial life cycle - https://magpie-ea.github.io/magpie-docs/01_designing_experiments/04_lifecycles_hooks/
-
-    - hook: object - option to hook and add custom functions to the view
-      More about hooks - https://magpie-ea.github.io/magpie-docs/01_designing_experiments/04_lifecycles_hooks/
-
-* All about the properties of trial views
-* https://magpie-ea.github.io/magpie-docs/01_designing_experiments/01_template_views/#trial-views
-*/
+// test phase trials
 const test_multiple_slider = magpieViews.view_generator(
   "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
@@ -137,7 +116,7 @@ const test_multiple_slider = magpieViews.view_generator(
   }
 );
 
-
+// experimental phase trials
 const multiple_slider = magpieViews.view_generator(
   "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
@@ -153,6 +132,3 @@ const multiple_slider = magpieViews.view_generator(
     handle_response_function: multi_slider_generator.handle_response_function
   }
 );
-// There are many more templates available:
-// forced_choice, slider_rating, dropdown_choice, testbox_input, rating_scale, image_selection, sentence_choice,
-// key_press, self_paced_reading and self_paced_reading_rating_scale

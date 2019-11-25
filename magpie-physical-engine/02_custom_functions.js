@@ -1,16 +1,7 @@
 // Here, you can define all custom functions, you want to use and initialize some variables
 
-/* Variables
- *
- *
- */
 const coin = _.sample(["head", "tail"]); // You can determine global (random) parameters here
 // Declare your variables here
-
-/* Helper functions
- *
- *
- */
 
 /* For generating random participant IDs */
 // https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
@@ -24,12 +15,6 @@ const generateID = function(len) {
   window.crypto.getRandomValues(arr);
   return Array.from(arr, this.dec2hex).join("");
 };
-// Declare your helper functions here
-
-/* Hooks
- *
- *
- */
 
 // Error feedback if participants exceeds the time for responding
 const time_limit = function(data, next) {
@@ -61,13 +46,9 @@ check_response = function(data, next) {
   });
 };
 
-// Declare your hooks here
+// custom functions:
 
-/* Generators for custom view templates, answer container elements and enable response functions
- *
- *
- */
-
+// function to randomly order the four utterences, given per trial
 function random_utternace(slider_rating_trials) {
   for (var i = 0; i < slider_rating_trials.length; i++) {
     slider_rating_trials[i].allUtterances = _.shuffle([

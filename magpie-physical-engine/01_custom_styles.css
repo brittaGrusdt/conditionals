@@ -34,21 +34,25 @@
   padding: 10px;
 }
 
+/* assign the stimulus picture to corresponding grid space */
 .magpie-grid-picture {
   grid-area: picture;
 }
 
+/* make sure that image uses its whole space */
 .image-stretch {
   width: 100%;
   height: 100%;
 }
 
+/* assign the stimulus qud - question to corresponding grid space */
 .magpie-grid-qud {
   grid-area: header;
   margin: auto;
   max-width: 700px;
 }
 
+/* assign the stimulus questions + slider to corresponding grid space */
 .magpie-grid-slider {
   grid-area: slider;
 }
