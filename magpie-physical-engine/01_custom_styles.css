@@ -1,0 +1,68 @@
+/* In this file you can overwrite/extend the given magpie-styles or declare your own ones */
+
+/* Example of extending a given magpie-style */
+
+/*.magpie-view-stimulus-container {
+    height: auto;
+    max-height: 350px;
+} */
+
+/* Display all titles in red */
+/*.magpie-view-title {
+    color: red;
+}*/
+
+/* Example of declaring your own style */
+.custom-border {
+  border: 1px solid powderblue;
+}
+
+/* the default */
+.magpie-view-answer-container {
+  text-align: center;
+  margin: 45px auto;
+}
+
+/* grid box for answer container */
+.magpie-multi-slider-grid {
+  display: grid;
+  grid-template-areas:
+    "header header header"
+    "none1 slider slider"
+    "picture slider slider"
+    "none2 slider slider";
+  padding: 10px;
+}
+
+/* assign the stimulus picture to corresponding grid space */
+.magpie-grid-picture {
+  grid-area: picture;
+}
+
+/* make sure that image uses its whole space */
+.image-stretch {
+  width: 100%;
+  height: 100%;
+}
+
+/* assign the stimulus qud - question to corresponding grid space */
+.magpie-grid-qud {
+  grid-area: header;
+  margin: auto;
+  max-width: 700px;
+}
+
+/* assign the stimulus questions + slider to corresponding grid space */
+.magpie-grid-slider {
+  grid-area: slider;
+}
+
+/* change margin of next button so that all fits onto one screen */
+.magpie-view-button {
+  margin: 5px auto 20px auto;
+}
+
+/* change container of progress_bar, so that all fits on one screen */
+.progress-bar-container {
+  margin: 0 10px 0px 10px;
+}
