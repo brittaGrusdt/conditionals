@@ -12,13 +12,13 @@
 const multi_slider_generator = {
   // we do not want to show the picture in the stimulus container anymore, but in the grid
   // together with the answer_container
-  stimulus_container_gen: function(config, CT) {
+  stimulus_container_gen: function (config, CT) {
     return `<div class='magpie-view'>
                          <h1 class='magpie-view-title'>${config.title}</h1>
                      </div>`;
   },
 
-  answer_container_gen: function(config, CT) {
+  answer_container_gen: function (config, CT) {
     const option1 = config.data[CT].optionLeft;
     const option2 = config.data[CT].optionRight;
     return `<div class='magpie-multi-slider-grid'>
@@ -63,10 +63,10 @@ const multi_slider_generator = {
               </div>
         </div>
       </div>
-      <button id='next' class='magpie-view-button magpie-nodisplay'>Next</button>`;
+      <button id='next' class='magpie-view-button grid-button magpie-nodisplay'>Next</button>`;
   },
 
-  handle_response_function: function(
+  handle_response_function: function (
     config,
     CT,
     magpie,
@@ -78,7 +78,8 @@ const multi_slider_generator = {
     let response3;
     let response4;
 
-    $(".magpie-view").append(answer_container_generator(config, CT));
+    $(".magpie-view")
+      .append(answer_container_generator(config, CT));
 
     response1 = $("#response1");
     response2 = $("#response2");
@@ -87,24 +88,25 @@ const multi_slider_generator = {
 
     var response_flags = [0, 0, 0];
 
-    const display_button_checker = function(response_number) {
+    const display_button_checker = function (response_number) {
       response_flags[response_number] = 1;
 
       if (response_flags.toString() == [1, 1, 1].toString()) {
-        $("#next").removeClass("magpie-nodisplay");
+        $("#next")
+          .removeClass("magpie-nodisplay");
       }
     };
 
     // check all 4 sliders
-    response1.on("change", function() {
+    response1.on("change", function () {
       response_flags[0] = 1;
       display_button_checker(0);
     });
-    response2.on("change", function() {
+    response2.on("change", function () {
       response_flags[1] = 1;
       display_button_checker(1);
     });
-    response3.on("change", function() {
+    response3.on("change", function () {
       response_flags[2] = 1;
       display_button_checker(2);
     });
@@ -113,26 +115,31 @@ const multi_slider_generator = {
     //   display_button_checker(3);
     // });
 
-    $("#next").on("click", function() {
-      const RT = Date.now() - startingTime; // measure RT before anything else
-      let trial_data = {
-        trial_name: config.name,
-        trial_number: CT + 1,
-        response: [
-          $("#response1").val(),
-          $("#response2").val(),
-          $("#response3").val(),
-          $("#response4").val()
+    $("#next")
+      .on("click", function () {
+        const RT = Date.now() - startingTime; // measure RT before anything else
+        let trial_data = {
+          trial_name: config.name,
+          trial_number: CT + 1,
+          response: [
+          $("#response1")
+            .val(),
+          $("#response2")
+            .val(),
+          $("#response3")
+            .val(),
+          $("#response4")
+            .val()
         ],
-        RT: RT
-      };
+          RT: RT
+        };
 
-      trial_data = magpieUtils.view.save_config_trial_data(
-        config.data[CT],
-        trial_data
-      );
-      magpie.trial_data.push(trial_data);
-      magpie.findNextView();
-    });
+        trial_data = magpieUtils.view.save_config_trial_data(
+          config.data[CT],
+          trial_data
+        );
+        magpie.trial_data.push(trial_data);
+        magpie.findNextView();
+      });
   }
 };

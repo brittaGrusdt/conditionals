@@ -58,7 +58,7 @@
 }
 
 /* change margin of next button so that all fits onto one screen */
-.magpie-view-button {
+.grid-button {
   margin: 5px auto 20px auto;
 }
 
