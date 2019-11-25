@@ -1,0 +1,53 @@
+/* In this file you can overwrite/extend the given magpie-styles or declare your own ones */
+
+/* Example of extending a given magpie-style */
+
+/*.magpie-view-stimulus-container {
+    height: auto;
+    max-height: 350px;
+} */
+
+/* Display all titles in red */
+/*.magpie-view-title {
+    color: red;
+}*/
+
+/* Example of declaring your own style */
+.custom-border {
+   border: 1px solid powderblue;
+}
+
+/* the default */
+.magpie-view-answer-container {
+    text-align: center;
+    margin: 45px auto;
+}
+
+/* grid box for answer container */
+.magpie-multi-slider-grid{
+  display: grid;
+  grid-template-areas:
+  'header header header'
+  'none1 slider slider'
+  'picture slider slider'
+  'none2 slider slider';
+  padding: 10px;
+}
+
+.magpie-grid-picture{
+grid-area: picture;
+
+}
+
+.image-stretch{
+width:100%;
+height: 100%;
+}
+
+.magpie-grid-qud{
+grid-area: header;
+}
+
+.magpie-grid-slider{
+grid-area: slider;
+}
