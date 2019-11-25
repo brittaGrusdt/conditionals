@@ -7,9 +7,10 @@ var Engine = Matter.Engine,
 
 var engine = Engine.create({timing: {timeScale: 1}});
 
-// var canvas = document.getElementById('myCanvas');
+// set general properties
 var canvH = 400
 var canvW = 800
+var durationSim = 3000
 
 var render = Render.create({
   // element:
@@ -69,31 +70,33 @@ var distractors = createDistractors(platform2,
   {width:blocksProps.width , height: blocksProps.height * 3}
 );
 
-// environment
+// start with button?
 // $('.stop').on('click', function () {
 //   engine.timing.timeScale = 0
 // });
 
-// choose particular scene
+// 3. choose a single particular scene
 var situation1 = relevantStackedBlocks[76]
 var distractor1 = distractors[2].distractor
 
+
+// 4. create + simulate world
 var allBlocks = [situation1.block1, situation1.block2]
 var allBlocks = allBlocks.concat([distractor1])
 
-// 3. create + simulate world
 var worldStatic = [ground, platform]
 var worldStatic = worldStatic.concat(platform2)
 
 var objPropsBefore = {};
 var objPropsAfter = {};
 
+// after 'durationSim' miliseconds freeze animation and save data
 Events.on(engine, 'afterUpdate', function(event) {
   document.getElementById("timestamp").innerHTML =
     "timestamp: " + engine.timing.timestamp;
 
-  // only do this once after n ms
-  if (engine.timing.timestamp >= 3000 && engine.timing.timeScale != 0) {
+  // only do this once after 'durationSim' ms
+  if (engine.timing.timestamp >= durationSim && engine.timing.timeScale != 0) {
     // freeze animation
     engine.timing.timeScale = 0
     Render.stop(render)

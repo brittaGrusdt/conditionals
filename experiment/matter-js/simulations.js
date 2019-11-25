@@ -54,21 +54,22 @@ var simulateProbs = function(targets, distractors, n){
 * Adds ratio of x/y-values, and based on this whether object fell, of all bodies
 * other than ground or platforms.
 *
-* @param {Array<Object>} objPropsBefore properties of all objects in world
-* before simulation
-* @param {Object} objPropsBefore.position position of objects with keys 'x', 'y'
-* @param {string} objPropsBefore.label label of objects
+* @param {Object<string, Object>} objPropsBefore position of objects for each
+* block before (single) simulation, keys are labels of blocks, e.g.'greenBlock'
+* @param {number} objPropsBefore.x x position of block
+* @param {number} objPropsBefore.y y position of block
 *
-* @param {Array<Object>} objPropsAfter properties of all objects in world
-* after simulation
-* @param {Object} objPropsAfter.position position of objects with keys 'x', 'y'
-* @param {string} objPropsAfter.label label of objects
+* @param {Object<string, Object>} objPropsAfter position of objects for each
+* block after (single) simulation, keys are labels of blocks, e.g.'greenBlock'
+* @param {number} objPropsAfter.x x position of block
+* @param {number} objPropsAfter.y y position of block
 *
 * @param {number} theta threshold of relative minimal offset (in percent) for a
 * block to count as fallen
 *
-* @return {Array<Object>} properties of relevant objects in world with keys:
-* ratioX, ratioY, label, fallen.
+* @return {Array<Object>} objPropsAfter with the following added properties
+* for relevant blocks in world (i.e. not ground or platforms):
+* ratioX, ratioY, fallen.
 */
 var addSimulationEffects = function(objPropsBefore, objPropsAfter, theta){
   var entries = Object.entries(objPropsBefore);
