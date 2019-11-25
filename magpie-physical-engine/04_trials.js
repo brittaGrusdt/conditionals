@@ -168,3 +168,5 @@ const slider_rating_trials = [
     optionRight: "very unnatural"
   }
 ];
+
+slider_rating_trials = random_utternace(slider_rating_trials);

@@ -41,7 +41,7 @@
 //                    </div>`;
 
 const multi_slider_generator = {
-  stimulus_container_gen: function (config, CT) {
+  stimulus_container_gen: function(config, CT) {
     return `<div class='magpie-view'>
                          <h1 class='magpie-view-title'>${config.title}</h1>
                      </div>`;
@@ -93,7 +93,7 @@ const multi_slider_generator = {
   //         `;
   // },
 
-  answer_container_gen: function (config, CT) {
+  answer_container_gen: function(config, CT) {
     console.log(CT);
     const option1 = config.data[CT].optionLeft;
     const option2 = config.data[CT].optionRight;
@@ -103,11 +103,15 @@ const multi_slider_generator = {
   <img class='image-stretch' src=${config.data[CT].picture}>
 </div>
 
- <p class='magpie-grid-qud magpie-view-question magpie-view-qud'><strong>${config.data[CT].QUD}</strong></p>
+ <p class='magpie-grid-qud magpie-view-question magpie-view-qud'><strong>${
+   config.data[CT].QUD
+ }</strong></p>
 
 <div class = 'magpie-grid-slider'>
             <div class='magpie-view-answer-container'>
-              <p class='magpie-view-question' id = 'question1' >${config.data[CT].question1}</p>
+              <p class='magpie-view-question' id = 'question1' >${
+                config.data[CT].allUtterances[0]
+              }</p>
                 <span class='magpie-response-slider-option'>${option1}</span>
                 <input type='range' id='response1' name='answer1' class='magpie-response-slider' min='0' max='100' value='50'/>
                 <span class='magpie-response-slider-option'>${option2}</span>
@@ -115,7 +119,9 @@ const multi_slider_generator = {
 
 
             <div class='magpie-view-answer-container'>
-              <p class='magpie-view-question' id = 'question2' >${config.data[CT].question2}</p>
+              <p class='magpie-view-question' id = 'question2' >${
+                config.data[CT].allUtterances[1]
+              }</p>
                 <span class='magpie-response-slider-option'>${option1}</span>
                 <input type='range' id='response2' name='answer2' class='magpie-response-slider' min='0' max='100' value='50'/>
                 <span class='magpie-response-slider-option'>${option2}</span>
@@ -123,7 +129,9 @@ const multi_slider_generator = {
 
 
             <div class='magpie-view-answer-container'>
-              <p class='magpie-view-question' id = 'question3' >${config.data[CT].question3}</p>
+              <p class='magpie-view-question' id = 'question3' >${
+                config.data[CT].allUtterances[2]
+              }</p>
                 <span class='magpie-response-slider-option'>${option1}</span>
                 <input type='range' id='response3' name='answer3' class='magpie-response-slider' min='0' max='100' value='50'/>
                 <span class='magpie-response-slider-option'>${option2}</span>
@@ -131,7 +139,9 @@ const multi_slider_generator = {
 
 
             <div class='magpie-view-answer-container'>
-              <p class='magpie-view-question' id = 'question4' >${config.data[CT].question4}</p>
+              <p class='magpie-view-question' id = 'question4' >${
+                config.data[CT].allUtterances[3]
+              }</p>
                 <span class='magpie-response-slider-option'>${option1}</span>
                 <input type='range' id='response4' name='answer4' class='magpie-response-slider' min='0' max='100' value='50'/>
                 <span class='magpie-response-slider-option'>${option2}</span>
@@ -182,7 +192,7 @@ const multi_slider_generator = {
   // $("input[name=answer3]:checked").val(),
   // $("input[name=answer4]:checked").val()
 
-  handle_response_function: function (
+  handle_response_function: function(
     config,
     CT,
     magpie,
@@ -194,8 +204,7 @@ const multi_slider_generator = {
     let response3;
     let response4;
 
-    $(".magpie-view")
-      .append(answer_container_generator(config, CT));
+    $(".magpie-view").append(answer_container_generator(config, CT));
 
     response1 = $("#response1");
     response2 = $("#response2");
@@ -204,12 +213,11 @@ const multi_slider_generator = {
 
     var response_flags = [0, 0, 0];
 
-    const display_button_checker = function (response_number) {
+    const display_button_checker = function(response_number) {
       response_flags[response_number] = 1;
 
       if (response_flags.toString() == [1, 1, 1].toString()) {
-        $("#next")
-          .removeClass("magpie-nodisplay");
+        $("#next").removeClass("magpie-nodisplay");
       }
     };
 
@@ -217,16 +225,16 @@ const multi_slider_generator = {
     console.log(display_button_checker);
 
     // check all 4 sliders
-    response1.on("change", function () {
+    response1.on("change", function() {
       response_flags[0] = 1;
       display_button_checker(0);
     });
 
-    response2.on("change", function () {
+    response2.on("change", function() {
       response_flags[1] = 1;
       display_button_checker(1);
     });
-    response3.on("change", function () {
+    response3.on("change", function() {
       response_flags[2] = 1;
       display_button_checker(2);
     });
@@ -238,31 +246,26 @@ const multi_slider_generator = {
     console.log(response_flags);
     console.log(display_button_checker);
 
-    $("#next")
-      .on("click", function () {
-        const RT = Date.now() - startingTime; // measure RT before anything else
-        let trial_data = {
-          trial_name: config.name,
-          trial_number: CT + 1,
-          response: [
-          $("#response1")
-            .val(),
-          $("#response2")
-            .val(),
-          $("#response3")
-            .val(),
-          $("#response4")
-            .val()
+    $("#next").on("click", function() {
+      const RT = Date.now() - startingTime; // measure RT before anything else
+      let trial_data = {
+        trial_name: config.name,
+        trial_number: CT + 1,
+        response: [
+          $("#response1").val(),
+          $("#response2").val(),
+          $("#response3").val(),
+          $("#response4").val()
         ], //[response1.val(), response2.val(), response3.val(), response4.val()],
-          RT: RT
-        };
+        RT: RT
+      };
 
-        trial_data = magpieUtils.view.save_config_trial_data(
-          config.data[CT],
-          trial_data
-        );
-        magpie.trial_data.push(trial_data);
-        magpie.findNextView();
-      });
+      trial_data = magpieUtils.view.save_config_trial_data(
+        config.data[CT],
+        trial_data
+      );
+      magpie.trial_data.push(trial_data);
+      magpie.findNextView();
+    });
   }
 };
