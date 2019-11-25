@@ -18,8 +18,9 @@ $("document")
       views_seq: [
       intro,
       instructions,
+      test_multiple_slider,
+      instructions2,
       multiple_slider,
-      //forced_choice_2A,
       post_test,
       thanks
     ],
@@ -38,7 +39,8 @@ $("document")
       progress_bar: {
         in: [
         // list the view-names of the views for which you want a progress bar
-        forced_choice_2A.name
+        test_multiple_slider.name,
+        multiple_slider.name
       ],
         // Possible styles are "default", "separate" and "chunks"
         style: "separate",

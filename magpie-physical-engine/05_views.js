@@ -22,14 +22,26 @@ const intro = magpieViews.view_generator("intro", {
   trials: 1,
   name: "intro",
   // If you use JavaScripts Template String `I am a Template String`, you can use HTML <></> and javascript ${} inside
-  text: `This is a sample introduction view.
-            <br />
-            <br />
-            The introduction view welcomes the participant and gives general information
-            about the experiment. You are in the <strong>${coin}</strong> group.
-            <br />
-            <br />
-            This is a minimal experiment with one forced choice view. It can serve as a starting point for programming your own experiment.`,
+  text: `Thank you for your participation in our study!
+         Your anonymous data makes an important contribution to our understanding of human language use.
+          <br />
+          <br />
+          Legal information:
+          By answering the following questions, you are participating in a study
+          being performed by scientists from the University of Osnabrueck.
+          <br />
+          <br />
+          You must be at least 18 years old to participate.
+          <br />
+          <br />
+          Your participation in this research is voluntary.
+          You may decline to answer any or all of the following questions.
+          You may decline further participation, at any time, without adverse consequences.
+          <br />
+          <br />
+          Your anonymity is assured; the researchers who have requested your
+          participation will not receive any personal information about you.
+          `,
   buttonText: "begin the experiment"
 });
 
@@ -38,11 +50,22 @@ const instructions = magpieViews.view_generator("instructions", {
   trials: 1,
   name: "instructions",
   title: "General Instructions",
-  text: `This is a sample instructions view.
+  text: `This is the instructions view.
             <br />
             <br />
-            Tell your participants what they are to do here.`,
-  buttonText: "go to trials"
+            In here, we tell the participants what they are to do here, what the story is about ... .`,
+  buttonText: "go to example trials"
+});
+
+const instructions2 = magpieViews.view_generator("instructions", {
+  trials: 1,
+  name: "instructions2",
+  title: "General Instructions",
+  text: `Great! You've completed the training phase. We will move on to the main part of the experiment next.
+        <br />
+        <br />
+        Maybe repeat the story what they have to do again, here.`,
+  buttonText: "Start main experiment"
 });
 
 // In the post test questionnaire you can ask your participants addtional questions
@@ -50,8 +73,7 @@ const post_test = magpieViews.view_generator("post_test", {
   trials: 1,
   name: "post_test",
   title: "Additional information",
-  text:
-    "Answering the following questions is optional, but your answers will help us analyze our results."
+  text: "Answering the following questions is optional, but your answers will help us analyze our results."
 
   // You can change much of what appears here, e.g., to present it in a different language, as follows:
   // buttonText: 'Weiter',
@@ -99,28 +121,30 @@ const thanks = magpieViews.view_generator("thanks", {
 * All about the properties of trial views
 * https://magpie-ea.github.io/magpie-docs/01_designing_experiments/01_template_views/#trial-views
 */
-
-// Here, we initialize a normal forced_choice view
-const forced_choice_2A = magpieViews.view_generator("forced_choice", {
-  // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
-  trials: trial_info.forced_choice.length,
-  // name should be identical to the variable name
-  name: "forced_choice_2A",
-  data: trial_info.forced_choice
+const test_multiple_slider = magpieViews.view_generator(
+  "slider_rating", {
+    // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
+    trials: 3,
+    // name should be identical to the variable name
+    name: "slider_test",
+    data: _.shuffle(slider_rating_trials)
+  },
   // you can add custom functions at different stages through a view's life cycle
-  // hook: {
-  //     after_response_enabled: check_response
-  // }
-});
+  {
+    stimulus_container_generator: multi_slider_generator.stimulus_container_gen,
+    answer_container_generator: multi_slider_generator.answer_container_gen,
+    handle_response_function: multi_slider_generator.handle_response_function
+  }
+);
+
 
 const multiple_slider = magpieViews.view_generator(
-  "slider_rating",
-  {
+  "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
     trials: slider_rating_trials.length,
     // name should be identical to the variable name
-    name: "slider_2A",
-    data: slider_rating_trials
+    name: "slider_main",
+    data: _.shuffle(slider_rating_trials)
   },
   // you can add custom functions at different stages through a view's life cycle
   {
