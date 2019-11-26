@@ -169,5 +169,5 @@ const slider_rating_trials = [
   }
 ];
 
-// call random_utternace to later be able to randomly show the utterances
-slider_rating_trials = random_utternace(slider_rating_trials);
+// call random_utterance to later be able to randomly show the utterances
+slider_rating_trials = random_utterance(slider_rating_trials);

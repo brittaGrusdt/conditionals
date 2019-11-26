@@ -49,7 +49,7 @@ check_response = function(data, next) {
 // custom functions:
 
 // function to randomly order the four utterences, given per trial
-function random_utternace(slider_rating_trials) {
+function random_utterance(slider_rating_trials) {
   for (var i = 0; i < slider_rating_trials.length; i++) {
     slider_rating_trials[i].allUtterances = _.shuffle([
       slider_rating_trials[i].question1,
