@@ -19,8 +19,8 @@ const multi_slider_generator = {
   },
 
   answer_container_gen: function (config, CT) {
-    const option1 = config.data[CT].optionLeft;
-    const option2 = config.data[CT].optionRight;
+    const option1 = config.data[CT].optionRight;
+    const option2 = config.data[CT].optionLeft;
     return `<div class='magpie-multi-slider-grid'>
           <div class='magpie-grid-picture' >
               <img class='image-stretch' src=${config.data[CT].picture}>
