@@ -82,17 +82,15 @@ var createAllPotentialBlocks = function(platform, props){
 }
 
 /**
- * Creates an array of gray distractor blocks.
+ * Creates distractor part of scene.
  *
- * The distractor blocks either fall / don't fall certainly / likely / uncertain
+ * All possible distractor blocks are created on top of a second platform
+ * relative to platform in scene as specified in CONFIG.
  *
- * @param {Matter.Bodies.rectangle} platform  Rectangle on which distractor lies
- *
- * @param {Object<string,*>} props  properties of returned blocks.
- * @param {number} props.width width of distractor
- * @param {number} props.height height of distractor
- *
- * @return {Array<Matter.Bodies.rectangle>} array with distractor blocks
+ * @return {Object<string, Object>} all possible distractor towers;
+ * keys: 'far'/'close' mapping to  'platform': <Matter.Bodies.rectangle> and
+ * 'distractors': <Array<Object>>, where each entry is:
+ * 'prior2Fall': <number>, 'distractor': <Matter.Bodies.rectangle>
  *
  */
 var createDistractorTowers = function(){
@@ -135,6 +133,12 @@ var createDistractorTowers = function(){
 }
 
 /**
+* @param {Matter.Bodies.rectangle} platform platform on which relevant blocks
+* are placed
+*
+* @return {Array<Object>} keys: 'stacked'/'side' mapping to
+* [Array<Obect>, Array<Object>] where blocks are outputs from
+* createAllPotentialBlocks; first and second array have counterbalanced colors
 */
 var createColorCounterbalancedBlocks = function(platform){
 
