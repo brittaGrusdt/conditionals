@@ -42,12 +42,13 @@ var makeBlock = function(coords, properties){
  * @return {Array<Object>} all possible positions of 2 blocks subject to given
  * constraints
  */
-var createAllPossibleRelevantBlocks = function(platform, props){
+var createAllPotentialBlocks = function(platform, props){
 
-  var h = props.height
-  var w = props.width
+  var config = CONFIG.blocks
+  var h = config.height
+  var w = config.width
 
-  var rangeB1X = getXRange(platform.bounds, w, props.dist2Edge, props.step)
+  var rangeB1X = getXRange(platform.bounds, w, config.dist2Edge, config.step)
 
   var blocks = [];
 
@@ -58,13 +59,13 @@ var createAllPossibleRelevantBlocks = function(platform, props){
     )
 
     if(props.stacked){
-      var rangeB2X = getXRange(b1.bounds, w, props.dist2Edge, props.step)
+      var rangeB2X = getXRange(b1.bounds, w, config.dist2Edge, config.step)
       var y2 = b1.bounds.min.y - (h / 2)
     } else {
-      var bounds = {}
-      bounds.min.x = b1.bounds.max.x
-      bounds.max.x = platform.bounds.max
-      var rangeB2x = getXRange(bounds, w, 0, props.step)
+      var bounds = {};
+      bounds.min = {x: b1.bounds.max.x}
+      bounds.max = {x: platform.bounds.max.x}
+      var rangeB2X = getXRange(bounds, w, 0, config.step)
       var y2 = platform.bounds.min.y - (h / 2)
     }
 
@@ -72,7 +73,8 @@ var createAllPossibleRelevantBlocks = function(platform, props){
       var b2 = makeBlock({x: x2, y: y2, height: h, width: w},
         {static: false, color: props.color2, label: props.color2 + "Block"}
       )
-      blocks.push({block1: b1, block2: b2, stacked: props.stacked})
+      blocks.push({block1: b1, block2: b2, stacked: props.stacked,
+        colorB1: props.color1, colorB2: props.color2})
     });
 
   });
@@ -93,24 +95,68 @@ var createAllPossibleRelevantBlocks = function(platform, props){
  * @return {Array<Matter.Bodies.rectangle>} array with distractor blocks
  *
  */
-var createDistractors = function(platform, props){
-  var x = platform.bounds.min.x;
-  platform.width = platform.bounds.max.x - x
-  var prior2Delta = {0: (props.width / 2.5),
-                     0.25: props.width / 8,
-                     0.5: 0,
-                     0.75: -(props.width / 8),
-                     1: -(props.width / 2.5)
-                    };
+var createDistractorTowers = function(){
 
-  var distractors = [];
-  for (const key of Object.keys(prior2Delta)) {
-    var distractor = makeBlock(
-      {x: x + prior2Delta[key], y: platform.bounds.min.y - (props.height / 2),
-       width: props.width, height: props.height
-     }, {static: false, color: "gray", label: "distractor"}
-     );
-    distractors.push({distractor: distractor, prior2Fall: key})
-  }
-  return(distractors)
+  let platformDistances = ["close", "far"];
+  let distractorTowers = {};
+
+  platformDistances.forEach(function(dist){
+    let platformProps = CONFIG.platform2[dist]
+    let platform = makeBlock(
+      platformProps, {static:true, color: "darkgray", label: "platform2"}
+    );
+
+    // center of distractor block is on left edge of platform
+    let x = platform.bounds.min.x
+    // how much block is moved relative to its width, if its a priori unlikely
+    // for block to fall, block is moved only a little bit
+    var prior2Delta = {
+      0: CONFIG.distractors.width / 2.5,
+      0.25: CONFIG.distractors.width / 8,
+      0.5: 0,
+      0.75: -(CONFIG.distractors.width / 8),
+      1: -(CONFIG.distractors.width / 2.5)
+    };
+
+    let distractors = [];
+    for (let key of Object.keys(prior2Delta)) {
+      var distractor = makeBlock(
+        {x: x + prior2Delta[key],
+         y: platform.bounds.min.y - (CONFIG.distractors.height / 2),
+         width: CONFIG.distractors.width, height: CONFIG.distractors.height
+        }, {static: false, color: "gray", label: "distractor"}
+      );
+      distractors.push({distractor: distractor, prior2Fall: key})
+    }
+    distractorTowers[dist] = {platform, distractors}
+  });
+
+  return(distractorTowers)
+}
+
+/**
+*/
+var createColorCounterbalancedBlocks = function(platform){
+
+  let stackedBlocks = [
+    createAllPotentialBlocks(platform,
+      {stacked: true, color1: "blue", color2: "green"}
+    ),
+    createAllPotentialBlocks(platform,
+      {stacked: true, color1: "green", color2: "blue"}
+    )
+  ]
+
+  let sideBlocks = [
+    createAllPotentialBlocks(
+      platform, {stacked: false, color1: "blue", color2: "green"}
+    ),
+    createAllPotentialBlocks(
+      platform, {stacked: false, color1: "green", color2: "blue"}
+    )
+  ]
+
+  let blocks = {stacked: stackedBlocks, side: sideBlocks}
+
+  return(blocks)
 }
