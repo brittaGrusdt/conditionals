@@ -17,7 +17,7 @@ var makeBlock = function(coords, properties){
   var block = Matter.Bodies.rectangle(
     coords.x, coords.y,coords.width, coords.height,
     {render: {fillStyle: properties.color}, isStatic: properties.static,
-    friction:1, label:properties.label}
+    friction:CONFIG.blocks.friction, label:properties.label}
   )
   return(block)
 }
