@@ -22,29 +22,32 @@ params$cost_conditional <- 0
 params$theta <- 0.9
 
 # params$bias="lawn"
-params$bias <- "none"
-# params$bias <- "pizza"
+# params$bias <- "none"
+params$bias <- "pizza"
 # params$bias <- "judy"
 # params$judy_q <- 0.75
 
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
-# params$level_max="PL"
-params$speaker_intents=c("")
-# params$speaker_intents=c("ISA", "PA")
-params$utt <- ""
-# params$utt <- "A > C"
-# params$utt <- "C"
+params$level_max="PL"
+# params$speaker_intents=c("")
+params$speaker_intents=c("ISA", "PA")
+# params$utt <- ""
+params$utt <- "A > C"
+# params$utt <- "C and A"
 # params$utt <- "A >q C"
 
-params$level_max="speaker"
-params$n_samples=0 # use 0 if all bns for all bns from prior
+# params$level_max="speaker"
+# params$n_samples=1000
+# params$n_samples=0 # use 0 if all bns for all bns from prior
 
+params$add_accept_conditions <- TRUE
 # Setup -------------------------------------------------------------------
 # time_id <- str_replace_all(Sys.time(), c(" "="_", ":"="_"))
 TARGET_DIR <- file.path(".", "data", "default-model", fsep = .Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
-params$target <- file.path(TARGET_DIR, paste("results-", params$bias, sep=""), fsep=.Platform$file.sep)
+params$target <- file.path(TARGET_DIR, paste("results-", params$bias, sep=""),
+                           fsep=.Platform$file.sep)
 
 # table/cns parameters
 params$n_tables <- 500

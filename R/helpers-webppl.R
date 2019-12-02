@@ -28,18 +28,20 @@ run_webppl <- function(path_wppl_file, params){
 }
 
 structure_listener_data <- function(posterior, params){
-  posterior_tibbles <- posterior %>% webppl_distrs_to_tibbles() %>%
-                        mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val)) %>% 
-                        add_column(bias=params$bias)
-  data_wide <- posterior_tibbles %>% spread(key=cell, val=val)
-  df <- acceptability_conditions(data_wide)
-  df <- df %>% gather(key="cell", value="val", AC, `-AC`, `A-C`, `-A-C`)
+  df_long <- posterior %>% webppl_distrs_to_tibbles() %>%
+              mutate(val=case_when(val<0.000001 ~ 0.000001, TRUE ~ val)) %>% 
+              add_column(bias=params$bias)
+  if(params$add_accept_conditions){
+    df_wide <- df_long %>% spread(key=cell, val=val)
+    df <- acceptability_conditions(df_wide)
+    df_long <- df %>% gather(key="cell", value="val", AC, `-AC`, `A-C`, `-A-C`)
+  }
   
   if(params$save){
     fn <- paste(params$target, ".rds", sep="")
-    df %>% save_data(fn)
+    df_long %>% save_data(fn)
   }
-  return(df)
+  return(df_long)
 }
 
 

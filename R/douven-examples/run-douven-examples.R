@@ -4,14 +4,14 @@ source("R/helpers-values-of-interest.R")
 library(rwebppl)
 library(tidyverse)
 
-model <- "skiing"
-# model <- "sundowners"
+# model <- "skiing"
+model <- "sundowners"
 
 # Parameters --------------------------------------------------------------
 params <- list()
 params$alpha=3
 params$cost_conditional=0
-params$level_max="prior"
+params$level_max="PL"
 params$save=TRUE
 params$save_voi=TRUE
 params$seed=1234
@@ -35,6 +35,8 @@ if(model == "skiing"){
   params$prior_pr <- prior_pr
 }
 
+params$bias <- ""
+params$add_accept_conditions <- FALSE
 # Setup -------------------------------------------------------------------
 TARGET_DIR <- file.path(".", "data", "douven-examples", fsep = .Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
