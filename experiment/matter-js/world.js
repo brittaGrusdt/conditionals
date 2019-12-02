@@ -30,8 +30,14 @@ var distractorTowers = createDistractorTowers();
 //   engine.timing.timeScale = 0
 // });
 
-var objPropsBefore = {};
-var objPropsAfter = {};
+let objPropsBefore = {};
+let objPropsAfter = {};
+
+let animationStarted = false
+
+var freezeAnimation = function(){
+  engine.timing.timeScale = 0
+}
 
 // after duration of simulation freeze and save data
 Events.on(engine, 'afterUpdate', function(event) {
@@ -39,10 +45,8 @@ Events.on(engine, 'afterUpdate', function(event) {
     "timestamp: " + engine.timing.timestamp;
 
   // only do this once after specified nb of ms passed
-  if (engine.timing.timestamp >= CONFIG.simulation.duration &&
-    engine.timing.timeScale != 0) {
-    // freeze animation
-    engine.timing.timeScale = 0
+  if (animationStarted && engine.timing.timestamp >= CONFIG.simulation.duration) {
+    freezeAnimation();
     Render.stop(render)
 
     // save body positions + labels after animation
@@ -55,13 +59,14 @@ Events.on(engine, 'afterUpdate', function(event) {
     // Stop animation and clear world
     World.clear(engine.world)
     Engine.clear(engine);
+    animationStarted = false;
 
     addSimulationEffects(objPropsBefore, objPropsAfter, 0.01)
   }
 });
 
+
 var showScene = function(objectsStatic, objectsDynamic){
-  // World.add(engine.world, worldStatic.concat(allBlocks));
   World.add(engine.world, objectsStatic.concat(objectsDynamic))
   // save start positions of objects + labels
   engine.world.bodies.forEach(function(body){
@@ -70,17 +75,24 @@ var showScene = function(objectsStatic, objectsDynamic){
 
   document.getElementById("greenBeforeX").innerHTML +=  objPropsBefore["greenBlock"].x
   document.getElementById("greenBeforeY").innerHTML += objPropsBefore["greenBlock"].y
-
   // run the engine for simulation of our world
   Engine.run(engine);
   // run the renderer for visualization
   Render.run(render);
 }
 
+
+var runAnimation = function(){
+  animationStarted = true
+  engine.timing.timeScale = 1
+  // World.add(engine.world, worldStatic.concat(allBlocks));
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // 3. properties for a random particular single scene
-// let relationBlocks = "stacked"
-let relationBlocks = "side"
+let relationBlocks = "stacked"
+// let relationBlocks = "side"
 // let colorCode = 0
 let colorCode = 1
 // let relationDistractor = "close"
@@ -98,10 +110,8 @@ let idxDistractor = Math.floor(Math.random() * nDistractors);
 let distractor1 = distractorElems.distractors[idxDistractor].distractor
 
 // 5. create + simulate world
-var allBlocks = [situation1.block1, situation1.block2]
-var allBlocks = allBlocks.concat([distractor1])
+let allBlocks = [situation1.block1, situation1.block2]
+let worldDynamic = allBlocks.concat([distractor1])
 
-var worldStatic = [ground, platform]
-var worldStatic = worldStatic.concat(distractorElems.platform)
-
-showScene(worldStatic, allBlocks)
+let objsStatic = [ground, platform]
+let worldStatic = objsStatic.concat(distractorElems.platform)
