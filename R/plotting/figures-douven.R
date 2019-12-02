@@ -9,6 +9,10 @@ RESULT_DIR <- file.path("data", "douven-examples", fsep=.Platform$file.sep)
 TARGET_DIR <- file.path(RESULT_DIR, "figs", fsep=.Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
 
+params <- list()
+params$bias <- ""
+params$target <- ""
+params$save <- FALSE
 # 1. Skiing ---------------------------------------------------------------
 # Data
 fn <- file.path(RESULT_DIR, "results-skiing.rds")
@@ -16,8 +20,9 @@ data_long <- readRDS(fn)
 data_wide <- data_long %>% spread(key=cell, val=val, fill = 0)
 # df <- data_wide %>% adapt_bn_ids()
 
-trust <- data_long %>% listener_beliefs("PL", c("C"))
-trust_df <- trust %>% select(-marginal_cn_int, -keep) %>% add_column(level="trust", prob=1, bn_id=NA)
+trust <- data_long %>% listener_beliefs("PL", params, c("C"))
+trust_df <- trust %>% select(-marginal_cn_int, -keep) %>%
+  add_column(level="trust", prob=1, bn_id="0")
   
 data <- bind_rows(data_long, trust_df)
 
@@ -30,8 +35,8 @@ p <- p + facet_wrap(~p, labeller=labeller(p=c(`E`=paste(strwrap("Expected degree
                                             collapse="\n"))))  +
   scale_x_discrete(limits = c("prior", "LL", "PL", "trust"),
                      labels = c("Prior Belief",
-                     paste(strwrap("Literal interpretation", width=10), collapse="\n"),
-                     paste(strwrap("Pragmatic interpretation", width=10), collapse="\n"),
+                     paste(strwrap("Literal interpretation", width=15), collapse="\n"),
+                     paste(strwrap("Pragmatic interpretation", width=15), collapse="\n"),
                      paste(strwrap("Listener's beliefs conditioned on C", width=20), collapse="\n"))
                      ) 
 p

@@ -24,7 +24,7 @@ marginalize <- function(data, vars){
   df <- data %>% filter_vars(vars)
   df <- df %>%  mutate(p=case_when(keep ~ val, TRUE ~ 0)) %>%
           group_by(bn_id, level, intention) %>% mutate(p=sum(p))  %>%
-          select(-keep) %>% spread(key=cell, val=val)
+          select(-keep) %>% spread(key=cell, val=val, fill = 0)
         
   return(df)
 }
@@ -123,8 +123,8 @@ plot_evs <- function(data){
   p <- data %>% ggplot() +
     geom_bar(mapping = aes(x=level, y=ev, fill=level), stat="identity", position="dodge") +
     labs(x="", y="", title="") +
-    theme(axis.text.x = element_text(angle = 30, hjust = 1, size=12),
-          text = element_text(size= 25),
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=12),
+          text = element_text(size= 20),
           legend.position = "none") 
   return(p)
 }
