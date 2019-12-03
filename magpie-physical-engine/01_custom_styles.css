@@ -50,6 +50,7 @@
   grid-area: header;
   margin: auto;
   max-width: 700px;
+  padding: 50px;
 }
 
 /* assign the stimulus questions + slider to corresponding grid space */
@@ -58,11 +59,11 @@
 }
 
 /* change margin of next button so that all fits onto one screen */
-.grid-button {
+/* .grid-button {
   margin: 5px auto 20px auto;
-}
+} */
 
 /* change container of progress_bar, so that all fits on one screen */
-.progress-bar-container {
+/* .progress-bar-container {
   margin: 0 10px 0px 10px;
-}
+} */
