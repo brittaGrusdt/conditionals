@@ -58,5 +58,6 @@ function random_utterance(slider_rating_trials) {
       slider_rating_trials[i].question4
     ]);
   }
+  console.log(slider_rating_trials);
   return slider_rating_trials;
 }
