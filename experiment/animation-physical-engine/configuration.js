@@ -11,7 +11,7 @@ const platformX = canvW / 3
 const platform2H = platformH + platformH / 1.5
 
 const CONFIG = {
-  "simulation": {"duration": 3000,},
+  "simulation": {"duration": 1000,},
 
   "blocks": {"width": 40, "height": 60, "dist2Edge": 5, "step": 10, "friction": 0.75},
 
