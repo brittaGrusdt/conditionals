@@ -29,7 +29,7 @@ const multi_slider_generator = {
             config.data[CT].QUD
           }</strong></p>
           <div class = 'magpie-grid-slider'>
-              <div id='utterance1' class='magpie-view-answer-container magpie-nodisplay'>
+              <div id='utterance1' class='magpie-view-answer-container'>
                   <p class='magpie-view-question' id = 'question1' >${
                     config.data[CT].allUtterances[0]
                   }</p>
@@ -53,7 +53,7 @@ const multi_slider_generator = {
                   <input type='range' id='response3' name='answer3' class='magpie-response-slider' min='0' max='100' value='50'/>
                   <span class='magpie-response-slider-option'>${option2}</span>
               </div>
-              <div id='utterance4 'class='magpie-view-answer-container'>
+              <div id='utterance4' class='magpie-view-answer-container magpie-nodisplay'>
                   <p class='magpie-view-question' id = 'question4' >${
                     config.data[CT].allUtterances[3]
                   }</p>
@@ -63,6 +63,9 @@ const multi_slider_generator = {
               </div>
         </div>
       </div>
+      <button id='button2' class ='magpie-view-button grid-button magpie-nodisplay'>Next utterance</button>
+      <button id='button3' class ='magpie-view-button grid-button magpie-nodisplay'>Next utterance</button>
+      <button id='button4' class ='magpie-view-button grid-button magpie-nodisplay'>Next utterance</button>
       <button id='next' class='magpie-view-button grid-button magpie-nodisplay'>Next</button>`;
   },
 
@@ -97,21 +100,44 @@ const multi_slider_generator = {
 
     // check all 4 sliders
     response1.on("change", function() {
-      $("#next").removeClass("magpie-nodisplay");
+      // $("#utterance2")
+      //   .removeClass("magpie-nodisplay");
+      $("#button2").removeClass("magpie-nodisplay");
+      //$("#utterance1").toggleClass("magpie-nodisplay");
     });
+
+    $("#button2").on("click", function() {
+      $("#utterance1").toggleClass("magpie-nodisplay");
+      $("#utterance2").removeClass("magpie-nodisplay");
+      $("#button2").toggleClass("magpie-nodisplay");
+    });
+
     response2.on("change", function() {
-      $("#utterance3").removeClass("magpie-nodisplay");
+      $("#button3").removeClass("magpie-nodisplay");
+      // $("#utterance3").removeClass("magpie-nodisplay");
+      // $("#utterance2").toggleClass("magpie-nodisplay");
+    });
+
+    $("#button3").on("click", function() {
       $("#utterance2").toggleClass("magpie-nodisplay");
+      $("#utterance3").removeClass("magpie-nodisplay");
+      $("#button3").toggleClass("magpie-nodisplay");
     });
 
     response3.on("change", function() {
-      $("#utterance1").removeClass("magpie-nodisplay");
+      $("#button4").removeClass("magpie-nodisplay");
+      // $("#utterance4").removeClass("magpie-nodisplay");
+      // $("#utterance3").toggleClass("magpie-nodisplay");
+    });
+
+    $("#button4").on("click", function() {
       $("#utterance3").toggleClass("magpie-nodisplay");
+      $("#utterance4").removeClass("magpie-nodisplay");
+      $("#button4").toggleClass("magpie-nodisplay");
     });
 
     response4.on("change", function() {
-      $("#utterance2").removeClass("magpie-nodisplay");
-      $("#utterance4").toggleClass("magpie-nodisplay");
+      $("#next").removeClass("magpie-nodisplay");
     });
 
     $("#next").on("click", function() {
