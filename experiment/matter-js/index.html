@@ -14,15 +14,11 @@
     <p id="greenAfterY">After Y: </p>
     <p id="timestamp"></p>
 
-    <!-- install two libraries with npm into home directory: -->
-    <!-- npm install underscore -->
-    <!-- npm install matter-js -->
-    <script type="text/javascript"
-            src="../../../../node_modules/matter-js/build/matter.js"></script>
-            <!-- src="/home/britta/node_modules/matter-js/build/matter.js"></script> -->
-    <script type="text/javascript"
-            src="../../../../node_modules/underscore/underscore.js"></script>
-            <!-- src="/home/britta/node_modules/underscore/underscore.js"></script> -->
+    <!-- install two libraries with npm globally: -->
+    <!-- npm install -g underscore -->
+    <!-- npm install -g matter-js -->
+    <script type="text/javascript" src="./js/matter.js"></script>
+    <script type="text/javascript" src="./js/underscore.js"></script>
 
     <!-- my files -->
     <script type="text/javascript" src="helpers-towers.js"></script>
@@ -40,11 +36,9 @@
     };
     </script>
 
-    <script>
-      showScene(worldStatic, worldDynamic)
-      freezeAnimation()
-    </script>
+    <script>showScene(worldStatic, worldDynamic)</script>
 
+    <!-- <script src="webppl.js"></script> -->
     <button id="runButton" onclick="clickOnRun()">Run</button>
 
   </body>
