@@ -19,8 +19,10 @@ var render = Render.create({
 });
 
 // 1. create objects
-var ground = makeBlock(CONFIG.ground, {static: true, color: "black", label: "ground"})
-var platform = makeBlock(CONFIG.platform, {static: true, color: "darkgray", label: "platform"})
+var ground = makeBlock(
+  CONFIG.ground, {static: true, color: "black", label: "ground"});
+var platform = makeBlock(
+  CONFIG.platform, {static: true, color: "darkgray", label: "platform"});
 
 var allRelevantBlocks = createColorCounterbalancedBlocks(platform)
 var distractorTowers = createDistractorTowers();
@@ -45,7 +47,7 @@ Events.on(engine, 'afterUpdate', function(event) {
     "timestamp: " + engine.timing.timestamp;
 
   // only do this once after specified nb of ms passed
-  if (animationStarted && engine.timing.timestamp >= CONFIG.simulation.duration) {
+  if(animationStarted && engine.timing.timestamp >= CONFIG.simulation.duration){
     freezeAnimation();
     Render.stop(render)
 
@@ -65,7 +67,16 @@ Events.on(engine, 'afterUpdate', function(event) {
   }
 });
 
-
+/**
+* shows world to model with given objects.
+*
+* animation is started but directly freezed.
+*
+* @param {Array<Matter.Bodies>} objectsStatic static objects in
+* modeled world,e.g. ground, platforms
+* @param {Array<Matter.Bodies>} objectsDynamic dynamic objects in modeled world,
+* e.g. blocks
+*/
 var showScene = function(objectsStatic, objectsDynamic){
   World.add(engine.world, objectsStatic.concat(objectsDynamic))
   // save start positions of objects + labels
@@ -79,13 +90,15 @@ var showScene = function(objectsStatic, objectsDynamic){
   Engine.run(engine);
   // run the renderer for visualization
   Render.run(render);
+  freezeAnimation();
 }
 
-
+/**
+* starts to run the animation; it requires prior call of showScene.
+*/
 var runAnimation = function(){
   animationStarted = true
   engine.timing.timeScale = 1
-  // World.add(engine.world, worldStatic.concat(allBlocks));
 }
 
 
