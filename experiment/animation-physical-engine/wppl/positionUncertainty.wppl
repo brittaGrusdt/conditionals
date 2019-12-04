@@ -1,6 +1,7 @@
 let sigma = 0.05
-// let w = 4
-// let h = 6
+let w = 4
+let h = 6
+// s0 is now retrieved from json file singleScene.json
 // let s0 = {block1: {position: {x:10, y:2},
 //            bounds: {max: {x: 10+ w/2}, min:{x: 10 - w/2}}
 //           },
@@ -8,7 +9,7 @@ let sigma = 0.05
 //                    bounds: {max: {x: 16 + w/2}, min:{x: 16 - w/2}}
 //                   }
 //          }
-// let ground = {position: {x:10, y:10}, bounds: {max: {x: 20}, min:{x: 0}}}
+let ground = {position: {x:10, y:10}, bounds: {max: {x: 20}, min:{x: 0}}}
 
 // distribution over x positions of 2 relevant blocks in a single situation
 let Distr = function(blocks){
@@ -43,3 +44,15 @@ let Distr = function(blocks){
     return xSamples
   }});
 }
+
+
+
+var data = fs.read('singleScene.json');
+var s0 = JSON.parse(data);
+console.log(s0);
+
+
+let x = Distr(s0)
+let y = sample(x)
+
+console.log(y)
