@@ -101,7 +101,8 @@ var createDistractorTowers = function(){
   platformDistances.forEach(function(dist){
     let platformProps = CONFIG.platform2[dist]
     let platform = makeBlock(
-      platformProps, {static:true, color: "darkgray", label: "platform2"}
+      platformProps,
+      {static:true, color: "darkgray", label: "platformDistractor"}
     );
 
     // center of distractor block is on left edge of platform
@@ -136,7 +137,7 @@ var createDistractorTowers = function(){
 * @param {Matter.Bodies.rectangle} platform platform on which relevant blocks
 * are placed
 *
-* @return {Array<Object>} keys: 'stacked'/'side' mapping to
+* @return {Array<Object>} keys: 'stacked' + 'side' mapping to
 * [Array<Obect>, Array<Object>] where blocks are outputs from
 * createAllPotentialBlocks; first and second array have counterbalanced colors
 */
