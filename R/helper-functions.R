@@ -123,6 +123,7 @@ plot_evs <- function(data){
   p <- data %>% ggplot() +
     geom_bar(mapping = aes(x=level, y=ev, fill=level), stat="identity", position="dodge") +
     labs(x="", y="", title="") +
+    coord_flip() +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=12),
           text = element_text(size= 20),
           legend.position = "none") 

@@ -33,15 +33,18 @@ ev_pe <-  pe %>% expected_val("E") %>% mutate(level=as.factor(level))
 p <- plot_evs(ev_pe)
 p <- p + facet_wrap(~p, labeller=labeller(p=c(`E`=paste(strwrap("Expected degree of belief in P(E)", width=40),
                                             collapse="\n"))))  +
-  scale_x_discrete(limits = c("prior", "LL", "PL", "trust"),
-                     labels = c("Prior Belief",
-                     paste(strwrap("Literal interpretation", width=15), collapse="\n"),
-                     paste(strwrap("Pragmatic interpretation", width=15), collapse="\n"),
-                     paste(strwrap("Listener's beliefs conditioned on C", width=20), collapse="\n"))
-                     ) 
+  scale_x_discrete(
+    limits = c("trust", "PL", "LL", "prior"),
+    labels = c(
+     paste(strwrap("Listener's beliefs conditioned on C", width=20), collapse="\n"),
+     paste(strwrap("Pragmatic interpretation", width=15), collapse="\n"),
+     paste(strwrap("Literal interpretation", width=15), collapse="\n"),
+     "Prior Belief"
+     )) +
+  scale_y_continuous(limits=c(0,1))
 p
 fn <- paste(TARGET_DIR, "skiing.png", sep=.Platform$file.sep)
-ggsave(fn, p, height = 5, width=6)
+ggsave(fn, p, height = 4, width=6)
 
 
 # 2. Sundowners -----------------------------------------------------------
