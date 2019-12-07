@@ -1,5 +1,6 @@
 library(tidyverse)
 library(ggplot2)
+library(latex2exp)
 source("R/helper-functions.R")
 source("R/plot-functions.R")
 source("R/default-model/helpers-tables.R")
@@ -65,25 +66,23 @@ voi_none <- data_voi %>% filter(startsWith(key, "epistemic_uncertainty") & bias=
 p <- voi_none %>% mutate(value=round(as.numeric(value), 2)) %>% 
   ggplot(aes(x=level, y=value, fill=key)) + 
   geom_bar(stat="identity", position=position_dodge())  +
-  geom_text(aes( label = value, x = level,  y = value ), size=5, vjust=-0.1,
+  geom_text(aes( label = value, x = level,  y = value ), hjust=-0.1, size=6,
             position=position_dodge(0.9)) + 
   scale_x_discrete(limits = c("prior", "LL", "PL"),
                    labels = c("Prior Belief",
-                              paste(strwrap("Literal interpretation", width=15),
+                              paste(strwrap("Literal interpretation", width=12),
                                     collapse="\n"),
                               paste(strwrap("Pragmatic interpretation", width=15),
                                     collapse="\n"))) +
+  scale_y_continuous(limits=c(0,0.2)) +
   scale_fill_discrete(name="",
                       breaks=c("epistemic_uncertainty_A", "epistemic_uncertainty_C"),
-                      labels=c("Antecedent, X: P(A)", "Consequent, X: P(C)")
+                      labels=c("Antecedent (X=A)", "Consequent (X=C)")
                       ) + 
-  labs(y=TeX("$F_X(1-\\theta) + 1-F_X(\\theta)$"), x="") +
-  theme(axis.text.x = element_text(size= 20),
-        axis.text.y = element_text(size= 20),
-        axis.title.y = element_text(size = 20),
-        axis.title.x = element_text(size = 20),
-        strip.text = element_text(size = 20),
-        legend.position = "bottom", legend.text = element_text(size=18))
+  labs(y=TeX("$\\sum_{s\\in Uncertain_S(X)} Pr(s)$"), x="") +
+  theme_classic(base_size=25) +
+  theme(legend.position = "bottom") +
+  coord_flip()
 p
 ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png",
              sep=.Platform$file.sep), p, width=11, height=5)
@@ -134,37 +133,20 @@ df_cp <- data_wide %>% filter(bias=="lawn") %>% group_by(level, cn) %>%
 df_cp$level <- factor(df_cp$level, levels = c("prior", "LL", "PL"))
 
 plot_cns <- function(data){
-  p <- data %>% ggplot(aes(x=level, y=prob, fill=cn)) + 
-    geom_bar(stat="identity", position=position_dodge()) + 
-    geom_text(aes(x=level, y=prob, label=prob), size=5, vjust=-0.01,
+  p <- data %>% ggplot(aes(x=cn, y=prob)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_y_continuous(limits=c(0, 0.3)) +
+    coord_flip() + 
+    facet_wrap(~level, labeller = labeller(
+      level = c(`prior` = "Prior belief",
+                `LL` = paste(strwrap("Literal interpretation", width=12),
+                             collapse="\n"),
+                `PL`= paste(strwrap("Pragmatic interpretation", width=15),
+                            collapse="\n")))) +
+    geom_text(aes(x=cn, y=prob, label=prob), size=5, hjust=-0.05,
               position=position_dodge(0.9)) +
-    # facet_wrap(~level, labeller = labeller(
-    #   level = c(`prior` = "Prior belief",
-    #             `LL` = paste(strwrap("Literal interpretation", width=25),
-    #                          collapse="\n"),
-    #             `PL`= paste(strwrap("Pragmatic interpretation", width=25),
-    #                         collapse="\n")))
-    # ) + 
     labs(x="causal nets", y="probability") +
-    scale_fill_discrete(limits=c("A implies C", "A implies -C",
-                              "-A implies C", "-A implies -C",
-                              "C implies A", "C implies -A",
-                              "-C implies A", "-C implies -A",
-                              "A || C"),
-                     labels=c("A->C", "A->¬C", "¬A->C", "¬A->¬C",
-                              "C->A", "C->¬A", "¬C->A", "¬C->¬A",
-                              "A indep. C"),
-                     ) +
-    # scale_y_continuous(limits=c(0, 1)) +
-    theme(text = element_text(size= 20),
-          axis.text.x = element_text(size=20, angle=0),
-          legend.position = "bottom", legend.title = element_blank(),
-          legend.text = element_text(size=18)
-    ) + 
-    scale_x_discrete(name="",
-                        breaks=c("prior", "LL", "PL"),
-                        labels=c("Prior belief", "Literal interpretation",
-                                 "Pragmatic interpretation"))
+    theme_bw(base_size=25)
   return(p)
 }
 # no bias
