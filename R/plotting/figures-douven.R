@@ -31,8 +31,9 @@ pe <- marginalize(data, c("E"))
 ev_pe <-  pe %>% expected_val("E") %>% mutate(level=as.factor(level))
 
 p <- plot_evs(ev_pe)
-p <- p + facet_wrap(~p, labeller=labeller(p=c(`E`=paste(strwrap("Expected degree of belief in P(E)", width=40),
-                                            collapse="\n"))))  +
+title <- "Expected degree of belief in P(E)"
+p <- p +
+  facet_wrap(~p, labeller=labeller(p=c(`E`=paste(strwrap(title, width=20), collapse="\n"))))  +
   scale_x_discrete(
     limits = c("trust", "PL", "LL", "prior"),
     labels = c(
@@ -44,7 +45,7 @@ p <- p + facet_wrap(~p, labeller=labeller(p=c(`E`=paste(strwrap("Expected degree
   scale_y_continuous(limits=c(0,1))
 p
 fn <- paste(TARGET_DIR, "skiing.png", sep=.Platform$file.sep)
-ggsave(fn, p, height = 4, width=6)
+  ggsave(fn, p, height = 5, width=6)
 
 
 # 2. Sundowners -----------------------------------------------------------
@@ -64,15 +65,23 @@ data <- bind_rows(ev_pr, ev_prs)
 
 # Plots
 p <- plot_evs(data)
-p <- p + facet_wrap(~p, labeller=labeller(p=c(`R`=paste(strwrap("Expected degree of belief in P(R)", width=25),
-                                                 collapse="\n"),
-                                              `RS`=paste(strwrap("Expected degree of belief in P(R ∧ S)",
-                                                                 width=25), collapse="\n")))) +
+
+title1 <-"Expected degree of belief in P(R)"
+title2 <- "Expected degree of belief in P(R ∧ S)"
+ll <- "Literal interpretation"
+pl <- "Pragmatic interpretation"
+p <- p + facet_wrap(~p,
+      labeller=labeller(p=c(`R`=paste(strwrap(title1, width=25), collapse="\n"),
+                            `RS`=paste(strwrap(title2, width=25), collapse="\n")))
+                       ) +
       scale_x_discrete(limits = c("prior", "LL", "PL"),
-                       labels = c("Prior Belief",
-                                  paste(strwrap("Literal interpretation", width=10), collapse="\n"),
-                                  paste(strwrap("Pragmatic interpretation", width=10), collapse="\n"))) 
+                       labels = c(
+                                  paste(strwrap(pl, width=10), collapse="\n"),
+                                  paste(strwrap(ll, width=10), collapse="\n"),
+                                  "Prior Belief")
+                       ) + 
+      scale_y_continuous(limits=c(0,1))
 p
 fn <- paste(TARGET_DIR, "sundowners.png", sep=.Platform$file.sep)
-ggsave(fn, p, height = 6, width=9)
+ggsave(fn, p, height = 5, width=9)
 
