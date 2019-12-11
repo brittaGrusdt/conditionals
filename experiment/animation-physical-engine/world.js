@@ -1,11 +1,15 @@
 // Module aliases
 var Engine = Matter.Engine,
-    Render = Matter.Render,
-    World = Matter.World,
-    Bodies = Matter.Bodies;
-    Events = Matter.Events;
+  Render = Matter.Render,
+  World = Matter.World,
+  Bodies = Matter.Bodies;
+Events = Matter.Events;
 
-var engine = Engine.create({timing: {timeScale: 1}});
+var engine = Engine.create({
+  timing: {
+    timeScale: 1
+  }
+});
 
 var render = Render.create({
   element: document.body,
@@ -20,9 +24,17 @@ var render = Render.create({
 
 // 1. create objects
 var ground = makeBlock(
-  CONFIG.ground, {static: true, color: "black", label: "ground"});
+  CONFIG.ground, {
+    static: true,
+    color: "black",
+    label: "ground"
+  });
 var platform = makeBlock(
-  CONFIG.platform, {static: true, color: "darkgray", label: "platform"});
+  CONFIG.platform, {
+    static: true,
+    color: "darkgray",
+    label: "platform"
+  });
 
 var allRelevantBlocks = createColorCounterbalancedBlocks(platform)
 var distractorTowers = createDistractorTowers();
@@ -37,26 +49,26 @@ let objPropsAfter = {};
 
 let animationStarted = false
 
-var freezeAnimation = function(){
+var freezeAnimation = function () {
   engine.timing.timeScale = 0
 }
 
 // after duration of simulation freeze and save data
-Events.on(engine, 'afterUpdate', function(event) {
-  document.getElementById("timestamp").innerHTML =
-    "timestamp: " + engine.timing.timestamp;
+Events.on(engine, 'afterUpdate', function (event) {
+  //document.getElementById("timestamp").innerHTML =
+  //  "timestamp: " + engine.timing.timestamp;
 
   // only do this once after specified nb of ms passed
-  if(animationStarted && engine.timing.timestamp >= CONFIG.simulation.duration){
+  if (animationStarted && engine.timing.timestamp >= CONFIG.simulation.duration) {
     freezeAnimation();
     Render.stop(render)
 
     // save body positions + labels after animation
-    engine.world.bodies.forEach(function(body){
+    engine.world.bodies.forEach(function (body) {
       objPropsAfter[body.label] = JSON.parse(JSON.stringify(body.position));
     });
-    document.getElementById("greenAfterX").innerHTML += Math.round(objPropsAfter["greenBlock"].x, 2);
-    document.getElementById("greenAfterY").innerHTML += Math.round(objPropsAfter["greenBlock"].y, 2);
+    //document.getElementById("greenAfterX").innerHTML += Math.round(objPropsAfter["greenBlock"].x, 2);
+    //document.getElementById("greenAfterY").innerHTML += Math.round(objPropsAfter["greenBlock"].y, 2);
 
     // Stop animation and clear world
     World.clear(engine.world)
@@ -68,24 +80,24 @@ Events.on(engine, 'afterUpdate', function(event) {
 });
 
 /**
-* shows world to model with given objects.
-*
-* animation is started but directly freezed.
-*
-* @param {Array<Matter.Bodies>} objectsStatic static objects in
-* modeled world,e.g. ground, platforms
-* @param {Array<Matter.Bodies>} objectsDynamic dynamic objects in modeled world,
-* e.g. blocks
-*/
-var showScene = function(objectsStatic, objectsDynamic){
+ * shows world to model with given objects.
+ *
+ * animation is started but directly freezed.
+ *
+ * @param {Array<Matter.Bodies>} objectsStatic static objects in
+ * modeled world,e.g. ground, platforms
+ * @param {Array<Matter.Bodies>} objectsDynamic dynamic objects in modeled world,
+ * e.g. blocks
+ */
+var showScene = function (objectsStatic, objectsDynamic) {
   World.add(engine.world, objectsStatic.concat(objectsDynamic))
   // save start positions of objects + labels
-  engine.world.bodies.forEach(function(body){
+  engine.world.bodies.forEach(function (body) {
     objPropsBefore[body.label] = JSON.parse(JSON.stringify(body.position));
   });
 
-  document.getElementById("greenBeforeX").innerHTML +=  objPropsBefore["greenBlock"].x
-  document.getElementById("greenBeforeY").innerHTML += objPropsBefore["greenBlock"].y
+  //document.getElementById("greenBeforeX").innerHTML +=  objPropsBefore["greenBlock"].x
+  //document.getElementById("greenBeforeY").innerHTML += objPropsBefore["greenBlock"].y
   // run the engine for simulation of our world
   Engine.run(engine);
   // run the renderer for visualization
@@ -94,9 +106,9 @@ var showScene = function(objectsStatic, objectsDynamic){
 }
 
 /**
-* starts to run the animation; it requires prior call of showScene.
-*/
-var runAnimation = function(){
+ * starts to run the animation; it requires prior call of showScene.
+ */
+var runAnimation = function () {
   animationStarted = true
   engine.timing.timeScale = 1
 }
