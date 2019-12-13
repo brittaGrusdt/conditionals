@@ -135,8 +135,8 @@ adapt_bn_ids <- function(data_wide){
 
 
 plot_tables <- function(data){
+  # data must be in long format with columns *cell* and *val*
   cns <- data$cn %>% as.factor() %>% levels()
-  data <- data %>% mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")))
   plots <- list(); idx = 1
   for(causal_net in cns){
     if(causal_net == "A || C"){
@@ -144,17 +144,20 @@ plot_tables <- function(data){
     } else {
       cn_title <- causal_net
     }
-    p <- data %>% filter(cn==causal_net) %>%
+    p <- data %>% 
+      filter(cn==causal_net) %>%
       ggplot(aes(x=val,  color = cell)) +
       geom_density() +
-      facet_wrap(~cell, scales = "free_y",
-                 labeller = labeller(
-                   cell = c(`AC` = "A ∧ C", `A-C` = "A ∧ ¬C",
-                            `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C"))
-      ) +
-      labs(title = "", x="probability") +
-      theme(legend.position = "none", text = element_text(size=20),
-            axis.text.x = element_text(size=15), axis.text.y=element_text(size=15))
+      facet_wrap(~cell, ncol = 2, scales = "free_y",
+                 labeller = labeller(cell = c(`AC` = "A ∧ C", `A-C` = "A ∧ ¬C",
+                                              `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C")
+                                     )
+                 ) +
+      labs(title = cn_title, x="probability") +
+      # theme_minimal(base_size = 20) +
+      theme_classic(base_size = 20) +
+      # theme_void(base_size = 20) +
+      theme(legend.position = "none", axis.text.x = element_text(size=10))
     plots[[idx]] <- p
     idx <- idx + 1
     print(p)

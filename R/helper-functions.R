@@ -17,6 +17,24 @@ filter_vars <- function(df_long, vars){
   return(df)
 }
 
+
+gather_utterances <- function(df){
+  df <- df %>% gather(A, C, `-A`, `-C`,
+                      `C and A`, `-C and A`, `C and -A`, `-C and A`,
+                      `likely A`, `likely C`, `likely -A`, `likely -C`,
+                      `A > C`, `A > -C`, `-A > C`, `-A > -C`,
+                      `C > A`, `C > -A`, `-C > A`, `-C > -A`,
+                      key="utterance", val="p_utt")
+  return(df)
+}
+
+add_pspeaker_max_conj_lit <- function(df){
+  df <- df %>% mutate(pmax_conj_lit =
+                        max(A, `-A`, C, `-C`,
+                            `C and A`, `C and -A`, `-C and A`,`-C and -A`))
+  return(df)
+}
+
 # Probabilities -----------------------------------------------------------
 marginalize <- function(data, vars){
   # data must be in long format, such that cell is one column and marginals can
@@ -85,6 +103,18 @@ filter_by_model_params <- function(df, params){
   return(df)
 }
 
+likelihood <- function(df_wide, sigma_indep){
+  # prepare
+  df <- df_wide %>% compute_cond_prob("P(C|A)") %>% rename(p_c_given_a=p)
+  df <- df %>% compute_cond_prob("P(C|-A)") %>% rename(p_c_given_na=p)
+  df <- df %>% mutate(pa=AC+`A-C`, pc=AC+`-AC`)  
+  # compute
+  df %>% mutate(likelihood_ind=log(dnorm(AC, mean=pa*pc, sd=sigma_indep)),
+                likelihood_ac=log(dbeta(p_c_given_a, 10, 1)) +
+                              log(dbeta(p_c_given_na, 1, 10))
+                )
+}
+
 # other functions ---------------------------------------------------------
 hellinger <- function(p, q){
   (1/sqrt(2)) * sqrt(sum((sqrt(p)-sqrt(q))^2))
@@ -115,7 +145,6 @@ adapt_bn_ids <- function(data_wide){
   df <- df %>% separate(cells, cell_names, sep="__", convert=TRUE) 
   return(df)
 }
-
 
 # plotting functions ------------------------------------------------------
 
