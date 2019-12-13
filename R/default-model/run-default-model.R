@@ -30,8 +30,11 @@ params$bias <- "pizza"
 # params$level_max <- "prior_conditioned"
 # params$level_max="ll_all_utts"
 params$level_max="PL"
+# params$level_max="speaker"
 # params$speaker_intents=c("")
 params$speaker_intents=c("ISA", "PA")
+# params$utt <- "p_delta"
+# params$utt <- "p_rooij"
 # params$utt <- ""
 params$utt <- "A > C"
 # params$utt <- "C and A"
@@ -105,19 +108,25 @@ params$utterances <- utterances
 params$model_path="./model/default-model/default-model.wppl"
 
 posterior <- run_webppl(params$model_path, params)
-if(params$level_max == "speaker"){
-  if(params$speaker_intents %>% length > 1){
-    s <- "with-intents"
-  } else{s <- "without-intents"}
-  if(params$utt != ""){
-    params$target <- paste(params$target, "given", params$utt, s, sep="-")
-    # params$target <- paste(params$target, "given", params$utt, "not-conj", s, sep="-")
-    # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
-  }
-  speaker <- posterior %>% structure_speaker_data(params)
-  speaker_avg <- speaker %>% average_speaker(params)
-  speaker_avg
+if(params$speaker_intents %>% length > 1){
+  s <- "with-intents"
+} else{ 
+    s <- "without-intents"
+}
+# update target fn if necessary
+if(params$level_max == "speaker" & params$utt != ""){
+  params$target <- paste(params$target, "given", params$utt, s, sep="-")
+      # params$target <- paste(params$target, "given", params$utt, "not-conj", s, sep="-")
+      # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
+} else if(params$bias == "pizza"){
+  params$target <- paste(params$target, s, sep="-")
+}
 
+# structure + save data
+if(params$level_max == "speaker"){
+    speaker <- posterior %>% structure_speaker_data(params)
+    speaker_avg <- speaker %>% average_speaker(params)
+    speaker_avg
 } else{
   data <- posterior %>% structure_listener_data(params)
   trust <- data %>% listener_beliefs("PL", params)
