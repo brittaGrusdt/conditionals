@@ -12,13 +12,13 @@
 const multi_slider_generator = {
   // we do not want to show the picture in the stimulus container anymore, but in the grid
   // together with the answer_container
-  stimulus_container_gen: function(config, CT) {
+  stimulus_container_gen: function (config, CT) {
     return `<div class='magpie-view'>
                          <h1 class='magpie-view-title'>${config.title}</h1>
                      </div>`;
   },
 
-  answer_container_gen: function(config, CT) {
+  answer_container_gen: function (config, CT) {
     const option1 = config.data[CT].optionRight;
     const option2 = config.data[CT].optionLeft;
     return `<div class='magpie-multi-slider-grid' id='target'>.
@@ -66,10 +66,11 @@ const multi_slider_generator = {
       <button id='button2' class ='magpie-view-button grid-button magpie-nodisplay'>Next utterance</button>
       <button id='button3' class ='magpie-view-button grid-button magpie-nodisplay'>Next utterance</button>
       <button id='button4' class ='magpie-view-button grid-button magpie-nodisplay'>Next utterance</button>
-      <button id='next' class='magpie-view-button grid-button magpie-nodisplay'>Next</button>`;
+      <button id='next' class='magpie-view-button grid-button magpie-nodisplay'>Next</button>
+      <button id="runButton" onclick="clickOnRun()" class ='grid-button magpie-nodisplay' >Run</button>`;
   },
 
-  handle_response_function: function(
+  handle_response_function: function (
     config,
     CT,
     magpie,
@@ -81,133 +82,110 @@ const multi_slider_generator = {
     let response3;
     let response4;
 
-    $(".magpie-view").append(answer_container_generator(config, CT));
+    $(".magpie-view")
+      .append(answer_container_generator(config, CT));
 
     response1 = $("#response1");
     response2 = $("#response2");
     response3 = $("#response3");
     response4 = $("#response4");
 
-    // function for debug
+    // function for debugging - if "y" is pressed, the slider will change
 
-    // $("#response1")
-    //   .onkeypress(function () {
-    //     // var x = event.keyCode;
-    //     // if (x == 97 || 65 || 27) {
-    //     //   // 27 is the ESC key
-    //     //   alert("You pressed the a key!");
-    //     //   alert("Handler for .onkeypress() called.");
-    //     var x = event.charCode || event.keyCode;
-    //     if (x == 111 || x == 79) {
-    //       //o / O
-    //       //x.innerHTML = "The ALT key was pressed!";
-    //       alter("you pressend o");
-    //     }
-    //   });
+    document.addEventListener("keydown", event => {
+      var keyName = event.key;
 
-    // $("#target").on("keypress", function() {
-    //   // var x = event.keyCode;
-    //   // if (x == 97 || 65 || 27) {
-    //   //   // 27 is the ESC key
-    //   //   alert("You pressed the a key!");
-    //   //   alert("Handler for .onkeypress() called.");
-    //   var x = event.charCode || event.keyCode;
-    //   if (x == 111 || x == 79) {
-    //     //o / O
-    //     //x.innerHTML = "The ALT key was pressed!";
-    //     alter("you pressend o");
-    //   }
-    // });
-
-    // $(document)
-    //   .keypress(function (e) {
-    //     if (e.which == 13) {
-    //       alert('Enter was pressed'); // enter pressed
-    //     }
-    //   });
-
-    $("#target").on("keypress", function(e) {
-      if (e.which == 111) {
-        alert("Enter was pressed"); // enter pressed
-        console.log("functions keypress");
+      if (keyName === "y") {
+        //$(input).value == 20;
+        //$("#response1").attr("value", "20");
+        $(".magpie-response-slider")
+          .change("value", "20");
+        //$(magpie - response - slider).value = 20;
+        // not alert when only Control key is pressed.
+        alert("y was pressed");
+        return keyName;
       }
     });
-
-    $("#target").on("keydown", function(e) {
-      if (e.which == 111) {
-        console.log("functions keydown");
-        alert("Enter was pressed"); // enter pressed
-      }
-    });
-    //
-    // $("#target")
-    //   .addEventListener("keypress", function (evt) {
-    //     //var x = event.charCode || event.keyCode;
-    //     // if (x == 111 || x == 79) {
-    //     //   //o / O
-    //     //   //x.innerHTML = "The ALT key was pressed!";
-    //     //   alter("you pressend o");
-    //     //  }
-    //     alert(evt.keyCode)
-    //
-    //   });
 
     // check the sliders for all 4 utterance and handle what utterance
     // is shown and what button is shown
-    response1.on("change", function() {
-      $("#button2").removeClass("magpie-nodisplay");
+    response1.on("change", function () {
+      $("#button2")
+        .removeClass("magpie-nodisplay");
     });
 
-    $("#button2").on("click", function() {
-      $("#utterance1").toggleClass("magpie-nodisplay");
-      $("#utterance2").removeClass("magpie-nodisplay");
-      $("#button2").toggleClass("magpie-nodisplay");
+    $("#button2")
+      .on("click", function () {
+        $("#utterance1")
+          .toggleClass("magpie-nodisplay");
+        $("#utterance2")
+          .removeClass("magpie-nodisplay");
+        $("#button2")
+          .toggleClass("magpie-nodisplay");
+      });
+
+    response2.on("change", function () {
+      $("#button3")
+        .removeClass("magpie-nodisplay");
     });
 
-    response2.on("change", function() {
-      $("#button3").removeClass("magpie-nodisplay");
+    $("#button3")
+      .on("click", function () {
+        $("#utterance2")
+          .toggleClass("magpie-nodisplay");
+        $("#utterance3")
+          .removeClass("magpie-nodisplay");
+        $("#button3")
+          .toggleClass("magpie-nodisplay");
+      });
+
+    response3.on("change", function () {
+      $("#button4")
+        .removeClass("magpie-nodisplay");
     });
 
-    $("#button3").on("click", function() {
-      $("#utterance2").toggleClass("magpie-nodisplay");
-      $("#utterance3").removeClass("magpie-nodisplay");
-      $("#button3").toggleClass("magpie-nodisplay");
+    $("#button4")
+      .on("click", function () {
+        $("#utterance3")
+          .toggleClass("magpie-nodisplay");
+        $("#utterance4")
+          .removeClass("magpie-nodisplay");
+        $("#button4")
+          .toggleClass("magpie-nodisplay");
+      });
+
+    response4.on("change", function () {
+      $("#runButton")
+        .removeClass("magpie-nodisplay");
+      $("#next")
+        .removeClass("magpie-nodisplay");
     });
 
-    response3.on("change", function() {
-      $("#button4").removeClass("magpie-nodisplay");
-    });
-
-    $("#button4").on("click", function() {
-      $("#utterance3").toggleClass("magpie-nodisplay");
-      $("#utterance4").removeClass("magpie-nodisplay");
-      $("#button4").toggleClass("magpie-nodisplay");
-    });
-
-    response4.on("change", function() {
-      $("#next").removeClass("magpie-nodisplay");
-    });
-
-    $("#next").on("click", function() {
-      const RT = Date.now() - startingTime; // measure RT before anything else
-      let trial_data = {
-        trial_name: config.name,
-        trial_number: CT + 1,
-        response: [
-          $("#response1").val(),
-          $("#response2").val(),
-          $("#response3").val(),
-          $("#response4").val()
+    $("#next")
+      .on("click", function () {
+        const RT = Date.now() - startingTime; // measure RT before anything else
+        let trial_data = {
+          trial_name: config.name,
+          trial_number: CT + 1,
+          response: [
+          $("#response1")
+            .val(),
+          $("#response2")
+            .val(),
+          $("#response3")
+            .val(),
+          $("#response4")
+            .val()
         ],
-        RT: RT
-      };
+          RT: RT
+        };
 
-      trial_data = magpieUtils.view.save_config_trial_data(
-        config.data[CT],
-        trial_data
-      );
-      magpie.trial_data.push(trial_data);
-      magpie.findNextView();
-    });
+        trial_data = magpieUtils.view.save_config_trial_data(
+          config.data[CT],
+          trial_data
+        );
+        magpie.trial_data.push(trial_data);
+        magpie.findNextView();
+      });
   }
 };
