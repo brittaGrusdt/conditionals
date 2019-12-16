@@ -45,6 +45,59 @@
       >
     </noscript>
 
+    // Brittas code entered
+    <!-- <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script> -->
+    <script
+      type="text/javascript"
+      src="../animation-physical-engine/configuration.js"
+    ></script>
+
+    <!-- install two libraries with npm globally: -->
+    <!-- npm install -g underscore -->
+    <!-- npm install -g matter-js -->
+    <!-- TODO: is there a better way to do this? -->
+    <script
+      type="text/javascript"
+      src="../animation-physical-engine/js/matter.js"
+    ></script>
+    <!-- <script type="text/javascript" src="./js/underscore.js"></script> -->
+
+    <!-- my files -->
+    <script
+      type="text/javascript"
+      src="../animation-physical-engine/helpers-towers.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="../animation-physical-engine/towers.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="../animation-physical-engine/world.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="../animation-physical-engine/simulations.js"
+    ></script>
+    <div id="test">
+      <script>
+        var nbClicks = 0;
+        function clickOnRun() {
+          nbClicks += 1;
+          console.log("inside");
+          if (nbClicks === 1) {
+            runAnimation(worldStatic, worldDynamic);
+          }
+        }
+      </script>
+
+      <script>
+        showScene(worldStatic, worldDynamic);
+      </script>
+      <button id="runButton" onclick="clickOnRun()">Run</button>
+    </div>
+    // end of Brittas code for animations
+
     <!-- views are inserted in main -->
     <main id="main">
       Loading...
