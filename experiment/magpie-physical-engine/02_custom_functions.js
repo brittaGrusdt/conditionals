@@ -6,48 +6,44 @@ const coin = _.sample(["head", "tail"]); // You can determine global (random) pa
 /* For generating random participant IDs */
 // https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
 // dec2hex :: Integer -> String
-const dec2hex = function (dec) {
-  return ("0" + dec.toString(16))
-    .substr(-2);
+const dec2hex = function(dec) {
+  return ("0" + dec.toString(16)).substr(-2);
 };
 // generateId :: Integer -> String
-const generateID = function (len) {
+const generateID = function(len) {
   let arr = new Uint8Array((len || 40) / 2);
   window.crypto.getRandomValues(arr);
-  return Array.from(arr, this.dec2hex)
-    .join("");
+  return Array.from(arr, this.dec2hex).join("");
 };
 
 // Error feedback if participants exceeds the time for responding
-const time_limit = function (data, next) {
+const time_limit = function(data, next) {
   if (typeof window.timeout === "undefined") {
     window.timeout = [];
   }
   // Add timeouts to the timeoutarray
   // Reminds the participant to respond after 5 seconds
   window.timeout.push(
-    setTimeout(function () {
-      $("#reminder")
-        .text("Please answer more quickly!");
+    setTimeout(function() {
+      $("#reminder").text("Please answer more quickly!");
     }, 5000)
   );
   next();
 };
 
 // compares the chosen answer to the value of `option1`
-check_response = function (data, next) {
-  $("input[name=answer]")
-    .on("change", function (e) {
-      if (e.target.value === data.correct) {
-        alert("Your answer is correct! Yey!");
-      } else {
-        alert(
-          "Sorry, this answer is incorrect :( The correct answer was " +
+check_response = function(data, next) {
+  $("input[name=answer]").on("change", function(e) {
+    if (e.target.value === data.correct) {
+      alert("Your answer is correct! Yey!");
+    } else {
+      alert(
+        "Sorry, this answer is incorrect :( The correct answer was " +
           data.correct
-        );
-      }
-      next();
-    });
+      );
+    }
+    next();
+  });
 };
 
 // custom functions:
@@ -55,11 +51,12 @@ check_response = function (data, next) {
 // function to randomly order the four utterences, given per trial
 function random_utterance(slider_rating_trials) {
   for (var i = 0; i < slider_rating_trials.length; i++) {
-
     slider_rating_trials[i].question1 = "The green block will fall.";
     slider_rating_trials[i].question2 = "The blue block will fall.";
-    slider_rating_trials[i].question3 = "If the green block falls, the blue block will also fall.";
-    slider_rating_trials[i].question4 = "If the blue block falls, the green block will also fall.";
+    slider_rating_trials[i].question3 =
+      "If the green block falls, the blue block will also fall.";
+    slider_rating_trials[i].question4 =
+      "If the blue block falls, the green block will also fall.";
 
     slider_rating_trials[i].allUtterances = _.shuffle([
       slider_rating_trials[i].question1,
@@ -70,4 +67,22 @@ function random_utterance(slider_rating_trials) {
   }
   console.log(slider_rating_trials);
   return slider_rating_trials;
-};
+}
+
+// code for animation
+
+// var nbClicks = 0;
+//
+// function clickOnRun() {
+//   nbClicks += 1;
+//   console.log("inside");
+//   if (nbClicks === 1) {
+//     runAnimation(worldStatic, worldDynamic);
+//   }
+// }
+//
+//
+//
+// showScene(worldStatic, worldDynamic);
+
+//<button id="runButton" onclick="clickOnRun()">Run</button>

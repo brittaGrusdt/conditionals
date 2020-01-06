@@ -1,11 +1,11 @@
 library(tidyverse)
 library(ggplot2)
 library(latex2exp)
+library(cowplot)
 source("R/helper-functions.R")
-source("R/plot-functions.R")
 source("R/default-model/helpers-tables.R")
-
-# Data --------------------------------------------------------------------
+source("R/plotting/plotting-functions.R")
+# 0. Data --------------------------------------------------------------------
 TARGET_DIR <- file.path("data", "default-model", "figs", fsep=.Platform$file.sep)
 dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
 model_params <- list()
@@ -13,21 +13,29 @@ model_params$theta=0.9
 model_params$alpha=3
 model_params$cost_conditional=0
 
-biscuit_voi <- read_rds(file.path("data", "default-model", "results-pizza-voi.rds"))
+biscuit_voi_intents <- read_rds(
+  file.path("data", "default-model", "results-pizza-with-intents-voi.rds"))
+biscuit_voi_no_intents <- read_rds(
+  file.path("data", "default-model", "results-pizza-without-intents-voi.rds"))
+
 none_voi <- read_rds(file.path("data", "default-model", "results-none-voi.rds"))
 cp_voi <- read_rds(file.path("data", "default-model", "results-lawn-voi.rds"))
-data_voi <- bind_rows(biscuit_voi, none_voi, cp_voi) %>% filter_by_model_params(model_params)
+data_voi <- bind_rows(biscuit_voi_no_intents, none_voi, cp_voi) %>%
+  filter_by_model_params(model_params)
 
-data_biscuits <- read_rds(file.path("data", "default-model", "results-pizza.rds"))
+data_biscuits_intents <- read_rds(
+  file.path("data", "default-model", "results-pizza-with-intents.rds"))
+data_biscuits_no_intents <- read_rds(
+  file.path("data", "default-model", "results-pizza-without-intents.rds"))
 data_default <- read_rds(file.path("data", "default-model", "results-none.rds"))
 data_cp <- read_rds(file.path("data", "default-model", "results-lawn.rds"))
 data_judy <- read_rds(file.path("data", "default-model", "results-judy.rds"))
 
-data <- bind_rows(data_biscuits, data_default, data_cp, data_judy) 
+data <- bind_rows(data_biscuits_no_intents, data_default, data_cp, data_judy) 
 data_wide <- data %>% spread(key=cell, val=val)
 
 
-# Tables ------------------------------------------------------------------
+# 1. Tables ------------------------------------------------------------------
 table_params <- list()
 table_params$n_tables <- 100000
 table_params$nor_beta <- NA
@@ -50,17 +58,90 @@ if(!file.exists(tables_path)){
 }
 
 tables <- tables %>% unnest_tables()
-tables_filtered <- tables %>% filter(cn=="A implies C" | cn=="A || C" | cn=="C implies A")
+tables_filtered <- tables %>%
+  filter(cn=="A implies C" | cn=="A || C" | cn=="C implies A") %>% 
+          # cn=="-A implies C" | cn=="A implies -C") %>%
+  mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")),
+         cn=factor(cn, levels=c("A || C", "A implies C", "C implies A")))
+                                # "-A implies C", "A implies -C")))
 
 table_plots <- plot_tables(tables_filtered)
-for(i in seq(1, length(table_plots))){
-  fn <- paste("table-plot-", i, ".png", sep="")
-  p <- table_plots[[i]]
-  ggsave(paste(TARGET_DIR, fn, sep=.Platform$file.sep), p, width=7, height=3.5)
-}
+target_table_plots <- "table_plots.png"
+p <- plot_grid(table_plots[[1]], table_plots[[2]], table_plots[[3]],
+               label_size = 12, ncol=3)
+ggsave(paste(TARGET_DIR, target_table_plots, sep=.Platform$file.sep), p, width=15, height=5)
 
-# Values-of-interest ------------------------------------------------------
-# 1. speaker's uncertainty 
+
+# 2. Prior Default context ---------------------------------------------------
+# 2.1. prior P(A) and P(C)
+df <- data %>% filter(bias=="none")
+df <- marginalize(df, c("A")) %>% rename(pa=p) %>%
+  gather('AC', '-AC', 'A-C', '-A-C', key=cell, val=val)
+df_wide <- marginalize(df, c("C")) %>% rename(pc=p) %>%
+  gather(pa,pc, key='marginal', val=p_marginal)
+
+df_wide %>% ggplot(aes(x=p_marginal, color=marginal)) +
+  facet_wrap(~cn) + geom_density()
+
+# 2.2 prior table entries
+df <- data %>% filter(bias=="none" & level=="prior") 
+
+plots <- df %>% mutate(val=prob*val) %>% plot_tables()
+p_cns <- df %>% spread(key=cell, val=val) %>% group_by(cn) %>% summarize(marginal=sum(prob))
+all_bars <- list(); idx<-1;
+for(causal_net in p_cns$cn){
+  df_val <- p_cns %>% filter(cn==causal_net) %>%
+    mutate(marginal=round(marginal,2), rest=1-marginal) %>% gather(marginal, rest, key=p, val=val)
+  
+  p <- df_val %>% ggplot(aes(x=cn, y=val, fill=p)) +
+        geom_bar(stat="identity", width=0.05, position=position_stack(reverse=TRUE)) + 
+        # geom_text(aes(label=val, x=cn,  y=val), hjust=1, size=6,
+        #           position=position_dodge(0.9)) +
+        annotate(geom="text", x=0.95, y=0.01, label="0") +
+        annotate(geom="text", x=0.95, y=1, label="1") +
+        scale_y_continuous(limits=c(0,1)) +
+        scale_fill_manual(
+          values = c("rest" = "gray", "marginal" = "red"),
+          breaks = c("rest", "marginal")
+        ) +
+        scale_x_discrete(breaks=c(0,1), labels=c("0", "1")) +
+        # coord_flip() + 
+        theme_void(base_size=20) +
+        theme(legend.position="none")
+  all_bars[[idx]] <- p
+  idx <- idx + 1
+  fn <- paste("prior-3x3-plots-", idx, ".png", sep="")
+  target <- paste(TARGET_DIR, fn, sep=.Platform$file.sep)
+  ggsave(target, p, width=2, height=6)
+}
+p <- plot_grid(plots[[1]], plots[[2]], plots[[3]], 
+               plots[[4]], plots[[5]], plots[[6]], 
+               plots[[7]], plots[[8]], plots[[9]],
+               label_size = 12, ncol=3)
+target <- paste(TARGET_DIR, "prior-3x3-plots.png", sep=.Platform$file.sep)
+ggsave(target, p, width=20, height=25)
+
+
+
+# 3. Distribution of acceptance conditions -----------------------------------
+df <- data %>% filter(level=="prior" & bias=="none") %>%
+        spread(key=cell, val=val) %>% 
+        filter(!is.infinite(p_rooij)) %>% 
+        gather(p_delta, p_rooij, key="accept_cond", val="accept_cond_val") 
+        
+
+p <- df %>% ggplot(aes(x=accept_cond_val)) + geom_density() +
+      facet_wrap(~accept_cond, scales="free",
+                 labeller =
+                   labeller(accept_cond=c(`p_delta`="△P", `p_rooij`="△*P"))
+                 ) + labs(x="") + theme_classic(base_size=20)
+
+fn <- paste(TARGET_DIR, "distributions-accept-conditions.png", sep=.Platform$file.sep)
+ggsave(fn, p, width=11, height=5)
+
+
+# 4. Values-of-interest ------------------------------------------------------
+# 4.1 speaker's uncertainty 
 voi_none <- data_voi %>% filter(startsWith(key, "epistemic_uncertainty") & bias=="none") 
 
 p <- voi_none %>% mutate(value=round(as.numeric(value), 2)) %>% 
@@ -87,7 +168,7 @@ p
 ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png",
              sep=.Platform$file.sep), p, width=11, height=5)
 
-# 2. CP-reading
+# 4.2 CP-reading
 voi_lawn_none <- data_voi %>%
                   filter(key=="cp_bns_ac" | key=="cp_cns_ac" | key=="p_nc_given_na") %>% 
                   filter(bias=="none" | bias=="lawn") %>% 
@@ -109,7 +190,8 @@ p <- voi_lawn_none %>% filter(key=="p_nc_given_na") %>%
                               paste(strwrap("Pragmatic interpretation", width=20),
                                     collapse="\n")),
                    position="bottom") +
-  theme(text = element_text(size= 20), legend.position = "bottom") + 
+  theme_classic(base_size = 20) + 
+  theme(legend.position = "bottom") + 
   scale_fill_discrete(name="Context",
                       breaks=c("none", "lawn"),
                       labels=c("Default", "CP")
@@ -124,7 +206,7 @@ ggsave(paste(TARGET_DIR, "comparison-vois-cp.png", sep=.Platform$file.sep),
 # ggsave(fn, p, width=15, height=6)
 ####
 
-# 3. marginal distribution over causal nets
+# 4.3 marginal distribution over causal nets
 df_none <- data_wide %>% filter(bias=="none") %>% group_by(level, cn) %>%
             summarize(prob=round(sum(prob), 2))
 df_none$level <- factor(df_none$level, levels = c("prior", "LL", "PL"))
@@ -160,22 +242,8 @@ p
 ggsave(paste(TARGET_DIR, "lawn-cns.png", sep=.Platform$file.sep), p, width=15, height=7)
 
 
-
-
-
-# Biscuit conditionals ----------------------------------------------------
-# 1) Speaker's degree of belief in consequent and 2) marginal speaker_intents
-evs_pc <- data_voi %>% filter((key=="pc") & (bias=="pizza")) %>%
-          mutate(value=round(as.numeric(value), 2))
-
-data_wide_bc <- data_biscuits %>% spread(key=cell, val=val)
-marginal_intents_bc <- data_wide_bc %>% group_by(level, intention, bias) %>%
-                        summarize(p=sum(prob))
-
-df <- marginal_intents_bc %>% add_column(key="sp_intent") %>% rename(value=p) %>% 
-        bind_rows(evs_pc %>% select(-cost,-alpha)) %>% mutate(value=round(value,2))
-
-biscuit_plots <- function(data, plot_title){
+# 5. Biscuit conditionals ----------------------------------------------------
+biscuit_barplot <- function(data, plot_title){
   p <-  data %>% ggplot(aes(x=level, y=value, fill=intention)) + 
     geom_bar(stat="identity", position=position_dodge()) +
     geom_text(aes( label = value, x = level,  y = value ),
@@ -187,33 +255,36 @@ biscuit_plots <- function(data, plot_title){
                                 paste(strwrap("Pragmatic interpretation", width=15),
                                       collapse="\n")),
                      position="bottom") +
-    labs(y=TeX(""), x="", title=plot_title) +
+    labs(y="", x="", title=plot_title) +
+    theme_classic(base_size = 20) + 
     theme(axis.ticks.y = element_blank(), 
-          axis.text.y = element_text(size= 20),
-          axis.title.x = element_text(size = 20),
-          axis.text.x = element_text(size= 20,  angle=0),
-          strip.text = element_text(size = 20),
           legend.position = "bottom"
           #, panel.spacing = unit(1, "lines")
     )  
   return(p)
 }
-
-p <- biscuit_plots(df %>% filter(key=="sp_intent"),
-                   "Marginal distribution over intentions") 
-p
-fn <- paste(TARGET_DIR, "pizza-intents.png", sep=.Platform$file.sep)
-ggsave(fn, p, width=8, height=6)
-
-p <- biscuit_plots(df %>% filter(key=="pc"),"Expected value of P(C)") 
-p <- p + theme(legend.position="none") + labs(title="")
+# 5.1. Speaker's degree of belief in consequent
+evs_pc <- data_voi %>% filter((key=="pc") & (bias=="pizza")) %>%
+          mutate(value=round(as.numeric(value), 2))
+p <- evs_pc %>% biscuit_barplot("") +
+  theme(legend.position="none")
 p
 fn <- paste(TARGET_DIR, "pizza-pc.png", sep=.Platform$file.sep)
-ggsave(fn, p, width=10, height=4.8)
+ggsave(fn, p, width=12, height=5.5)
+
+# 5.2. marginal distribution of speaker_intents
+df <- data_biscuits_intents %>% spread(key=cell, val=val)
+marginal_intents_bc <- df %>% group_by(level, intention, bias) %>%
+  summarize(p=sum(prob)) %>% rename(value=p)
+
+evs <- marginal_intents_bc %>% mutate(value=round(as.double(value),2))
+p <- evs %>% biscuit_barplot("")
+p
+fn <- paste(TARGET_DIR, "pizza-intents.png", sep=.Platform$file.sep)
+ggsave(fn, p, width=12, height=6)
 
 
-
-# 3. Speaker Average distributions
+# 5.3 speaker average distributions biscuits + default
 fn_default <- "results-none-given-C-without-intents-avg-speaker.rds"
 speaker_default <- read_rds(file.path("data", "default-model", fn_default)) %>% 
                     select(-intention)
@@ -234,18 +305,136 @@ p <- speaker %>%
         geom_bar(stat="identity", position="dodge") + 
         geom_text(aes(label=value, x=utterance,  y=value),
                   position = position_dodge(0.9), size=3.5, vjust=-0.1) +
-        labs(x="", y="", title="Average speaker") +
+        labs(x="", y="", title="") +
+        theme_classic(base_size = 20) +
         theme(axis.text.x = element_text(angle = 30, hjust = 1, size=20),
-              text = element_text(size= 20),
               legend.position = "bottom", legend.direction = "horizontal") + 
         scale_fill_discrete(name="context/intention",
                             breaks=c("none", "isa_pizza", "pa_pizza", "_pizza"),
                             labels=c("default", "biscuit/isa", "biscuit/pa", "biscuit"))
 p
-ggsave(paste(TARGET_DIR, "speaker-default-biscuits.png",
-             sep=.Platform$file.sep), p, width=12, height=6)
+fn <- paste(TARGET_DIR, "speaker-default-biscuits.png", sep=.Platform$file.sep)
+ggsave(fn, p, width=12, height=6)
+
+
+
+# 6. Speaker Distributions ---------------------------------------------------
+# 6.1 conditioned on p_delta / p_roooij > threshold
+fn_default <- "results-none-given-p_delta-without-intents-avg-speaker.rds"
+speaker_p_delta <- read_rds(file.path("data", "default-model", fn_default)) %>% 
+                    select(-intention) %>% add_column(acceptance="p_delta")
+fn_default <- "results-none-given-p_rooij-without-intents-avg-speaker.rds"
+speaker_p_rooij <- read_rds(file.path("data", "default-model", fn_default)) %>% 
+                    select(-intention) %>% add_column(acceptance="p_rooij")
+speaker <- bind_rows(speaker_p_delta, speaker_p_rooij) %>%
+            mutate(mean_per_intention=round(mean_per_intention, 2))
+
+p <- speaker %>%
+  ggplot(aes(x=utterance, y=mean_per_intention)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  facet_wrap(~acceptance, labeller = labeller(acceptance=c(`p_delta` = "△P>=0 ∧ P(C|A)>=0.75",
+                                                           `p_rooij` = "△*P>=0.75"))) +
+  geom_text(aes(label=mean_per_intention, x=utterance,  y=mean_per_intention),
+            position = position_dodge(0.9), size=3.5, hjust=-0.1) +
+  coord_flip() +
+  labs(x="", y="", title="Average speaker") +
+  theme_classic(base_size=20) +
+  theme(legend.position = "none") 
+p
+ggsave(paste(TARGET_DIR, "speaker-given-accept-conditions-fulfilled.png",
+             sep=.Platform$file.sep), p, width=15, height=6)
+
+# 6.2 speaker wrt assertability conditions
+fn_default <- "results-none-speaker.rds"
+speaker_default <- read_rds(file.path("data", "default-model", fn_default)) %>% 
+                    select(-intention) 
+speaker_default <- speaker_default %>%
+  compute_cond_prob("P(C|A)") %>% rename(p_c_given_a=p) %>%
+  compute_cond_prob("P(C|-A)") %>% rename(p_c_given_na=p) %>% 
+  filter(cn=="A implies -C" | cn=="A implies C" |
+         cn=="C implies -A" | cn=="C implies A" | cn=="A || C") %>%
+  spread(key=utterance, val=probs)
+
+df_wide <- speaker_default %>% group_by(bn_id) %>% add_pspeaker_max_conj_lit()
+df_long <- df_wide %>% gather(p_delta, p_rooij, key=condition, val=val) 
+
+accept_condition_speaker_plot <-function(df_wide, ifac_applicable){
+    if(ifac_applicable){
+      df_wide <- df_wide %>% filter(`A > C` > 0)
+    }
+    df_long <- df_wide %>% gather(p_delta, p_rooij, key="condition", val="val")
+    p1 <- plot_conditions_and_speaker(df_long)
+    p2 <- plot_conditions_vs_speaker(df_long)
+    return(list(and=p1, vs=p2))
+}
+# 2.1. △P/△*P is small (<0)
+# check cases where "A>C" may be assertable (P(C|A) large), but △*P is not small
+df_neg_wide <- df_wide %>% filter(p_delta<0 & p_c_given_a>=0.5)
+p <- accept_condition_speaker_plot(df_neg_wide, ifac_applicable=TRUE)
+fn <- paste(TARGET_DIR, "accept_conditions_negative", sep=.Platform$file.sep)
+ggsave(paste(fn, "and.png", sep="_"), p$and, width=15, height=8)
+ggsave(paste(fn, "vs.png", sep="_"), p$vs, width=15, height=8)
+
+df_neg_wide$`A > C` %>% summary()
+pos <- df_neg_wide %>% filter(`A > C` > 0)
+pos$`A > C` %>% summary()
+
+# 2.2 △P/△*P is positive
+df_pos_wide <- df_wide %>% filter(p_delta>0 & p_rooij>0)
+p <- accept_condition_speaker_plot(df_pos_wide, ifac_applicable = FALSE)
+fn <- paste(TARGET_DIR, "accept_conditions_positive", sep=.Platform$file.sep)
+ggsave(paste(fn, "and.png", sep="_"), p$and, width=18, height=8)
+ggsave(paste(fn, "vs.png", sep="_"), p$vs, width=18, height=8)
+
+# 2.3 both into one plot
+df_wide_both <- df_wide %>% filter(p_c_given_a>=0.5)
+p <- accept_condition_speaker_plot(df_wide_both, ifac_applicable = FALSE)
+fn <- paste(TARGET_DIR, "accept_conditions", sep=.Platform$file.sep)
+ggsave(paste(fn, "and.png", sep="_"), p$and, width=18, height=8)
+ggsave(paste(fn, "vs.png", sep="_"), p$vs, width=18, height=8)
+
+df_pos_wide$`A > C` %>% summary()
+pos <- df_pos_wide %>% filter(`A > C` > 0)
+pos$`A > C` %>% summary()
+
+# 2.3. p_delta vs. p_rooij
+comparison_plot <- function(df){
+  # different shape for states P(C|A)>theta
+  theta <- 0.9 
+  # color conditional probability P(C|A)
+  p <- df %>%
+    ggplot(aes(x=p_delta, y=p_rooij, color=p_c_given_a, shape=p_c_given_a>=theta))
+  low <- round(min(df$p_c_given_a), 3)
+  high <- round(max(df$p_c_given_a), 3)
+  plot_cond_prob <- plot_pdelta_vs_prooij(p, list(str="P(C|A)", min=low, max=high))
+  
+  # color probability of speaker to choose "If A, C"
+  p <- df %>% ggplot(aes(x=p_delta, y=p_rooij, color=`A > C`, shape=p_c_given_a>=theta))
+  low <- round(min(df$`A > C`), 3)
+  high <- round(max(df$`A > C`), 3)
+  legend_str <- TeX("$P_S(u=A\\rightarrow C)$")
+  plot_pspeaker_ifac <- plot_pdelta_vs_prooij(p, list(str=legend_str, min=low, max=high))
+  
+  p_compare <- plot_grid(plot_cond_prob, plot_pspeaker_ifac, label_size=25, ncol=2)
+  return(list("speaker"=plot_pspeaker_ifac, "cond_prob"=plot_cond_prob, 
+              "both"=p_compare))
+}
+# 2.3.1 p_delta<0 and therefore p_rooij<0
+df_neg <- df_long %>% filter(val<0) %>% spread(key=condition, val=val)
+plot_neg <- comparison_plot(df_neg)
+ggsave(paste(TARGET_DIR, "p_delta_vs_p_rooij_neg.png",
+             sep=.Platform$file.sep), plot_neg$both, width=20, height=8)
+
+# 2.3.2 p_delta>0 and therefore p_rooij>0
+df_pos <- df_long %>% filter(val>0) %>% spread(key=condition, val=val)
+plot_pos <- comparison_plot(df_pos)
+ggsave(paste(TARGET_DIR, "p_delta_vs_p_rooij_pos.png",
+             sep=.Platform$file.sep), plot_pos$both, width=20, height=8)
+
 
 # Default context ---------------------------------------------------------
+# ratio for dep/independent causal nets when P(C|A) is greater or equal or lower
+# than 0.9 (to explain increase in LL for bayes nets where P(C)>=0.9 or P(C)<=0.1)
 default <- data_wide %>% filter(bias=="none") %>% compute_cond_prob("P(C|A)")
 
 prior <- default %>% filter(level=="prior") %>%
@@ -278,9 +467,8 @@ p <- df %>% ggplot(aes(x=level, y=s, fill=cn_p)) +
                                    "P(indep. ∧ P(C|A)<0.9)",
                                    "P(indep. ∧ P(C|A)>=0.9)"),
                           ) +
-      theme(axis.text = element_text(size=20),
-            axis.title = element_text(size=20),
-            legend.position = "right", legend.direction = "vertical",
+      theme_classic(base_size = 20) +
+      theme(legend.position = "right", legend.direction = "vertical",
             legend.text = element_text(size=18),
             legend.key.size = unit(1.5, "cm"))
 
