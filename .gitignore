@@ -4,3 +4,8 @@
 .Ruserdata
 
 /data/**
+
+.dvi
+.synctex.gz
+.aux
+.log
