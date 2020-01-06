@@ -66,11 +66,18 @@ tables_filtered <- tables %>%
                                 # "-A implies C", "A implies -C")))
 
 table_plots <- plot_tables(tables_filtered)
-target_table_plots <- "table_plots.png"
 p <- plot_grid(table_plots[[1]], table_plots[[2]], table_plots[[3]],
                label_size = 12, ncol=3)
-ggsave(paste(TARGET_DIR, target_table_plots, sep=.Platform$file.sep), p, width=15, height=5)
+ggsave(paste(TARGET_DIR, "table_plots_filtered.png",
+             sep=.Platform$file.sep), p, width=15, height=5)
 
+table_plots <- plot_tables(tables)
+p <- plot_grid(table_plots[[1]], table_plots[[2]], table_plots[[3]],
+               table_plots[[4]], table_plots[[5]], table_plots[[6]],
+               table_plots[[7]], table_plots[[8]], table_plots[[9]],
+               label_size = 12, ncol=3)
+ggsave(paste(TARGET_DIR, "table_plots_all.png",
+             sep=.Platform$file.sep), p, width=10, height=15)
 
 # 2. Prior Default context ---------------------------------------------------
 # 2.1. prior P(A) and P(C)
