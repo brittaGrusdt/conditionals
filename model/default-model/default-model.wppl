@@ -90,15 +90,33 @@ if(LEVEL_MAX == "speaker"){
   var n_samples = data["n_samples"][0]
   if(n_samples != 0){
     var prior_conditioned = Infer({model:function(){
+
       var state = sample(globalStore.state_prior)
       var Table = state["bn"]["table"]
-      condition(meaning(UTT, Table))
 
-      // when C is true, but not A and C, and not -A and C
+      //1. UTT is applicable in current state
+      // condition(meaning(UTT, Table))
+
+      // 2. when C is true, but not A and C, and not -A and C
       // var meaning_ac = meaning("A and C", Table)
       // var meaning_nac = meaning("-A and C", Table)
       // condition(!meaning_ac && !meaning_nac)
 
+      // 3. Assertability conditions
+      // p_rooij/p_delta larger than a threshold
+      let pac = Math.exp(Table.score("AC"))
+      let pnac = Math.exp(Table.score("-AC"))
+      let pa = pac + Math.exp(Table.score("A-C"))
+      let p_c_given_a = pac / pa
+      let p_c_given_na = pnac / (1-pa)
+      let p_delta = p_c_given_a - p_c_given_na
+      let p_rooij = p_delta / (1 - p_c_given_na)
+
+      if(UTT == "p_rooij"){
+        condition(p_rooij >= 0.75)
+      } else if (UTT == "p_delta"){
+        condition(p_delta > 0 && p_c_given_a >= 0.75)
+      }
       return state.bn
     }})
     var bns = repeat(n_samples, function(){sample(prior_conditioned)})
