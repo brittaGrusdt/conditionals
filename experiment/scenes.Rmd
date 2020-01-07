@@ -1,10 +1,12 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
-```{r, print=FALSE}
+```{r, echo=FALSE}
 library(tidyverse)
 library(dplyr)
 ```
@@ -135,7 +137,7 @@ data <- data %>% mutate(ca.min =
 
 # generate all resulting combinations
 df <- data %>% select(scene_id, pa, pc, ca.min, ca.max, ac.min, ac.max) %>% 
-        distinct_at(vars(-scene_id), .keep_all = TRUE) %>%
+        distinct_at(vars(-scene_id), .keep_all = TRUE) %>% group_by(scene_id) %>% 
         gather(ca.min, ca.max, ac.min, ac.max, key="vals", val="order")
 
 df <- df %>% mutate(idx = case_when(order == "low" ~ 1,
@@ -145,7 +147,7 @@ df <- df %>% mutate(idx = case_when(order == "low" ~ 1,
                                    order == "high" ~ 5,
                                    TRUE ~ -1
                                   )
-                   ) %>% group_by(scene_id) %>% select(-order) %>% spread(key=vals, val=idx)
+                   ) %>% select(-order) %>% spread(key=vals, val=idx)
   
 df <- df %>% mutate(ca.vals=list(range_vals[seq(ca.min, ca.max)]), 
                     ac.vals=list(range_vals[seq(ac.min, ac.max)])) 
@@ -153,7 +155,7 @@ df <- df %>% mutate(ca.vals=list(range_vals[seq(ca.min, ca.max)]),
 df <- df %>% unnest(ca.vals, .drop = FALSE)
 df <- df %>% unnest(ac.vals, .drop = FALSE) %>% select(-ac.max, -ac.min, -ca.max, -ca.min)
 
-combinations <- df %>% ungroup() %>% select(-scene_id) %>% distinct()
+combinations <- df %>% ungroup() %>% distinct_at(vars(-scene_id), .keep_all = TRUE)
 combinations
 ```
 
@@ -165,10 +167,22 @@ Only use some categories.
 combinations <- combinations %>% rename(pc_given_a=ca.vals, pa_given_c=ac.vals)
 
 combis_luh <- combinations %>%
-  filter_all(all_vars(. == "uncertain" | . == "high" | . == "low"))
+  filter_at(vars(-scene_id), all_vars(. == "uncertain" | . == "high" | . == "low"))
 combis_luh
 
-combis_lh <- combinations %>% filter_all(all_vars(. == "high" | . == "low"))
+combis_lh <- combinations %>% filter_at(vars(-scene_id), all_vars(. == "high" | . == "low"))
 combis_lh
 ```
 
+"How dependent" are variables A and C? 
+The closer P(C|A) to P(C), the less dependent C is from A. (analogue for A)
+
+```{r}
+df <- combis_luh %>% rowid_to_column()
+df_dep <- df %>% replace(.=="low", 1) %>% replace(.=="uncertain", 2) %>% replace(.=="high", 3) %>% 
+            mutate(dependence.c=abs(as.numeric(pc_given_a) - as.numeric(pc)),
+                   dependence.a=abs(as.numeric(pa_given_c) - as.numeric(pa))) %>% 
+            select(rowid, dependence.c, dependence.a)
+df <- left_join(df, df_dep, by="rowid")
+df
+```
