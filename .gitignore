@@ -5,7 +5,7 @@
 
 /data/**
 
-.dvi
-.synctex.gz
-.aux
-.log
+*.dvi
+*.synctex.gz
+*.aux
+*.log
