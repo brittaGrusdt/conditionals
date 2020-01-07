@@ -73,8 +73,7 @@ const post_test = magpieViews.view_generator("post_test", {
   trials: 1,
   name: "post_test",
   title: "Additional information",
-  text:
-    "Answering the following questions is optional, but your answers will help us analyze our results."
+  text: "Answering the following questions is optional, but your answers will help us analyze our results."
 
   // You can change much of what appears here, e.g., to present it in a different language, as follows:
   // buttonText: 'Weiter',
@@ -102,10 +101,9 @@ const thanks = magpieViews.view_generator("thanks", {
 
 // test phase trials
 const test_multiple_slider = magpieViews.view_generator(
-  "slider_rating",
-  {
+  "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
-    trials: 3,
+    trials: 1,
     // name should be identical to the variable name
     name: "slider_test",
     data: slider_rating_trials
@@ -120,8 +118,7 @@ const test_multiple_slider = magpieViews.view_generator(
 
 // experimental phase trials
 const multiple_slider = magpieViews.view_generator(
-  "slider_rating",
-  {
+  "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
     trials: slider_rating_trials.length,
     // name should be identical to the variable name
