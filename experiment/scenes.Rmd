@@ -155,7 +155,8 @@ df <- df %>% mutate(ca.vals=list(range_vals[seq(ca.min, ca.max)]),
 df <- df %>% unnest(ca.vals, .drop = FALSE)
 df <- df %>% unnest(ac.vals, .drop = FALSE) %>% select(-ac.max, -ac.min, -ca.max, -ca.min)
 
-combinations <- df %>% ungroup() %>% distinct_at(vars(-scene_id), .keep_all = TRUE)
+combinations <- df %>% ungroup() %>% distinct_at(vars(-scene_id), .keep_all = TRUE) %>% 
+                  rename(pc_given_a=ca.vals, pa_given_c=ac.vals)
 combinations
 ```
 
@@ -163,26 +164,30 @@ Only use some categories.
 1. *low-uncertain-high*
 2. *low-high*
 
-```{r}
-combinations <- combinations %>% rename(pc_given_a=ca.vals, pa_given_c=ac.vals)
-
-combis_luh <- combinations %>%
-  filter_at(vars(-scene_id), all_vars(. == "uncertain" | . == "high" | . == "low"))
-combis_luh
-
-combis_lh <- combinations %>% filter_at(vars(-scene_id), all_vars(. == "high" | . == "low"))
-combis_lh
-```
-
 "How dependent" are variables A and C? 
 The closer P(C|A) to P(C), the less dependent C is from A. (analogue for A)
 
 ```{r}
-df <- combis_luh %>% rowid_to_column()
-df_dep <- df %>% replace(.=="low", 1) %>% replace(.=="uncertain", 2) %>% replace(.=="high", 3) %>% 
+df <- combinations %>% rowid_to_column()
+df_dep <- df %>% replace(.=="low", 1) %>% replace(.=="between-small", 1.5) %>%
+            replace(.=="uncertain", 2) %>% replace(.=="between-large", 2.5) %>% replace(.=="high", 3) %>% 
             mutate(dependence.c=abs(as.numeric(pc_given_a) - as.numeric(pc)),
                    dependence.a=abs(as.numeric(pa_given_c) - as.numeric(pa))) %>% 
             select(rowid, dependence.c, dependence.a)
-df <- left_join(df, df_dep, by="rowid")
-df
+combis_all <- left_join(df, df_dep, by="rowid")
+combis_all
+
+combis_luh <- combis_all %>%
+  filter_at(vars(pa, pc, pc_given_a, pa_given_c), all_vars(. == "uncertain" | . == "high" | . == "low"))
+combis_luh
+
+combis_lh <- combis_all %>% filter_at(vars(pa, pc, pc_given_a, pa_given_c), all_vars(. == "high" | . == "low"))
+combis_lh
+```
+
+
+```{r}
+write.table(combis_all , file = "scenes_all.csv", sep = ",", row.names=FALSE)
+write.table(combis_luh , file = "scenes_luh.csv", sep = ",", row.names=FALSE)
+write.table(combis_lh , file = "scenes_lh.csv", sep = ",", row.names=FALSE)
 ```
