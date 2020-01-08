@@ -160,10 +160,6 @@ combinations <- df %>% ungroup() %>% distinct_at(vars(-scene_id), .keep_all = TR
 combinations
 ```
 
-Only use some categories. 
-1. *low-uncertain-high*
-2. *low-high*
-
 "How dependent" are variables A and C? 
 The closer P(C|A) to P(C), the less dependent C is from A. (analogue for A)
 
@@ -174,14 +170,32 @@ df_dep <- df %>% replace(.=="low", 1) %>% replace(.=="between-small", 1.5) %>%
             mutate(dependence.c=abs(as.numeric(pc_given_a) - as.numeric(pc)),
                    dependence.a=abs(as.numeric(pa_given_c) - as.numeric(pa))) %>% 
             select(rowid, dependence.c, dependence.a)
-combis_all <- left_join(df, df_dep, by="rowid")
+combis_all <- left_join(df, df_dep, by="rowid") %>% unite(id, rowid, scene_id, sep="-")
 combis_all
+```
 
-combis_luh <- combis_all %>%
+Filter rows where A and C are simply swapped.
+Only use some categories. 
+1. *low-uncertain-high*
+2. *low-high*
+
+```{r}
+n <- nrow(df)
+ids_swapped = c()
+for(idx_row in seq(1, n)){
+  row <- combis_all[idx_row, c("pa","pc", "pc_given_a", "pa_given_c")]
+  df_temp <- combis_all[idx_row+1 : n, c("pa","pc", "pc_given_a", "pa_given_c", "id")] %>% 
+    filter(pa==row$pc & pc==row$pa & pc_given_a==row$pa_given_c & pa_given_c==row$pc_given_a)
+  ids_swapped <- c(ids_swapped, df_temp$id)
+} 
+
+df <- combis_all %>% filter(!id %in% ids_swapped)
+
+combis_luh <- df %>%
   filter_at(vars(pa, pc, pc_given_a, pa_given_c), all_vars(. == "uncertain" | . == "high" | . == "low"))
 combis_luh
 
-combis_lh <- combis_all %>% filter_at(vars(pa, pc, pc_given_a, pa_given_c), all_vars(. == "high" | . == "low"))
+combis_lh <- df %>% filter_at(vars(pa, pc, pc_given_a, pa_given_c), all_vars(. == "high" | . == "low"))
 combis_lh
 ```
 
@@ -191,3 +205,8 @@ write.table(combis_all , file = "scenes_all.csv", sep = ",", row.names=FALSE)
 write.table(combis_luh , file = "scenes_luh.csv", sep = ",", row.names=FALSE)
 write.table(combis_lh , file = "scenes_lh.csv", sep = ",", row.names=FALSE)
 ```
+
+
+
+
+
