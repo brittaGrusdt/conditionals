@@ -170,7 +170,8 @@ df_dep <- df %>% replace(.=="low", 1) %>% replace(.=="between-small", 1.5) %>%
             mutate(dependence.c=abs(as.numeric(pc_given_a) - as.numeric(pc)),
                    dependence.a=abs(as.numeric(pa_given_c) - as.numeric(pa))) %>% 
             select(rowid, dependence.c, dependence.a)
-combis_all <- left_join(df, df_dep, by="rowid") %>% unite(id, rowid, scene_id, sep="-")
+combis_all <- left_join(df, df_dep, by="rowid") %>% unite(id, rowid, scene_id, sep="-") %>% 
+                mutate(id=paste("S", id, sep=""))
 combis_all
 ```
 
