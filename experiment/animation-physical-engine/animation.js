@@ -1,9 +1,9 @@
 // Module aliases
 var Engine = Matter.Engine,
-  Render = Matter.Render,
-  World = Matter.World,
-  Bodies = Matter.Bodies;
-Events = Matter.Events;
+    Render = Matter.Render,
+    World = Matter.World,
+    Bodies = Matter.Bodies;
+    Events = Matter.Events;
 
 var engine = Engine.create({
   timing: {
@@ -23,21 +23,21 @@ var render = Render.create({
 });
 
 // 1. create objects
-var ground = makeBlock(
-  CONFIG.ground, {
-    static: true,
-    color: "black",
-    label: "ground"
-  });
-var platform = makeBlock(
-  CONFIG.platform, {
-    static: true,
-    color: "darkgray",
-    label: "platform"
-  });
+// var ground = makeBlock(
+//   CONFIG.ground, {
+//     static: true,
+//     color: "black",
+//     label: "ground"
+//   });
+// var platform = makeBlock(
+//   CONFIG.platform, {
+//     static: true,
+//     color: "darkgray",
+//     label: "platform"
+//   });
 
-var allRelevantBlocks = createColorCounterbalancedBlocks(platform)
-var distractorTowers = createDistractorTowers();
+// var allRelevantBlocks = createColorCounterbalancedBlocks(platform)
+// var distractorTowers = createDistractorTowers();
 
 // start with button?
 // $('.stop').on('click', function () {
@@ -46,7 +46,6 @@ var distractorTowers = createDistractorTowers();
 
 let objPropsBefore = {};
 let objPropsAfter = {};
-
 let animationStarted = false
 
 var freezeAnimation = function () {
@@ -113,30 +112,51 @@ var runAnimation = function () {
   engine.timing.timeScale = 1
 }
 
+/**
+* Determines whether relevant objects fell during simulation.
+*
+* Adds ratio of x/y-values, and based on this whether object fell, of all bodies
+* other than ground or platforms.
+*
+* @param {Object<string, Object>} objPropsBefore position of objects for each
+* block before (single) simulation, keys are labels of blocks, e.g.'greenBlock'
+* @param {number} objPropsBefore.x x position of block
+* @param {number} objPropsBefore.y y position of block
+*
+* @param {Object<string, Object>} objPropsAfter position of objects for each
+* block after (single) simulation, keys are labels of blocks, e.g.'greenBlock'
+* @param {number} objPropsAfter.x x position of block
+* @param {number} objPropsAfter.y y position of block
+*
+* @param {number} theta threshold of relative minimal offset (in percent) for a
+* block to count as fallen
+*
+* @return {Array<Object>} objPropsAfter with the following added properties
+* for relevant blocks in world (i.e. not ground or platforms):
+* ratioX, ratioY, fallen.
+*/
+var addSimulationEffects = function(objPropsBefore, objPropsAfter, theta){
+  var entries = Object.entries(objPropsBefore);
+  for (var i=0; i< entries.length; i++){
+      let label = entries[i][0];
+      let obj = entries[i][1];
+      let posBefore = objPropsBefore[label];
+      if((label === "ground") || label.startsWith("platform")){
+        continue;
+      }
+      var posAfter = objPropsAfter[label]
+      var ratioX = posAfter.x / posBefore.x
+      var ratioY = posAfter.y / posBefore.y
 
-////////////////////////////////////////////////////////////////////////////////
-// 3. properties for a random particular single scene
-let relationBlocks = "stacked"
-// let relationBlocks = "side"
-// let colorCode = 0
-let colorCode = 1
-// let relationDistractor = "close"
-let relationDistractor = "far"
-////////////////////////////////////////////////////////////////////////////////
+      var fallen = false;
+      if((ratioY < 1-theta || ratioY > 1 + theta)){
+        fallen = true;
+      }
 
-// 4. choose scene
-let nSituations = allRelevantBlocks[relationBlocks][colorCode].length
-let idxSituation = Math.floor(Math.random() * nSituations);
-let situation1 = allRelevantBlocks[relationBlocks][colorCode][idxSituation]
+      objPropsAfter[label].ratioX = ratioX;
+      objPropsAfter[label].ratioY = ratioY;
+      objPropsAfter[label].fallen = fallen;
+  }
 
-let distractorElems = distractorTowers[relationDistractor]
-let nDistractors = distractorElems.distractors.length
-let idxDistractor = Math.floor(Math.random() * nDistractors);
-let distractor1 = distractorElems.distractors[idxDistractor].distractor
-
-// 5. create + simulate world
-let allBlocks = [situation1.block1, situation1.block2]
-let worldDynamic = allBlocks.concat([distractor1])
-
-let objsStatic = [ground, platform]
-let worldStatic = objsStatic.concat(distractorElems.platform)
+  return(objPropsAfter)
+}
