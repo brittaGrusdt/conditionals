@@ -19,6 +19,16 @@ var makeBlock = function(coords, properties){
     {render: {fillStyle: properties.color}, isStatic: properties.static,
     friction:CONFIG.blocks.friction, label:properties.label}
   )
+
+  // TODO: brauch ich das wirklich? makeBlock wird eigtl nicht vor der Definition
+  // von scenarios aufgerufen
+  // if(scenarios != null){
+    // let blockType = properties.static ? "static" : "dynamic"
+    // scenarios[blockType][properties.label] =
+    //   {x: block.position.x, y: block.position.y,
+    //    width: coords.width, height: coords.height
+    //   };
+  // }
   return(block)
 }
 
