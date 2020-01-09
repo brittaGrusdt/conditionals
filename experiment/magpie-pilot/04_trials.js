@@ -1,6 +1,19 @@
 // In this file you can specify the trial data for your experiment
 
 // slider rating trials
+var example_trial = [
+  {
+    picture: "images/S1-121.jpg",
+    QUD: "How much do you agree with the following statement?",
+    question4: "designated utterance",
+    question1: "utterance1",
+    question2: "utterance2",
+    question3: "utterance3",
+    optionLeft: "fully disagree",
+    optionRight: "fully agree"
+  }
+];
+
 var slider_rating_trials = [
   {
     picture: "images/S1-121.jpg",
@@ -226,4 +239,5 @@ var slider_rating_trials = [
 ];
 
 // call random_utterance to later be able to randomly show the utterances
+example_trial = random_utterance(example_trial);
 slider_rating_trials = random_utterance(slider_rating_trials);

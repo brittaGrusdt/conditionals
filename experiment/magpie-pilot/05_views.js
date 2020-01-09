@@ -106,7 +106,7 @@ const test_multiple_slider = magpieViews.view_generator(
     trials: 1,
     // name should be identical to the variable name
     name: "slider_test",
-    data: slider_rating_trials
+    data: example_trial
   },
   // you can add custom functions at different stages through a view's life cycle
   {
