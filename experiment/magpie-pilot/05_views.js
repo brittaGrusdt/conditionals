@@ -50,21 +50,25 @@ const instructions = magpieViews.view_generator("instructions", {
   trials: 1,
   name: "instructions",
   title: "General Instructions",
-  text: `This is the instructions view.
+  text: `In this experiment you are asked to what degree you agree or disagree
+        with statements describing a situation.
+        For each situation you are aked to judge four statements.
+        There are 22 situations in total.
             <br />
             <br />
-            In here, we tell the participants what they are to do here, what the story is about ... .`,
+        The experiment will take you about ... minutes.
+        You will be shown an example first.`,
   buttonText: "go to example trials"
 });
 
 const instructions2 = magpieViews.view_generator("instructions", {
   trials: 1,
   name: "instructions2",
-  title: "General Instructions",
-  text: `Great! You've completed the training phase. We will move on to the main part of the experiment next.
+  title: "Instructions",
+  text: `We will now move on to the main part of the experiment.
         <br />
         <br />
-        Maybe repeat the story what they have to do again, here.`,
+        Keep in mind  ....  `,
   buttonText: "Start main experiment"
 });
 
