@@ -6,8 +6,9 @@
   </head>
   <body>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/0.71/jquery.csv-0.71.min.js"></script>
     <script type="text/javascript" src="configuration.js"></script>
-
+    <h1 id="title"></h1>
     <p id="greenBeforeX">Before X: </p>
     <p id="greenBeforeY">Before Y: </p>
     <p id="greenAfterX">After X:</p>
@@ -25,7 +26,7 @@
 
     <!-- my files -->
     <script type="text/javascript" src="helpers-towers.js"></script>
-    <script type="text/javascript" src="towers.js"></script>
+    <!-- <script type="text/javascript" src="towers.js"></script> -->
     <script type="text/javascript" src="worlds.js"></script>
     <script type="text/javascript" src="animation.js"></script>
     <!-- <script type="text/javascript" src="simulations.js"></script> -->
@@ -35,12 +36,15 @@
     function clickOnRun() {
         nbClicks += 1;
         if(nbClicks === 1) {
-          runAnimation(worldStatic, worldDynamic)
+          runAnimation(scene.static, scene.dynamic)
         }
     };
     </script>
-    <script>showScene(worldStatic, worldDynamic)</script>
+    <script>showScene(scene.static, scene.dynamic)</script>
     <button id="runButton" onclick="clickOnRun()">Run</button>
-
+    <script>
+      let title = document.getElementById("title")
+      title.innerHTML = "Scene: " + idxScene + " id: " + sceneProps.id
+    </script>
   </body>
 </html>

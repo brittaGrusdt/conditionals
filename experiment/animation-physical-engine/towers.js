@@ -1,38 +1,4 @@
 /**
- * Creates a block with the given properties.
- *
- * @param {Matter.Bodies.rectangle} coords  coordinates
- * @param {number} coords.x x value of center of block to create
- * @param {number} coords.y y value of center of block to create
- * @param {number} coords.width width of block to create
- * @param {number} coords.height height of block to create
- *
- * @param {Object} properties properties of block to create
- * @param {string} properties.color color of block to create
- * @param {Boolean} properties.static whether block shall be static
- *
- * @return {Matter.Bodies.rectangle} a single block
- */
-var makeBlock = function(coords, properties){
-  var block = Matter.Bodies.rectangle(
-    coords.x, coords.y,coords.width, coords.height,
-    {render: {fillStyle: properties.color}, isStatic: properties.static,
-    friction:CONFIG.blocks.friction, label:properties.label}
-  )
-
-  // TODO: brauch ich das wirklich? makeBlock wird eigtl nicht vor der Definition
-  // von scenarios aufgerufen
-  // if(scenarios != null){
-    // let blockType = properties.static ? "static" : "dynamic"
-    // scenarios[blockType][properties.label] =
-    //   {x: block.position.x, y: block.position.y,
-    //    width: coords.width, height: coords.height
-    //   };
-  // }
-  return(block)
-}
-
-/**
  * Creates all possible combinations of positions of two blocks on a platform
  * which are either stacked or put next to each other.
  *
@@ -54,11 +20,11 @@ var makeBlock = function(coords, properties){
  */
 var createAllPotentialBlocks = function(platform, props){
 
-  var config = CONFIG.blocks
-  var h = config.height
-  var w = config.width
+  var conf = CONFIG.blocks
+  var h = conf.height
+  var w = conf.width
 
-  var rangeB1X = getXRange(platform.bounds, w, config.dist2Edge, config.step)
+  var rangeB1X = getXRange(platform.bounds, w, conf.dist2Edge, conf.step)
 
   var blocks = [];
 
@@ -69,13 +35,13 @@ var createAllPotentialBlocks = function(platform, props){
     )
 
     if(props.stacked){
-      var rangeB2X = getXRange(b1.bounds, w, config.dist2Edge, config.step)
+      var rangeB2X = getXRange(b1.bounds, w, conf.dist2Edge, conf.step)
       var y2 = b1.bounds.min.y - (h / 2)
     } else {
       var bounds = {};
       bounds.min = {x: b1.bounds.max.x}
       bounds.max = {x: platform.bounds.max.x}
-      var rangeB2X = getXRange(bounds, w, 0, config.step)
+      var rangeB2X = getXRange(bounds, w, 0, conf.step)
       var y2 = platform.bounds.min.y - (h / 2)
     }
 
@@ -95,9 +61,9 @@ var createAllPotentialBlocks = function(platform, props){
  * Creates distractor part of scene.
  *
  * All possible distractor blocks are created on top of a second platform
- * relative to platform in scene as specified in CONFIG.
+ * relative to platform in scene as specified in config.
  *
- * @return {Object<string, Object>} all possible distractor towers;
+ * @return {Object<string, Object>} all possCONFIible distractor towers;
  * keys: 'far'/'close' mapping to  'platform': <Matter.Bodies.rectangle> and
  * 'distractors': <Array<Object>>, where each entry is:
  * 'prior2Fall': <number>, 'distractor': <Matter.Bodies.rectangle>

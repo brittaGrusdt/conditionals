@@ -15,8 +15,8 @@ var render = Render.create({
   element: document.body,
   engine: engine,
   options: {
-    width: CONFIG.canvas.width,
-    height: CONFIG.canvas.height,
+    width: CANVAS.width,
+    height: CANVAS.height,
     wireframes: false,
     background: 'transparent'
   }
@@ -58,7 +58,7 @@ Events.on(engine, 'afterUpdate', function (event) {
   //  "timestamp: " + engine.timing.timestamp;
 
   // only do this once after specified nb of ms passed
-  if (animationStarted && engine.timing.timestamp >= CONFIG.simulation.duration) {
+  if (animationStarted && engine.timing.timestamp >= SIMULATION.duration) {
     freezeAnimation();
     Render.stop(render)
 
