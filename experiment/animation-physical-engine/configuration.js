@@ -3,7 +3,7 @@ const CONF = {};
 // // canvas size
 const CANVAS = {"width": 800, "height": 400}
 const FRICTION = 0.8
-const SIMULATION = {"duration": 2000}
+const SIMULATION = {"duration": 1000}
 
 // default values for width/height of platforms
 let platformH = 100;

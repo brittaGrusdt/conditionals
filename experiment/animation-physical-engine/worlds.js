@@ -28,7 +28,7 @@ let idxScene = Math.floor(Math.random()*10)
 // idxScene = 21
 let sceneProps = data[idxScene]
 let sceneData = defineScene(sceneProps)
-let scene = createScene(sceneData)
+let worldObjects = createScene(sceneData)
 
 // OLD
 // var ground = makeBlock(

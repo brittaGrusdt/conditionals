@@ -88,8 +88,8 @@ Events.on(engine, 'afterUpdate', function (event) {
  * @param {Array<Matter.Bodies>} objectsDynamic dynamic objects in modeled world,
  * e.g. blocks
  */
-var showScene = function (objectsStatic, objectsDynamic) {
-  World.add(engine.world, objectsStatic.concat(objectsDynamic))
+var showScene = function (worldObjects) {
+  World.add(engine.world, worldObjects)
   // save start positions of objects + labels
   engine.world.bodies.forEach(function (body) {
     objPropsBefore[body.label] = JSON.parse(JSON.stringify(body.position));

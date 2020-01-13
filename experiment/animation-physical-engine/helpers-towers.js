@@ -219,7 +219,8 @@ let defineScene = function(data){
     setupSeesaw(data, objs.seesaw, objs.b1, objs.b2)
     let keys = Object.keys(objs.seesaw)
     keys.forEach(function(key){
-      scene.static.push(objs.seesaw[key])
+      let arr = key == "plank" ? scene.dynamic : scene.static
+      arr.push(objs.seesaw[key])
     });
   } else {
     if(pType == "basic1") {
@@ -232,19 +233,43 @@ let defineScene = function(data){
   }
   scene.static.push(GROUND, objs.distractorPlatform)
   scene.dynamic.push(objs.b1, objs.b2, objs.distractorBlock)
-
   return scene
+}
+
+let setupCompoundSeesaw = function(sceneObjs, idxStick, idxPlank){
+  let stick = sceneObjs[idxStick];
+  let plank = sceneObjs[idxPlank];
+  let compoundSeesaw = Matter.Body.create({parts: [stick, plank],
+                                           label: "compoundSeesaw"});
+  sceneObjs.push(compoundSeesaw)
+  // let constraint = Matter.Constraint.create({bodyA: compoundSeesaw})
+  // sceneObjs.push(constraint)
 }
 
 
 let createScene = function(data){
-  let sceneObjs = {"static": [], "dynamic": []};
+  let sceneObjs = []
+  let idxPlank = -1; let idxStick = -1; let idx_new=0;
   ["static", "dynamic"].forEach(function(key){
-    data[key].forEach(function(obj){
+    data[key].forEach(function(obj, idx){
       let block = makeBlock(obj, {'color': obj.color, 'static': key=="static",
                                   'label': obj.label})
-      sceneObjs[key].push(block)
+      sceneObjs.push(block)
+      // seesaw consists of two object parts that need to be specified as such
+      if(obj.label == "seesawPlank") {
+        idxPlank = idx + idx_new;
+      } else if(obj.label == "seesawStick"){
+        idxStick = idx + idx_new;
+      }
     });
+    idx_new += data[key].length
   });
+  // Make sure that composites of seesaw are defined as one compound body
+  if (idxStick != -1) {
+    setupCompoundSeesaw(sceneObjs, idxStick, idxPlank);
+    sceneObjs = sceneObjs.filter(function(obj){
+      return !(obj.label == "seesawPlank" || obj.label == "seesawStick")
+    });
+  }
   return sceneObjs
 }
