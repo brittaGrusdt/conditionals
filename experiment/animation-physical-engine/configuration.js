@@ -26,7 +26,8 @@ let platformDist = 2*platformW
 const PlatformProp2Val =
   {"width": {"default": platformW, "narrow": platformW / 2},
    "height": {"default": platformH, "high": platformH * 2},
-   "dist": {"default": platformDist, "short": platformDist / 2}
+   "dist": {"default": platformDist, "short": platformDist / 2,
+            "very_short": platformDist / 3}
 }
 
 let groundH = 20;
