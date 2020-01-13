@@ -25,7 +25,7 @@ let data = [
 
 // 2. choose and create scene
 let idxScene = Math.floor(Math.random()*10)
-idxScene = 9
+// idxScene = 21
 let sceneProps = data[idxScene]
 let sceneData = defineScene(sceneProps)
 let scene = createScene(sceneData)

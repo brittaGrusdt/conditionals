@@ -2,7 +2,7 @@ const CONF = {};
 
 // // canvas size
 const CANVAS = {"width": 800, "height": 400}
-const FRICTION = 0
+const FRICTION = 0.8
 const SIMULATION = {"duration": 2000}
 
 // default values for width/height of platforms
@@ -36,10 +36,29 @@ const GROUND = {"width": CANVAS.width, "height": groundH,
              };
 const SEESAW = {"stick": {"width": 10,
                           "height": PlatformProp2Val.height.default,
-                          "color": COLOR.seesaw.stick},
+                          "color": COLOR.seesaw.stick,
+                          "label": "seesawStick"},
                 "plank": {"width": 2 * BLOCKS.height,
                           "height": 10,
-                          "color": COLOR.seesaw.plank}};
+                          "color": COLOR.seesaw.plank,
+                          "label": "seesawPlank"},
+                "podest": {"width": 0.75 * BLOCKS.height,
+                           "height":  0.3 * BLOCKS.height,
+                           "label": "seesawPodest",
+                           "color": COLOR.distractor}
+                };
+
+const DISTRACTOR = {"platform": {"width": PlatformProp2Val["width"]["narrow"],
+                                 "height": PlatformProp2Val["height"]["default"],
+                                 "label": "distractorPlatform",
+                                 "color": COLOR.platforms
+                               },
+                    "block": {"width": BLOCKS.width,
+                              "height": BLOCKS.height,
+                              "label": "distractorBlock",
+                              "color": COLOR.distractor
+                              }
+                    }
 
 const SceneEdges = {"left": Dist2Side,
         "right": CANVAS.width - PlatformProp2Val["width"]["narrow"] - Dist2Side}

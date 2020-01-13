@@ -86,29 +86,15 @@ let setPlatformExtensions = function(obj, data, platform){
 /**
 *
 */
-let setDistractor = function(){
-    // platform
-    let p = {"width": PlatformProp2Val["width"]["narrow"],
-             "height": PlatformProp2Val["height"]["default"]}
-    p.x = CANVAS.width - p.width / 2;
-    // p["y"] = CANVAS.height - p.height / 2 - GROUND.height;
-    setYpos(p, GROUND)
-    p.label = "platformDistractor"
-    p.color = COLOR.platforms
+let setupDistractor = function(platform, block){
+    platform.x = CANVAS.width - platform.width / 2;
+    setYpos(platform, GROUND)
 
-    // block
-    let block = {"width": BLOCKS["width"], "height": BLOCKS["height"]}
-    // block.x = p.x - (p.width / 2) + BLOCKS["minDist2Edge"]
-    // block.y = p.y - (p.height / 2) - BLOCKS["height"] / 2
-    block.x = blockXpos(p, block.width, "left", "uncertain")
-    setYpos(block, p)
-    block.label = "blockDistractor"
-    block.color = COLOR.distractor
-
-    return {"platformDistractor": p, "blockDistractor": block}
+    block.x = blockXpos(platform, block.width, "left", "uncertain")
+    setYpos(block, platform)
   }
 
-let set2Blocks1Base = function(data, b1, b2, base){
+let setup2Blocks1Base = function(data, b1, b2, base){
   if(data["AC.position"] == "side"){
     b1.x = blockXpos(base, b1.width, "left", data.pa)
     b2.x = blockXpos(base, b2.width, "right", data.pc)
@@ -117,7 +103,7 @@ let set2Blocks1Base = function(data, b1, b2, base){
 
   } else if(data["AC.position"] == "stack_A_on_C"){
       b2.x = blockXpos(base, b2.width, "left", data.pc)
-      b1.x = blockXpos(base, b1.width, "right", data.pa)
+      b1.x = blockXpos(b2, b1.width, "right", data.pa)
       setYpos(b2, base)
       setYpos(b1, b2)
 
@@ -130,13 +116,13 @@ let set2Blocks1Base = function(data, b1, b2, base){
     }
 }
 
-let setBasic1 = function(data, p1, b1, b2){
+let setupBasic1 = function(data, p1, b1, b2){
   p1.x = Dist2Side + SceneArea / 2
   setYpos(p1, GROUND);
-  set2Blocks1Base(data, b1, b2, p1);
+  setup2Blocks1Base(data, b1, b2, p1);
 }
 
-let setBasic2 = function(data, p1, p2, b1, b2){
+let setupBasic2 = function(data, p1, p2, b1, b2){
   let w1 = mapProperty2Val(data, "platform1.width")
   let w2 = mapProperty2Val(data, "platform2.width")
   let w3 = mapProperty2Val(data, "platform.dist")
@@ -156,12 +142,29 @@ let setBasic2 = function(data, p1, p2, b1, b2){
   setYpos(b2, p2)
 }
 
-let setSeesaw = function(data, stick, plank, b1, b2){
+let setupSeesaw = function(data, seesaw, b1, b2){
+  let stick = seesaw.stick;
+  let plank = seesaw.plank;
+  let podest = seesaw.podest;
   stick.x = Dist2Side + SceneArea / 2
   plank.x = stick.x
   setYpos(stick, GROUND)
   setYpos(plank, stick)
-  set2Blocks1Base(data, b1, b2, plank);
+  setup2Blocks1Base(data, b1, b2, plank);
+
+  if (data.id == "S97-1674") {
+    podest.x = stick.x + 0.1 * podest.width
+    setYpos(podest, plank)
+    b2.x = podest.x - 0.5 * b2.width;
+    b1.x = b2.x + b2.width / 2 + b1.width / 2;
+    b2.y -= podest.height
+    b1.y -= podest.height
+  } else if(data.id == "S42-806") {
+      delete seesaw["podest"];
+      let offset = stick.x - b2.x
+      b2.x = stick.x
+      b1.x += offset
+    }
 }
 
 let initBlocks = function(data){
@@ -195,7 +198,9 @@ let initPlatforms = function(data){
 let initObjects = function(data){
   let blocks = initBlocks(data)
   let platforms = initPlatforms(data)
-  let objs = Object.assign({}, blocks, platforms)
+  let distractor = {"distractorPlatform": DISTRACTOR.platform,
+                    "distractorBlock": DISTRACTOR.block}
+  let objs = Object.assign({}, blocks, platforms, distractor)
   return objs
 }
 
@@ -207,23 +212,26 @@ let defineScene = function(data){
 
   let scene = {"dynamic": [], "static": []}
   let objs = initObjects(data)
-  let distractor = setDistractor();
+  setupDistractor(objs.distractorPlatform, objs.distractorBlock);
 
   let pType = data["platform.type"]
   if (pType == "seesaw"){
-    setSeesaw(data, objs.seesaw.stick, objs.seesaw.plank, objs.b1, objs.b2)
-    scene.static.push(objs.seesaw.stick, objs.seesaw.plank)
+    setupSeesaw(data, objs.seesaw, objs.b1, objs.b2)
+    let keys = Object.keys(objs.seesaw)
+    keys.forEach(function(key){
+      scene.static.push(objs.seesaw[key])
+    });
   } else {
     if(pType == "basic1") {
-      setBasic1(data, objs.p1, objs.b1, objs.b2)
+      setupBasic1(data, objs.p1, objs.b1, objs.b2)
     } else {
-      setBasic2(data, objs.p1, objs.p2, objs.b1, objs.b2);
+      setupBasic2(data, objs.p1, objs.p2, objs.b1, objs.b2);
       scene.static.push(objs.p2)
     }
     scene.static.push(objs.p1)
   }
-  scene.static.push(GROUND, distractor.platformDistractor)
-  scene.dynamic.push(objs.b1, objs.b2, distractor.blockDistractor)
+  scene.static.push(GROUND, objs.distractorPlatform)
+  scene.dynamic.push(objs.b1, objs.b2, objs.distractorBlock)
 
   return scene
 }
