@@ -10,6 +10,7 @@
 
 // generate a new multi_slider
 
+// HIER!!! TODO
 const multi_slider_generator = {
   // we do not want to show the picture in the stimulus container anymore, but in the grid
   // together with the answer_container
@@ -22,52 +23,39 @@ const multi_slider_generator = {
   answer_container_gen: function(config, CT) {
     const option1 = config.data[CT].optionLeft;
     const option2 = config.data[CT].optionRight;
-    return `<div class='magpie-multi-slider-grid' id='target'>.
-          <div class='magpie-grid-picture' >
-              <img class='image-stretch' src=${config.data[CT].picture}>
-          </div>
-          <p class='magpie-grid-qud magpie-view-question magpie-view-qud'><strong>${
-            config.data[CT].QUD
-          }</strong></p>
-          <div class ='magpie-grid-slider'>
-              <div id='utterance1' class='magpie-view-answer-container'>
-                  <p class='magpie-view-question' id = 'question1' >${
-                    config.data[CT].allUtterances[0]
-                  }</p>
-                  <span class='magpie-response-slider-option'>${option1}</span>
-                  <input type='range' id='response1' name='answer1' class='magpie-response-slider' min='0' max='100' value='50'/>
-                  <span class='magpie-response-slider-option'>${option2}</span>
+    return `<div class='magpie-multi-slider-grid' id='target'>
+              <picture class='grid-picture'>
+                <img class='image-stretch' src=${config.data[CT].picture}>
+              </picture>
+              <header class='magpie-grid-qud magpie-view-question magpie-view-qud'>
+                <strong>${config.data[CT].QUD}</strong>
+              </header>
+              <question1 class='magpie-view-question' id ='question1' >${config.data[CT].allUtterances[0]}</question1>
+              <slider1 class='magpie-grid-slider'>
+                <span class='magpie-response-slider-option'>${option1}</span>
+                <input type='range' id='response1' name='answer1' class='magpie-response-slider' min='0' max='100' value='50'/>
+                <span class='magpie-response-slider-option'>${option2}</span>
+              </slider1>
+              <question2 class='magpie-view-question' id ='question2' >${config.data[CT].allUtterances[1]}</question2>
+              <slider2 class='magpie-grid-slider'>
+                <span class='magpie-response-slider-option'>${option1}</span>
+                <input type='range' id='response2' name='answer2' class='magpie-response-slider' min='0' max='100' value='50'/>
+                <span class='magpie-response-slider-option'>${option2}</span>
+              </slider2>
+              <question3 class='magpie-view-question' id ='question3' >${config.data[CT].allUtterances[2]}</question3>
+              <slider3 class='magpie-grid-slider'>
+                <span class='magpie-response-slider-option'>${option1}</span>
+                <input type='range' id='response3' name='answer3' class='magpie-response-slider' min='0' max='100' value='50'/>
+                <span class='magpie-response-slider-option'>${option2}</span>
+              </slider3>
+              <question4 class='magpie-view-question' id ='question3' >${config.data[CT].allUtterances[3]}</question4>
+              <slider4 class='magpie-grid-slider'>
+                <span class='magpie-response-slider-option'>${option1}</span>
+                <input type='range' id='response4' name='answer4' class='magpie-response-slider' min='0' max='100' value='50'/>
+                <span class='magpie-response-slider-option'>${option2}</span>
+              </slider4>
               </div>
-              <div  id='utterance2' class='magpie-view-answer-container  magpie-nodisplay'>
-                  <p class='magpie-view-question' id = 'question2' >${
-                    config.data[CT].allUtterances[1]
-                  }</p>
-                  <span class='magpie-response-slider-option'>${option1}</span>
-                  <input type='range' id='response2' name='answer2' class='magpie-response-slider' min='0' max='100' value='50'/>
-                  <span class='magpie-response-slider-option'>${option2}</span>
-              </div>
-              <div id='utterance3' class='magpie-view-answer-container magpie-nodisplay'>
-                  <p class='magpie-view-question' id = 'question3' >${
-                    config.data[CT].allUtterances[2]
-                  }</p>
-                  <span class='magpie-response-slider-option'>${option1}</span>
-                  <input type='range' id='response3' name='answer3' class='magpie-response-slider' min='0' max='100' value='50'/>
-                  <span class='magpie-response-slider-option'>${option2}</span>
-              </div>
-              <div id='utterance4' class='magpie-view-answer-container magpie-nodisplay'>
-                  <p class='magpie-view-question' id = 'question4' >${
-                    config.data[CT].allUtterances[3]
-                  }</p>
-                  <span class='magpie-response-slider-option'>${option1}</span>
-                  <input type='range' id='response4' name='answer4' class='magpie-response-slider' min='0' max='100' value='50'/>
-                  <span class='magpie-response-slider-option'>${option2}</span>
-              </div>
-        </div>
-      </div>
-      <button id='button2' class ='magpie-view-button grid-button magpie-nodisplay'>Next statement</button>
-      <button id='button3' class ='magpie-view-button grid-button magpie-nodisplay'>Next statement</button>
-      <button id='button4' class ='magpie-view-button grid-button magpie-nodisplay'>Next statement</button>
-      <button id='next' class='magpie-view-button grid-button magpie-nodisplay'>Next situation</button>`;
+              <button id='next' class='magpie-view-button grid-button'>Next scene</button>`;
   },
 
   handle_response_function: function(

@@ -1,6 +1,7 @@
 // Here, you can define all custom functions, you want to use and initialize some variables
 
-const coin = _.sample(["head", "tail"]); // You can determine global (random) parameters here
+const group = _.sample(["group1", "group2"]); // You can determine global (random) parameters here
+
 // Declare your variables here
 
 /* For generating random participant IDs */
@@ -55,12 +56,10 @@ check_response = function (data, next) {
 // function to randomly order the four utterences, given per trial
 function random_utterance(slider_rating_trials) {
   for (var i = 0; i < slider_rating_trials.length; i++) {
-    slider_rating_trials[i].question1 = "The green block will touch the ground.";
-    slider_rating_trials[i].question2 = "The blue block will touch the ground.";
-    slider_rating_trials[i].question3 =
-      "If the green block will touch the ground, the blue block will also touch the ground.";
-    slider_rating_trials[i].question4 =
-      "If the blue block will touch the ground, the green block will also touch the ground.";
+    slider_rating_trials[i].question1 = "The green block and the blue block will touch the ground.";
+    slider_rating_trials[i].question2 = "The green block will touch the ground, but the blue block will not touch the ground.";
+    slider_rating_trials[i].question3 = "The blue block will touch the ground, but the green block will not touch the ground.";
+    slider_rating_trials[i].question4 = "Neither the green block nor the blue block will touch the ground.";
 
     slider_rating_trials[i].allUtterances = _.shuffle([
       slider_rating_trials[i].question1,
@@ -72,6 +71,15 @@ function random_utterance(slider_rating_trials) {
   console.log(slider_rating_trials);
   return slider_rating_trials;
 }
+
+function set_img_path_in_trials(trials, group){
+  trials.forEach(function(trial){
+    let name = trial.picture.split("/")[1]
+    trial.picture = "images/" + group + "/"  + name;
+  });
+}
+
+
 
 // code for animation
 
