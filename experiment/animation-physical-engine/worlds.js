@@ -23,12 +23,101 @@ let data = [
 {"platform2.height": "high", "platform1.width": "narrow", "pa_given_c": "high", "platform2.width": "narrow", "C.orientation": "vertical", "AC.position": "-1", "platform.type": "basic2", "pc": "uncertain", "pa": "uncertain", "A.orientation": "horizontal", "platform.dist": "short", "platform1.height": "default", "pc_given_a": "uncertain", "dependence.a": "1", "id": "S93-1674", "dependence.c": "0"},
 {"platform2.height": "-1", "platform1.width": "-1", "pa_given_c": "high", "platform2.width": "-1", "C.orientation": "horizontal", "AC.position": "side", "platform.type": "seesaw", "pc": "uncertain", "pa": "uncertain", "A.orientation": "horizontal", "platform.dist": "-1", "platform1.height": "-1", "pc_given_a": "high", "dependence.a": "1", "id": "S97-1674", "dependence.c": "1"}]
 
+
+
+// Create a point constraint that pins the center of the plank to fixed point in
+// space, so it can't move
+platformConstraints = function(platforms) {
+  let constraints = [];
+  platforms.forEach(function(platform){
+    let c = Constraint.create({pointA: {x: platform["position"]["x"], y: platform["position"]["y"]},
+                              bodyB: platform,
+                              stiffness: 0.7,
+                              length: 0,
+                              render: {visible: false}
+                            });
+    c.add2World = true;
+    constraints.push();
+  })
+  return constraints
+}
+
+makeConstraints = function(pType, mapID2Objs) {
+  let constraints = [];
+
+  let platforms = [mapID2Objs.distractorPlatform];
+  if (pType == "seesaw"){
+    platforms.push(mapID2Objs.seesawStick, mapID2Objs.seesawLink);
+    let c1 = Constraint.create({
+        pointA: {x: mapID2Objs["seesawPlank"]["position"]["x"],
+                 y: mapID2Objs["seesawPlank"]["position"]["y"]},
+        bodyB: mapID2Objs["seesawPlank"],
+        stiffness: 0.5,
+        length: 0,
+        render: {visible: true}
+      });
+    c1.add2World = true;
+    constraints.push(c1);
+
+    let c2 = Constraint.create({pointA: {x: mapID2Objs["compoundSeesaw"]["position"]["x"],
+                                y: mapID2Objs["compoundSeesaw"]["position"]["y"]},
+                                bodyB: mapID2Objs["compoundSeesaw"],
+                                stiffness: 0.7,
+                                length: 0,
+                                render: {visible: false}
+                              });
+    c2.add2World = true;
+    constraints.push(c2);
+
+  } else {
+      platforms.push(mapID2Objs.platform1)
+      if (pType == "basic2"){
+        platforms.push(mapID2Objs.platform2);
+      }
+    }
+
+  let pConstraints = platformConstraints(platforms);
+  constraints = constraints.concat(pConstraints);
+
+  return constraints
+}
+
+createScene = function(pType, mapID2Definitions){
+  let objs = Object.values(mapID2Definitions);
+  let map2WorldObjs = {}
+
+  objs.forEach(function(obj){
+    let block = makeBlock(obj);
+    map2WorldObjs[obj.properties.label] = block;
+  });
+
+  if(pType == "seesaw"){
+    let seesaw = Matter.Body.create({parts: [map2WorldObjs.seesawStick,
+                                             map2WorldObjs.seesawLink],
+                                     label: "compoundSeesaw"});
+    seesaw.add2World = true;
+    // only add compound body, not its parts
+    map2WorldObjs.seesawStick.add2World = false;
+    map2WorldObjs.seesawLink.add2World = false;
+
+    map2WorldObjs.compoundSeesaw = seesaw
+
+  }
+  let allSceneObjs = Object.values(map2WorldObjs)
+
+  let constraints = makeConstraints(pType, map2WorldObjs);
+  constraints.forEach(function(obj){
+    allSceneObjs.push(obj)
+  });
+  return allSceneObjs
+}
+
 // 2. choose and create scene
 let idxScene = Math.floor(Math.random()*10)
-// idxScene = 21
+// idxScene =  21
 let sceneProps = data[idxScene]
 let sceneData = defineScene(sceneProps)
-let worldObjects = createScene(sceneData)
+let worldObjects = createScene(data[idxScene]["platform.type"], sceneData)
 
 // OLD
 // var ground = makeBlock(
@@ -53,8 +142,9 @@ let worldObjects = createScene(sceneData)
 //
 // // 4. choose scene
 // let nSituations = allRelevantBlocks[relationBlocks][colorCode].length
-// let idxSituation = Math.floor(Math.random() * nSituations);
-// let situation1 = allRelevantBlocks[relationBlocks][colorCode][idxSituation]
+// idxScene = Math.floor(Math.random() * nSituations);
+// idxScene=85
+// let situation1 = allRelevantBlocks[relationBlocks][colorCode][idxScene]
 //
 // let distractorElems = distractorTowers[relationDistractor]
 // let nDistractors = distractorElems.distractors.length
@@ -67,3 +157,5 @@ let worldObjects = createScene(sceneData)
 //
 // let objsStatic = [ground, platform]
 // let worldStatic = objsStatic.concat(distractorElems.platform)
+//
+// let worldObjects = worldDynamic.concat(worldStatic)

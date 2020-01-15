@@ -4,7 +4,11 @@ var Engine = Matter.Engine,
     World = Matter.World,
     Bodies = Matter.Bodies;
     Events = Matter.Events;
+    Runner = Matter.Runner;
+    Mouse = Matter.Mouse;
+    MouseConstraint = Matter.MouseConstraint;
 
+// create engine
 var engine = Engine.create({
   timing: {
     timeScale: 1
@@ -17,32 +21,18 @@ var render = Render.create({
   options: {
     width: CANVAS.width,
     height: CANVAS.height,
+    // showAngleIndicator: true,
+    // showCollisions: true,
+    // showVelocity: true,
     wireframes: false,
     background: 'transparent'
   }
 });
 
-// 1. create objects
-// var ground = makeBlock(
-//   CONFIG.ground, {
-//     static: true,
-//     color: "black",
-//     label: "ground"
-//   });
-// var platform = makeBlock(
-//   CONFIG.platform, {
-//     static: true,
-//     color: "darkgray",
-//     label: "platform"
-//   });
-
-// var allRelevantBlocks = createColorCounterbalancedBlocks(platform)
-// var distractorTowers = createDistractorTowers();
-
-// start with button?
-// $('.stop').on('click', function () {
-//   engine.timing.timeScale = 0
-// });
+// Render.lookAt(render, {
+//   min: {x: 0, y: 0},
+//   max: {x: 800, y:600}
+// })
 
 let objPropsBefore = {};
 let objPropsAfter = {};
@@ -89,7 +79,11 @@ Events.on(engine, 'afterUpdate', function (event) {
  * e.g. blocks
  */
 var showScene = function (worldObjects) {
-  World.add(engine.world, worldObjects)
+  worldObjects.forEach(function(obj){
+    if(obj.add2World){
+      World.add(engine.world, obj)
+    }
+  })
   // save start positions of objects + labels
   engine.world.bodies.forEach(function (body) {
     objPropsBefore[body.label] = JSON.parse(JSON.stringify(body.position));
@@ -97,10 +91,24 @@ var showScene = function (worldObjects) {
 
   //document.getElementById("greenBeforeX").innerHTML +=  objPropsBefore["greenBlock"].x
   //document.getElementById("greenBeforeY").innerHTML += objPropsBefore["greenBlock"].y
+
   // run the engine for simulation of our world
   Engine.run(engine);
+
   // run the renderer for visualization
   Render.run(render);
+
+  // var mouse = Mouse.create(render.canvas),
+  //     mouseConstraint = MouseConstraint.create(engine, {
+  //       mouse: mouse,
+  //       constraint: {
+  //         stiffness: 0.2,
+  //         render: {visible: false}
+  //       }
+  //     });
+  // World.add(engine.world, mouseConstraint);
+  // render.mouse = mouse;
+
   freezeAnimation();
 }
 
