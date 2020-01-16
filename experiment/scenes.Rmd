@@ -207,7 +207,33 @@ write.table(combis_luh , file = "scenes_luh.csv", sep = ",", row.names=FALSE)
 write.table(combis_lh , file = "scenes_lh.csv", sep = ",", row.names=FALSE)
 ```
 
+Sanity check.
+After annotation, check for duplicates in scene setting.
 
+```{r}
+annotations <- read_csv("./stimuli/scenes_luh_annotations.csv")
+annotations
 
+nrows <- nrow(annotations)
+nrows
+
+setup_vars <- annotations %>% select("id", "pa", "pc", "A.orientation",	"C.orientation", "platform.type",	"platform1.height",	"platform1.width", "platform2.height", "platform2.width", "platform.dist")
+
+# setup_vars
+
+duplicates <- c()
+idx <- 1
+for(i in seq(1, nrows-1)){
+  row <- setup_vars[i,] %>% select(-id)
+  for(j in seq(i+1, nrows)){
+    if(all(row == setup_vars[j,] %>% select(-id))) {
+      duplicates[[idx]] <- c(setup_vars[i,]$id, setup_vars[j,]$id)
+      idx <- idx + 1
+    }
+  }
+}
+duplicates 
+
+```
 
 
