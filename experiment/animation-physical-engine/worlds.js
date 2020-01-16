@@ -37,7 +37,7 @@ platformConstraints = function(platforms) {
                               render: {visible: false}
                             });
     c.add2World = true;
-    constraints.push();
+    constraints.push(c);
   })
   return constraints
 }
