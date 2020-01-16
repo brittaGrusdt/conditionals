@@ -50,14 +50,21 @@ const instructions = magpieViews.view_generator("instructions", {
   trials: 1,
   name: "instructions",
   title: "General Instructions",
-  text: `In this experiment you are asked to what degree you agree or disagree
-        with statements describing a situation.
-        For each situation you are aked to judge four statements.
-        There are 22 situations in total.
+  text: `In this experiment you are shown pictures of blocks that are arranged in different scenarios.
+          <br/>
+         You will be asked to rate the likelihood of certain events to occur in the scenarios presented to you.
+         In particular, you will be asked for the likelihood of certain blocks to <b>touch the ground</b>.
+         For a block to touch the ground it is sufficient that a small part or an edge of the block has contact
+         to the ground.
+          <br />
+         The colored blocks all have the same properties, they are only distinguishable by their color.
+          <br/>
+         For each scenario you are aked to judge four events. There are 22 scenarios in total.
             <br />
             <br />
-        The experiment will take you about ... minutes.
-        You will be shown an example first.`,
+        The experiment will take you about 30 minutes.
+          <br />
+        You will be shown some examples first.`,
   buttonText: "go to example trials"
 });
 
@@ -68,7 +75,12 @@ const instructions2 = magpieViews.view_generator("instructions", {
   text: `We will now move on to the main part of the experiment.
         <br />
         <br />
-        Keep in mind  ....  `,
+        Please keep in mind:
+          <br/>
+        For a block to touch the ground it is sufficient that a small part or an edge of the block has contact to the ground.
+          <br/>
+        The colored blocks all have the same properties, they are only distinguishable by their color.
+          <br/>  `,
   buttonText: "Start main experiment"
 });
 
@@ -99,7 +111,7 @@ const post_test = magpieViews.view_generator("post_test", {
 const thanks = magpieViews.view_generator("thanks", {
   trials: 1,
   name: "thanks",
-  title: "Thank you for taking part in this experiment!",
+  title: "Thank you very much for taking part in this experiment!",
   prolificConfirmText: "Press the button"
 });
 
