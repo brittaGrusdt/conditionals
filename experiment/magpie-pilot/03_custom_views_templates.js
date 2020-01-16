@@ -10,7 +10,6 @@
 
 // generate a new multi_slider
 
-// HIER!!! TODO
 const multi_slider_generator = {
   // we do not want to show the picture in the stimulus container anymore, but in the grid
   // together with the answer_container

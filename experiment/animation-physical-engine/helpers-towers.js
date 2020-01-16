@@ -93,7 +93,11 @@ setupBasic2 = function(data, p1, p2, b1, b2){
   p2.y = yPos(p2.height, GROUND.height, GROUND.y);
 
   // x,y blocks
-  b1.x = blockXpos(b1.width, p1.width, p1.x, "right", data.pa)
+  let edgeB1 = "right";
+  if(data.id == "S93-1674"){
+    edgeB1 = "left";
+  }
+  b1.x = blockXpos(b1.width, p1.width, p1.x, edgeB1, data.pa)
   b2.x = blockXpos(b2.width, p2.width, p2.x, "left", data.pc)
   b1.y = yPos(b1.height, p1.height, p1.y)
   b2.y = yPos(b2.height, p2.height, p2.y)
@@ -109,13 +113,18 @@ setLocationObjs = function(objs, data){
       objs.b2.y -= objs.podest.height
       objs.b1.y -= objs.podest.height
     } else if(data.id == "S42-806") {
-        let offset = objs.stick.x - objs.b2.x + 20
+        // let offset = objs.stick.x - objs.b2.x - 20
+        // objs.b1.x += offset
+        objs.b1.x = objs.stick.x
         objs.b2.x = objs.stick.x
-        objs.b1.x += offset
       }
   } else {
     if(pType == "basic1") {
       setupBasic1(data, objs.p1, objs.b1, objs.b2)
+        if(data.id == "S30-805-dep"){
+          objs.b1.x += objs.p1.width / 3;
+          objs.b2.x += objs.p1.width / 3;
+        }
     } else {
       setupBasic2(data, objs.p1, objs.p2, objs.b1, objs.b2);
     }
@@ -126,6 +135,7 @@ setLocationObjs = function(objs, data){
 initBlocks = function(data){
   let colors = Math.random() > 0.5 ? [0, 1] : [1, 0]
   // let colors = [1, 0];
+  // let colors = [0, 1];
   let b1 = initWorldObj("block", "block1", COLOR.blocks[colors[0]])
   let b2 = initWorldObj("block", "block2", COLOR.blocks[colors[1]]);
   setBlockExtensions(b1, data["A.orientation"]);

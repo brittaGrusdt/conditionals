@@ -1,0 +1,36 @@
+id,pa,pc,pc_given_a,pa_given_c,dependence.c,dependence.a,AC.position,A.orientation,C.orientation,platform.type,platform1.height,platform1.width,platform2.height,platform2.width,platform.dist,comment1,comment2
+S1-121,high,high,uncertain,uncertain,1,1,-1,vertical,vertical,basic2,high,narrow,high,narrow,short,"
+Needs training example",both become less likely given the other
+S10-203,high,low,low,uncertain,0,1,-1,vertical,vertical,basic2,high,narrow,default,narrow,short,p(A|C) uncertain because of space,-1
+S12-203,high,low,low,high,0,0,side,vertical,vertical,basic1,default,default,-1,-1,-1,-1,-1
+S15-443,high,uncertain,low,uncertain,1,1,-1,vertical,vertical,basic2,high,narrow,high,narrow,short,"p(A|C) uncertain because of space,
+P(C|A) low because A would fall more to the right",both become less likely given the other
+S20-468,high,uncertain,uncertain,uncertain,0,1,-1,vertical,vertical,basic2,high,narrow,default,narrow,short,similar to S10-203,-1
+S22-468,high,uncertain,uncertain,high,0,0,side,vertical,vertical,basic1,default,default,-1,-1,-1,-1,-1
+S30-805,low,low,low,low,0,0,side,vertical,vertical,basic1,default,default,-1,-1,-1,-1,-1
+S32-806,low,low,low,uncertain,0,1,-1,vertical,vertical,basic2,high,narrow,default,narrow,short,needs air draft,similar to S20-468
+S34-806,low,low,low,high,0,2,-1,horizontal,vertical,basic2,default,narrow,high,narrow,very_short,-1,-1
+S42-806,low,low,uncertain,uncertain,1,1,stack_A_on_C,horizontal,horizontal,seesaw,-1,-1,-1,-1,-1,"New
+Needs training example","should be stacked perfectly in the middle; 
+Or perfectly on each edge"
+S44-806,low,low,uncertain,high,1,2,stack_A_on_C,vertical,horizontal,basic1,default,narrow,-1,-1,-1,needs training example,"both become more likely given the other, one of them more so"
+S54-806,low,low,high,high,2,2,stack_C_on_A,horizontal,horizontal,basic1,default,narrow,-1,-1,-1,"similar to S42-806 and S97-1674
+Difficult
+Needs training",both become more likely given the other
+S55-1006,low,uncertain,low,low,1,0,-1,vertical,horizontal,basic2,default,narrow,default,narrow,short,difficult,-1
+S57-1007,low,uncertain,uncertain,low,0,0,side,vertical,vertical,basic1,default,default,-1,-1,-1,-1,-1
+S59-1007,low,uncertain,high,low,1,0,stack_C_on_A,horizontal,vertical,basic1,default,narrow,-1,-1,-1,similar to S55-1006,-1
+S63-1039,low,uncertain,high,uncertain,1,1,-1,vertical,vertical,basic2,default,very_narrow,default,very_narrow,extreme_short,"New
+similar to S10-203",horizontal
+S7-130,high,high,high,high,0,0,side,vertical,vertical,basic1,default,default,-1,-1,-1,-1,-1
+S8-202,high,low,low,low,0,2,,vertical,vertical,basic2,default,default,default,default,very_short,similar to S55-1006,-1
+S83-1609,uncertain,uncertain,low,low,1,1,-1,vertical,vertical,basic2,default,default,default,default,short,-1,"both become less likely given the other, 
+Similar to S15-443"
+S89-1642,uncertain,uncertain,uncertain,uncertain,0,0,side,vertical,vertical,basic1,default,default,-1,-1,-1,-1,-1
+S93-1674,uncertain,uncertain,uncertain,high,0,1,-1,horizontal,vertical,basic2,default,narrow,high,narrow,extreme_short,"similar to S59-1007
+",-1
+S97-1674,uncertain,uncertain,high,high,1,1,side,horizontal,horizontal,seesaw,-1,-1,-1,-1,-1,-1,"Both become more likely given the other;
+Similar to S42-806"
+S7-130-dep,high,high,high,high,dep,dep,side,horizontal,horizontal,seesaw,-1,-1,-1,-1,-1,"such that not sure in which direction the blocks fall; side or stacked, try out",-1
+S30-805-dep,low,low,low,low,dep,dep,stack_A_on_C,horizontal,horizontal,basic1,default,default,-1,-1,-1,"pc should be 0, directly on top of platform",-1
+S89-1642-dep,uncertain,uncertain,uncertain,uncertain,dep,dep,side,horizontal,horizontal,seesaw,-1,-1,-1,-1,-1,one on each side such that unclear whether in balance or not,-1

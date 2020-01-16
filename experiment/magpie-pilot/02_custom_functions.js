@@ -72,15 +72,6 @@ function random_utterance(slider_rating_trials) {
   return slider_rating_trials;
 }
 
-function set_img_path_in_trials(trials, group){
-  trials.forEach(function(trial){
-    let name = trial.picture.split("/")[1]
-    trial.picture = "images/" + group + "/"  + name;
-  });
-}
-
-
-
 // code for animation
 
 // var nbClicks = 0;

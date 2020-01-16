@@ -25,10 +25,11 @@ const BLOCKS = {"width": 40, "height": 80,
 const Prior2ProportionOnBase = {"low": 0.625, "high": 0.375, "uncertain": 0.5}
 let platformDist = 2 * platformW
 const PlatformProp2Val =
-  {"width": {"default": platformW, "narrow": platformW / 2},
+  {"width": {"default": platformW, "narrow": platformW / 2, "very_narrow": platformW / 3},
    "height": {"default": platformH, "high": platformH * 2},
    "dist": {"default": platformDist, "short": platformDist / 2,
-            "very_short": platformDist / 3}
+            "very_short": platformDist / 3,
+            "extreme_short": platformDist / 4}
   };
 
 const SceneEdges = {"left": Dist2Side,
@@ -96,7 +97,7 @@ const DISTRACTOR = {
   "block":
     initWorldObj("block", "distractorBlock", COLOR.distractor,
                  x=blockXpos(BLOCKS.width, distractorPlatformW, distractorPlatformX,
-                             "left", "uncertain"),
+                             "left", "uncertain") + 5,
                  y=yPos(BLOCKS.height, distractorPlatformH, distractorPlatformY),
                  width=BLOCKS.width,
                  height=BLOCKS.height
