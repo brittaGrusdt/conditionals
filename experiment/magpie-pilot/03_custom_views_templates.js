@@ -55,7 +55,7 @@ const multi_slider_generator = {
                 <span class='magpie-response-slider-option'>${option2}</span>
               </slider4>
               </div>
-              <button id='next' class='magpie-view-button grid-button'>Next scene</button>`;
+              <button id='buttonNext' class='grid-button magpie-view-button'>Next scene</button>`;
   },
 
   handle_response_function: function(
@@ -125,46 +125,36 @@ const multi_slider_generator = {
       return keyName;
     });
 
-    // check the sliders for all 4 utterance and handle what utterance
-    // is shown and what button is shown
+    // check the sliders for all 4 utterance and handle next button
     // this is code without debut mode
 
+    toggleNextIfDone = function(){
+      if (isAnswered.q1 && isAnswered.q2 && isAnswered.q3 && isAnswered.q4) {
+        $("#buttonNext").removeClass("grid-button")
+      };
+    }
+    let isAnswered = {"q1": false, "q2": false, "q3": false, "q4": false}
     response1.on("change", function() {
-      $("#button2").removeClass("magpie-nodisplay");
-    });
-
-    $("#button2").on("click", function() {
-      $("#utterance1").toggleClass("magpie-nodisplay");
-      $("#utterance2").removeClass("magpie-nodisplay");
-      $("#button2").toggleClass("magpie-nodisplay");
+      isAnswered.q1 = true;
+      toggleNextIfDone();
     });
 
     response2.on("change", function() {
-      $("#button3").removeClass("magpie-nodisplay");
-    });
-
-    $("#button3").on("click", function() {
-      $("#utterance2").toggleClass("magpie-nodisplay");
-      $("#utterance3").removeClass("magpie-nodisplay");
-      $("#button3").toggleClass("magpie-nodisplay");
+      isAnswered.q2 = true;
+      toggleNextIfDone();
     });
 
     response3.on("change", function() {
-      $("#button4").removeClass("magpie-nodisplay");
-    });
-
-    $("#button4").on("click", function() {
-      $("#utterance3").toggleClass("magpie-nodisplay");
-      $("#utterance4").removeClass("magpie-nodisplay");
-      $("#button4").toggleClass("magpie-nodisplay");
+      isAnswered.q3 = true;
+      toggleNextIfDone();
     });
 
     response4.on("change", function() {
-      $("#runButton").removeClass("magpie-nodisplay");
-      $("#next").removeClass("magpie-nodisplay");
+      isAnswered.q4 = true;
+      toggleNextIfDone();
     });
 
-    $("#next").on("click", function() {
+    $("#buttonNext").on("click", function() {
       const RT = Date.now() - startingTime; // measure RT before anything else
       let trial_data = {
         trial_name: config.name,
