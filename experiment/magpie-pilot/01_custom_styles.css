@@ -114,7 +114,7 @@ slider4 {
 /* change margin of next button so that all fits onto one screen */
 /* gray + hovering disabled as long as not all responses are given */
 .grid-button {
-  margin: 5px auto 20px auto;
+  /* margin: 5px auto 20px auto; */
   background-color: #A9A9A9;
   pointer-events: none;
 }

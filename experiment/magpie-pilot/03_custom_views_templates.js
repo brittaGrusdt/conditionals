@@ -80,6 +80,7 @@ const multi_slider_generator = {
     // function for debugging - if "y" is pressed, the slider will change
     // the next button has to be pressed, in order to get to next trial
     var counter = 0;
+    let isAnswered = {"q1": false, "q2": false, "q3": false, "q4": false}
     document.addEventListener("keydown", event => {
       var keyName = event.key;
 
@@ -89,6 +90,7 @@ const multi_slider_generator = {
           s.value = Math.floor(Math.random() * 101);
           $("#utterance1").toggleClass("magpie-nodisplay");
           $("#utterance2").removeClass("magpie-nodisplay");
+          isAnswered.q1 = true;
           console.log(s.value);
           counter += 1;
           console.log(counter);
@@ -97,6 +99,7 @@ const multi_slider_generator = {
           t.value = Math.floor(Math.random() * 101);
           $("#utterance2").toggleClass("magpie-nodisplay");
           $("#utterance3").removeClass("magpie-nodisplay");
+          isAnswered.q2 = true;
           console.log(t.value);
           counter += 1;
           console.log(counter);
@@ -106,6 +109,7 @@ const multi_slider_generator = {
           //$("#button4").removeClass("magpie-nodisplay");
           $("#utterance3").toggleClass("magpie-nodisplay");
           $("#utterance4").removeClass("magpie-nodisplay");
+          isAnswered.q3 = true;
           console.log(u.value);
           counter += 1;
           console.log(counter);
@@ -113,6 +117,7 @@ const multi_slider_generator = {
           var v = document.getElementById("response4");
           v.value = Math.floor(Math.random() * 101);
           $("#utterance4").toggleClass("magpie-nodisplay");
+          isAnswered.q4 = true; toggleNextIfDone();
           console.log(v.value);
           counter += 1;
           console.log(counter);
@@ -133,7 +138,6 @@ const multi_slider_generator = {
         $("#buttonNext").removeClass("grid-button")
       };
     }
-    let isAnswered = {"q1": false, "q2": false, "q3": false, "q4": false}
     response1.on("change", function() {
       isAnswered.q1 = true;
       toggleNextIfDone();
