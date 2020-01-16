@@ -3,7 +3,7 @@ import json
 
 
 csvfile = open('./scenes_luh_annotations.csv')
-jsonfile = open('annotations-json.json', 'w')
+jsonfile = open('annotations.json', 'w')
 reader = csv.DictReader(csvfile)
 
 
