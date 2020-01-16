@@ -90,8 +90,8 @@ slider4 {
 
 /* make sure that image uses its whole space */
 .image-stretch {
-  width: 100%;
-  height: 100%;
+  width: 50%;
+  height: 50%;
 }
 
 /* assign the stimulus qud - question to corresponding grid space */
@@ -127,6 +127,11 @@ slider4 {
   max-width: 700px;
 }
 
+.image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 /* change container of progress_bar, so that all fits on one screen */
 /* .progress-bar-container {
   margin: 0 10px 0px 10px;
