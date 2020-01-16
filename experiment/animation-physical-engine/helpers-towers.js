@@ -125,6 +125,7 @@ setLocationObjs = function(objs, data){
 
 initBlocks = function(data){
   let colors = Math.random() > 0.5 ? [0, 1] : [1, 0]
+  // let colors = [1, 0];
   let b1 = initWorldObj("block", "block1", COLOR.blocks[colors[0]])
   let b2 = initWorldObj("block", "block2", COLOR.blocks[colors[1]]);
   setBlockExtensions(b1, data["A.orientation"]);

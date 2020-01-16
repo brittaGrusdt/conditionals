@@ -1,6 +1,5 @@
 // // canvas size
 const CANVAS = {"width": 800, "height": 400}
-const FRICTION = 0.5
 const SIMULATION = {"duration": 10000}
 
 // default values for width/height of platforms
@@ -15,8 +14,9 @@ const COLOR = {"platforms": "#B6AFBD",  // "#FFBC42",
                "blocks": ["#1BB635", "#0496FF"],  // green, blue
                "seesaw": {"plank": "darkorange", "stick": "darkgray"}}
 
-const DENSITIES = {"default": 0.001, "blocks": 0.1, "seesawPlank": 3, "platforms": 1}
-const RESTITUITIONS = {"default": 0, "blocks": 0.5}
+const DENSITIES = {"default": 0.001, "blocks": 0.1, "seesawPlank": 0.1, "platforms": 0.4}
+const FRICTIONS = {"default": 0.75, "platforms": 0.75}
+const RESTITUITIONS = {"default": 0} // default is inelastic
 
 const BLOCKS = {"width": 40, "height": 80,
                 "minDist2Edge": 5,"step": 10
@@ -113,11 +113,10 @@ function initWorldObj(kind, label, color, x=0, y=0, width=0, height=0){
                             restituition: RESTITUITIONS.default,
                             density: DENSITIES.default,
                             isStatic: false,
-                            friction: FRICTION
+                            friction: FRICTIONS.default
                            }
             };
   if (kind == "block"){
-    obj.properties.restituition = RESTITUITIONS.blocks
     obj.properties.density = DENSITIES.blocks;
   } else if (kind == "platform") {
     obj.properties.density = DENSITIES.platforms;
