@@ -52,8 +52,10 @@ const instructions = magpieViews.view_generator("instructions", {
   title: "General Instructions",
   text: `In this experiment you are shown pictures of blocks that are arranged in different scenarios.
           <br/>
+          <br/>
          You will be asked to rate the likelihood of certain events to occur in the scenarios presented to you.
          In particular, you will be asked for the likelihood of certain blocks to <b>touch the ground</b>.
+          <br/>
          For a block to touch the ground it is sufficient that a small part or an edge of the block has contact
          to the ground.
           <br />
@@ -62,8 +64,10 @@ const instructions = magpieViews.view_generator("instructions", {
          For each scenario you are asked to judge four events. There are 22 scenarios in total.
             <br />
             <br />
-        The experiment will take you about 30 minutes.
+        You may want to go to full screen mode during the experiment. Usually, you enter and exit full screen mode by pressing F11. That is, pressing F11 once opens full screen mode and pressing it again stops full screen mode.
           <br />
+          <br />
+        The experiment will take you about 30 minutes.
         You will be shown some examples first.`,
   buttonText: "go to example trials"
 });
