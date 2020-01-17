@@ -59,7 +59,7 @@ const instructions = magpieViews.view_generator("instructions", {
           <br />
          The colored blocks all have the same properties, they are only distinguishable by their color.
           <br/>
-         For each scenario you are aked to judge four events. There are 22 scenarios in total.
+         For each scenario you are asked to judge four events. There are 22 scenarios in total.
             <br />
             <br />
         The experiment will take you about 30 minutes.
