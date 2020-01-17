@@ -85,10 +85,55 @@ makeConstraints = function(pType, mapID2Objs) {
   return constraints
 }
 
-createScene = function(pType, mapID2Definitions){
+getMinMax = function(base){
+  let min = base.x - base.width / 2 - 5
+  let max = base.x + base.width / 2 + 5
+  return [min, max]
+}
+
+randomNbInRange = function(minMax){
+   return Math.random() * (minMax[1] - minMax[0]) + minMax[0];
+}
+
+randomStacked = function(mapID2Def, base){
+  if(mapID2Def.b1.y > mapID2Def.b2.y){
+    // b1 on b2
+    let b2Range = getMinMax(base)
+    mapID2Def.b2.x = randomNbInRange(b2Range);
+    let b1Range = getMinMax(mapID2Def.b2)
+    mapID2Def.b1.x = randomNbInRange(b1Range);
+  } else {
+    // b2 on b1
+    let b1Range = getMinMax(base)
+    mapID2Def.b1.x = randomNbInRange(b1Range);
+    let b2Range = getMinMax(mapID2Def.b1)
+    mapID2Def.b2.x = randomNbInRange(b2Range);
+  }
+}
+
+
+setLocationsTraining = function(pType, mapID2Def){
+  if(pType == "basic2"){
+    let b1Range = getMinMax(mapID2Def.p1)
+    let b2Range = getMinMax(mapID2Def.p2)
+    mapID2Def.b1.x = randomNbInRange(b1Range);
+    mapID2Def.b2.x = randomNbInRange(b2Range);
+  } else {
+    // stack random
+    let base = pType == "seesaw" ? mapID2Def.plank : (mapID2Def.b1.y > mapID2Def.b2.y) ?
+      mapID2Def.b2 : mapID2Def.b1;
+
+    randomStacked(mapID2Def, base);
+  }
+}
+
+createScene = function(pType, mapID2Definitions, training){
   let objs = Object.values(mapID2Definitions);
   let map2WorldObjs = {}
 
+  if(training){
+    setLocationsTraining(pType, mapID2Definitions, objs)
+  }
   objs.forEach(function(obj){
     let block = makeBlock(obj);
     map2WorldObjs[obj.properties.label] = block;
@@ -128,7 +173,7 @@ if(TRAIN_MODE){
   sceneProps = data[idxScene]
 }
 let sceneData = defineScene(sceneProps);
-let worldObjects = createScene(sceneProps["platform.type"], sceneData);
+let worldObjects = createScene(sceneProps["platform.type"], sceneData, TRAIN_MODE);
 
 // OLD
 // var ground = makeBlock(

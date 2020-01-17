@@ -112,7 +112,8 @@ const CATEGORIES = {
   "position": ["side", "stack_A_on_C", "stack_C_on_A"],
   "platform.type": ["basic1", "basic2", "seesaw"],
   "platform.height": ["default", "high"],
-  "platform.width": ["default", "narrow", "very_narrow"]
+  "platform.width": ["default", "narrow", "very_narrow"],
+  "platform.dist": ["default", "short", "very_short", "extreme_short"]
 };
 
 

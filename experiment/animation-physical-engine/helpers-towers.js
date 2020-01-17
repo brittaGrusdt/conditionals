@@ -103,7 +103,7 @@ setupBasic2 = function(data, p1, p2, b1, b2){
   b2.y = yPos(b2.height, p2.height, p2.y)
 }
 
-setLocationObjs = function(objs, data){
+setLocationObjs = function(objs, data, training){
   let pType = data["platform.type"]
   if (pType == "seesaw"){
     setup2Blocks1Base(data, objs.b1, objs.b2, objs.plank);
@@ -185,7 +185,7 @@ getRandomTrainData = function(){
      "A.orientation": _.sample(CATEGORIES.orientation),
      "C.orientation": _.sample(CATEGORIES.orientation),
      "platform.type": "seesaw",
-     "AC.position": _.sample(CATEGORIES.position),
+     "AC.position": ["stack_A_on_C", "stack_C_on_A"],
      "id": "train1"
    },
     {"pa": _.sample(CATEGORIES.prior),
@@ -193,7 +193,7 @@ getRandomTrainData = function(){
      "A.orientation": _.sample(CATEGORIES.orientation),
      "C.orientation": _.sample(CATEGORIES.orientation),
      "platform.type": "basic1",
-     "AC.position": _.sample(CATEGORIES.position),
+     "AC.position": ["stack_A_on_C", "stack_C_on_A"],
      "platform1.height": _.sample(CATEGORIES["platform.height"]),
      "platform1.width": _.sample(CATEGORIES["platform.width"]),
      "id": "train2"
@@ -212,7 +212,7 @@ getRandomTrainData = function(){
     "id": "train3",
   }
 ];
-  return train_data[Math.floor(Math.random() * 2)]
+  return train_data[Math.floor(Math.random() * train_data.length)]
 }
 
 
@@ -221,6 +221,6 @@ getRandomTrainData = function(){
 */
 defineScene = function(data){
   objs = getObjects(data);
-  setLocationObjs(objs, data);
+  setLocationObjs(objs, data)
   return objs
 }
