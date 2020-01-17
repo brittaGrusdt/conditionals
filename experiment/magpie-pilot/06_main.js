@@ -43,7 +43,7 @@ $("document")
         multiple_slider.name
       ],
         // Possible styles are "default", "separate" and "chunks"
-        style: "chunks",
+        style: "separate",
         width: 100
       }
     });
