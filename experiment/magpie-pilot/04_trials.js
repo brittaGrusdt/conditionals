@@ -14,6 +14,39 @@ var example_trial = [
   }
 ];
 
+var test_trials = [
+  {
+    picture: "images/training/train-basic1.jpg",
+    QUD: "How likely do you think the following events will happen?",
+    question1: "utterance1",
+    question2: "utterance2",
+    question3: "utterance3",
+    question4: "utterance4",
+    optionLeft: "impossible event",
+    optionRight: "certain event"
+  },
+  {
+    picture: "images/training/train-basic2.jpg",
+    QUD: "How likely do you think the following events will happen?",
+    question1: "utterance1",
+    question2: "utterance2",
+    question3: "utterance3",
+    question4: "utterance4",
+    optionLeft: "impossible event",
+    optionRight: "certain event"
+  },
+  {
+    picture: "images/training/train-seesaw.jpg",
+    QUD: "How likely do you think the following events will happen?",
+    question1: "utterance1",
+    question2: "utterance2",
+    question3: "utterance3",
+    question4: "utterance4",
+    optionLeft: "impossible event",
+    optionRight: "certain event"
+  }
+];
+
 var slider_rating_trials = [
   {
     picture: "images/" + group + "/" +"S1-121.jpg",
@@ -272,3 +305,5 @@ var slider_rating_trials = [
 // call random_utterance to later be able to randomly show the utterances
 example_trial = random_utterance(example_trial);
 slider_rating_trials = random_utterance(slider_rating_trials);
+
+test_trials = random_utterance(test_trials);

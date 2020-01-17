@@ -123,10 +123,10 @@ const thanks = magpieViews.view_generator("thanks", {
 const test_multiple_slider = magpieViews.view_generator(
   "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
-    trials: 1,
+    trials: test_trials.length,
     // name should be identical to the variable name
     name: "slider_test",
-    data: example_trial
+    data: _.shuffle(test_trials)
   },
   // you can add custom functions at different stages through a view's life cycle
   {

@@ -9,21 +9,30 @@
 // if it is an trial view it also makes sense to call magpie.trial_data.push(trial_data) to save the trial information
 
 // generate a new multi_slider
-
+// <button id="runButton" onclick="clickOnRun()">Run</button>
 const multi_slider_generator = {
-  // we do not want to show the picture in the stimulus container anymore, but in the grid
-  // together with the answer_container
-
-// <h1 class='magpie-view-title'>${config.title}</h1>
   stimulus_container_gen: function (config, CT) {
-    return `<div class='magpie-view'>
-              <h1 class='image'>
-              ${config.data[CT].QUD}
-              </h1>
-            <div class='image'>
-             <img src=${config.data[CT].picture}>
-             </div>
-          </div>`;
+    let htmlCode ;
+    // if(config.name == "slider_test"){
+    //   // training trials with feedback from animations
+    //   htmlCode = `
+    //   <div class='magpie-view'>
+    //     <script>showScene(worldObjects)</script>;
+    //   </div>
+    //   `;
+    //
+    // } else {
+      // experimental trials
+      htmlCode = `<div class='magpie-view'>
+      <h1 class='image'>
+      ${config.data[CT].QUD}
+      </h1>
+      <div class='image'>
+      <img src=${config.data[CT].picture}>
+      </div>
+      </div>`;
+    // }
+    return htmlCode;
   },
 
   answer_container_gen: function (config, CT) {
