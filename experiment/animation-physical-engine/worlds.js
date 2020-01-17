@@ -117,11 +117,18 @@ createScene = function(pType, mapID2Definitions){
 
 // 2. choose and create scene
 let idxScene = Math.floor(Math.random()*10)
-// idxScene =  16
+// idxScene =  9
 console.log(data[idxScene].id)
-let sceneProps = data[idxScene]
-let sceneData = defineScene(sceneProps)
-let worldObjects = createScene(data[idxScene]["platform.type"], sceneData)
+
+let sceneProps;
+if(TRAIN_MODE){
+  sceneProps = getRandomTrainData();
+  console.log(sceneProps)
+} else  {
+  sceneProps = data[idxScene]
+}
+let sceneData = defineScene(sceneProps);
+let worldObjects = createScene(sceneProps["platform.type"], sceneData);
 
 // OLD
 // var ground = makeBlock(
