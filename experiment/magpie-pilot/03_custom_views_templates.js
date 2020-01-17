@@ -13,26 +13,23 @@
 const multi_slider_generator = {
   // we do not want to show the picture in the stimulus container anymore, but in the grid
   // together with the answer_container
+
+// <h1 class='magpie-view-title'>${config.title}</h1>
   stimulus_container_gen: function (config, CT) {
     return `<div class='magpie-view'>
-                         <h1 class='magpie-view-title'>${config.title}</h1>
-                        <div class='image'>
-                         <img class='image-stretch' src=${config.data[CT].picture}>
-                         </div>
-                     </div>`;
+              <h1 class='image'>
+              ${config.data[CT].QUD}
+              </h1>
+            <div class='image'>
+             <img src=${config.data[CT].picture}>
+             </div>
+          </div>`;
   },
 
   answer_container_gen: function (config, CT) {
     const option1 = config.data[CT].optionLeft;
     const option2 = config.data[CT].optionRight;
     return `<div class='magpie-multi-slider-grid' id='target'>
-              <picture class='grid-picture'>
-
-
-              </picture>
-              <header class='magpie-grid-qud magpie-view-question magpie-view-qud'>
-                <strong>${config.data[CT].QUD}</strong>
-              </header>
               <question1 class='magpie-view-question' id ='question1' >${
                 config.data[CT].allUtterances[0]
               }</question1>

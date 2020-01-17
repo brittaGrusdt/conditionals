@@ -71,21 +71,3 @@ function random_utterance(slider_rating_trials) {
   console.log(slider_rating_trials);
   return slider_rating_trials;
 }
-
-// code for animation
-
-// var nbClicks = 0;
-//
-// function clickOnRun() {
-//   nbClicks += 1;
-//   console.log("inside");
-//   if (nbClicks === 1) {
-//     runAnimation(worldStatic, worldDynamic);
-//   }
-// }
-//
-//
-//
-// showScene(worldStatic, worldDynamic);
-
-//<button id="runButton" onclick="clickOnRun()">Run</button>
