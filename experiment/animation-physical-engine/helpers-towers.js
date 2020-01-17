@@ -178,11 +178,49 @@ getObjects = function(data){
 }
 
 
+getRandomTrainData = function(){
+  let train_data = [
+    {"pa": _.sample(CATEGORIES.prior),
+     "pc": _.sample(CATEGORIES.prior),
+     "A.orientation": _.sample(CATEGORIES.orientation),
+     "C.orientation": _.sample(CATEGORIES.orientation),
+     "platform.type": "seesaw",
+     "AC.position": _.sample(CATEGORIES.position),
+     "id": "train1"
+   },
+    {"pa": _.sample(CATEGORIES.prior),
+     "pc": _.sample(CATEGORIES.prior),
+     "A.orientation": _.sample(CATEGORIES.orientation),
+     "C.orientation": _.sample(CATEGORIES.orientation),
+     "platform.type": "basic1",
+     "AC.position": _.sample(CATEGORIES.position),
+     "platform1.height": _.sample(CATEGORIES["platform.height"]),
+     "platform1.width": _.sample(CATEGORIES["platform.width"]),
+     "id": "train2"
+   },
+   {"pa": _.sample(CATEGORIES.prior),
+    "pc": _.sample(CATEGORIES.prior),
+    "A.orientation": _.sample(CATEGORIES.orientation),
+    "C.orientation": _.sample(CATEGORIES.orientation),
+    "platform.type": "basic2",
+    "AC.position": _.sample(CATEGORIES.position),
+    "platform1.height": _.sample(CATEGORIES["platform.height"]),
+    "platform1.width": _.sample(CATEGORIES["platform.width"]),
+    "platform2.height": _.sample(CATEGORIES["platform.height"]),
+    "platform2.width": _.sample(CATEGORIES["platform.width"]),
+    "platform.dist": _.sample(CATEGORIES["platform.dist"]),
+    "id": "train3",
+  }
+];
+  return train_data[Math.floor(Math.random() * 2)]
+}
+
+
 /**
 *
 */
 defineScene = function(data){
-  let objs = getObjects(data)
-  setLocationObjs(objs, data)
+  objs = getObjects(data);
+  setLocationObjs(objs, data);
   return objs
 }

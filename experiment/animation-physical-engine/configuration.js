@@ -1,6 +1,8 @@
+let TRAIN_MODE = true;
+
 // // canvas size
 const CANVAS = {"width": 800, "height": 400}
-const SIMULATION = {"duration": 10000}
+const SIMULATION = {"duration": 5000}
 
 // default values for width/height of platforms
 let platformH = 100;
@@ -14,8 +16,8 @@ const COLOR = {"platforms": "#B6AFBD",  // "#FFBC42",
                "blocks": ["#1BB635", "#0496FF"],  // green, blue
                "seesaw": {"plank": "darkorange", "stick": "darkgray"}}
 
-const DENSITIES = {"default": 0.001, "blocks": 0.1, "seesawPlank": 0.1, "platforms": 0.4}
-const FRICTIONS = {"default": 0.75, "platforms": 0.75}
+const DENSITIES = {"default": 0.001, "blocks": 0.1, "seesawPlank": 0.2, "platforms": 0.4}
+const FRICTIONS = {"default": 0.8, "platforms": 0.8}
 const RESTITUITIONS = {"default": 0} // default is inelastic
 
 const BLOCKS = {"width": 40, "height": 80,
@@ -97,12 +99,22 @@ const DISTRACTOR = {
   "block":
     initWorldObj("block", "distractorBlock", COLOR.distractor,
                  x=blockXpos(BLOCKS.width, distractorPlatformW, distractorPlatformX,
-                             "left", "uncertain") + 5,
+                             "left", "uncertain"),
                  y=yPos(BLOCKS.height, distractorPlatformH, distractorPlatformY),
                  width=BLOCKS.width,
                  height=BLOCKS.height
                 )
 };
+
+const CATEGORIES = {
+  "prior": ["high", "low", "uncertain"],
+  "orientation": ["vertical", "horizontal"],
+  "position": ["side", "stack_A_on_C", "stack_C_on_A"],
+  "platform.type": ["basic1", "basic2", "seesaw"],
+  "platform.height": ["default", "high"],
+  "platform.width": ["default", "narrow", "very_narrow"]
+};
+
 
 /*
 * @param kind static, block, default
