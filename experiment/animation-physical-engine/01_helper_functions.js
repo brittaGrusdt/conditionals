@@ -17,3 +17,15 @@ let blockXpos = function(blockW, baseW, baseX, whichEdge, prior){
   let x = blockEdgeOnBase + shiftBaseEdge * (blockW / 2)
   return x
 }
+
+getMinMax = function(obj, base){
+  let min = base.x - base.width / 2 - 5
+  let max = base.x + base.width / 2 + 5
+  min = (min - top.width / 2) < 0 ? 0 : min;
+  max = (max + top.width / 2) > CANVAS.width ? CANVAS.width - top.width/2 : max;
+  return [min, max]
+}
+
+randomNbInRange = function(minMax){
+   return Math.random() * (minMax[1] - minMax[0]) + minMax[0];
+}

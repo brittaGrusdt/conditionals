@@ -85,45 +85,35 @@ makeConstraints = function(pType, mapID2Objs) {
   return constraints
 }
 
-getMinMax = function(base){
-  let min = base.x - base.width / 2 - 5
-  let max = base.x + base.width / 2 + 5
-  return [min, max]
-}
-
-randomNbInRange = function(minMax){
-   return Math.random() * (minMax[1] - minMax[0]) + minMax[0];
-}
-
-randomStacked = function(mapID2Def, base){
-  if(mapID2Def.b1.y > mapID2Def.b2.y){
-    // b1 on b2
-    let b2Range = getMinMax(base)
-    mapID2Def.b2.x = randomNbInRange(b2Range);
-    let b1Range = getMinMax(mapID2Def.b2)
-    mapID2Def.b1.x = randomNbInRange(b1Range);
+randomStacked = function(obj1, obj2, basis){
+  if(obj1.y > obj2.y){
+    // obj1 on obj2
+    let b2Range = getMinMax(obj2, basis);
+    obj2.x = randomNbInRange(b2Range);
+    let b1Range = getMinMax(obj1, obj2);
+    obj1.x = randomNbInRange(b1Range);
   } else {
-    // b2 on b1
-    let b1Range = getMinMax(base)
-    mapID2Def.b1.x = randomNbInRange(b1Range);
-    let b2Range = getMinMax(mapID2Def.b1)
-    mapID2Def.b2.x = randomNbInRange(b2Range);
+    // obj2 on obj1
+    let b1Range = getMinMax(obj1, basis)
+    obj1.x = randomNbInRange(b1Range);
+    let b2Range = getMinMax(obj2, obj1);
+    obj2.x = randomNbInRange(b2Range);
   }
 }
 
 
 setLocationsTraining = function(pType, mapID2Def){
   if(pType == "basic2"){
-    let b1Range = getMinMax(mapID2Def.p1)
-    let b2Range = getMinMax(mapID2Def.p2)
+    let b1Range = getMinMax(mapID2Def.b1, mapID2Def.p1)
+    let b2Range = getMinMax(mapID2Def.b2, mapID2Def.p2)
     mapID2Def.b1.x = randomNbInRange(b1Range);
     mapID2Def.b2.x = randomNbInRange(b2Range);
   } else {
     // stack random
-    let base = pType == "seesaw" ? mapID2Def.plank : (mapID2Def.b1.y > mapID2Def.b2.y) ?
-      mapID2Def.b2 : mapID2Def.b1;
+    let base = pType == "seesaw" ? mapID2Def.plank : GROUND;
+    // (mapID2Def.b1.y > mapID2Def.b2.y) ? mapID2Def.b2 : mapID2Def.b1;
 
-    randomStacked(mapID2Def, base);
+    randomStacked(mapID2Def.b1, mapID2Def.b2, mapID2Def.p1);
   }
 }
 
@@ -132,7 +122,9 @@ createScene = function(pType, mapID2Definitions, training){
   let map2WorldObjs = {}
 
   if(training){
-    setLocationsTraining(pType, mapID2Definitions, objs)
+    setLocationsTraining(pType, mapID2Definitions, objs);
+    let distRange = getMinMax(mapID2Definitions.distractorBlock, mapID2Definitions.distractorPlatform);
+    mapID2Definitions.distractorBlock.x = randomNbInRange(distRange);
   }
   objs.forEach(function(obj){
     let block = makeBlock(obj);
@@ -159,6 +151,7 @@ createScene = function(pType, mapID2Definitions, training){
   });
   return allSceneObjs
 }
+
 
 // 2. choose and create scene
 let idxScene = Math.floor(Math.random()*10)
