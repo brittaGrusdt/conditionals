@@ -135,6 +135,14 @@ slider4 {
   width: 120px;
 }
 
+input[type="range"].replied::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  background: green;
+}
+
+.thick {
+  font-weight: bold;
+}
 /* change margin of next button so that all fits onto one screen */
 /* gray + hovering disabled as long as not all responses are given */
 .grid-button {
