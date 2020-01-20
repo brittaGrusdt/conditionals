@@ -63,8 +63,8 @@ const instructions = magpieViews.view_generator("instructions", {
          There are 25 scenarios in total.
             <br />
             <br />
-        The experiment will take you about 30 minutes.
-        You will be shown some examples first.`,
+        The experiment will take you about 30 minutes in total.
+        You will be shown some animated examples first to get familiar with the stimuli. The button to proceed to the next animated scenario will be activated 3 seconds after you hit the run button to start the animation.`,
   buttonText: "go to example trials"
 });
 
@@ -72,7 +72,7 @@ const instructions2 = magpieViews.view_generator("instructions", {
   trials: 1,
   name: "instructions2",
   title: "Instructions",
-  text: `We will now move on to the main part of the experiment.
+  text: `We will now move on to the main part of the experiment. Now, you will see static pictures without the possiblity to run an animation. You will be asked to rate how likely certain blocks will touch or not touch the ground.
         <br />
         <br />
         Please keep in mind:
