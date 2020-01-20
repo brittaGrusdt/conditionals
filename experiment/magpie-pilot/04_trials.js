@@ -1,20 +1,8 @@
 // In this file you can specify the trial data for your experiment
 
 // slider rating trials
-var example_trial = [
-  {
-    picture: "images/" + group + "/" + "S1-121.jpg",
-    QUD: "Rate how likely each of the following statements is!",
-    question1: "utterance1",
-    question2: "utterance2",
-    question3: "utterance3",
-    question4: "utterance4",
-    optionLeft: "impossible event",
-    optionRight: "certain event"
-  }
-];
 
-var test_trials = [
+var training_trials = [
   {
     picture: "images/training/train-basic1.jpg",
     QUD: "Rate how likely each of the following statements is!",
@@ -298,12 +286,11 @@ var slider_rating_trials = [
     question4: "utterance4",
     optionLeft: "impossible event",
     optionRight: "certain event"
-  },
+  }
 
 ];
 
 // call random_utterance to later be able to randomly show the utterances
-example_trial = random_utterance(example_trial);
 slider_rating_trials = random_utterance(slider_rating_trials);
 
-test_trials = random_utterance(test_trials);
+training_trials = random_utterance(training_trials);

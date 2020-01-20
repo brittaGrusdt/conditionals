@@ -115,14 +115,14 @@ const thanks = magpieViews.view_generator("thanks", {
   prolificConfirmText: "Press the button"
 });
 
-// test phase trials
+// training phase trials
 const test_multiple_slider = magpieViews.view_generator(
   "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
-    trials: test_trials.length,
+    trials: training_trials.length,
     // name should be identical to the variable name
     name: "slider_test",
-    data: _.shuffle(test_trials)
+    data: _.shuffle(training_trials)
   },
   // you can add custom functions at different stages through a view's life cycle
   {
@@ -137,6 +137,7 @@ const multiple_slider = magpieViews.view_generator(
   "slider_rating", {
     // This will use all trials specified in `data`, you can user a smaller value (for testing), but not a larger value
     trials: slider_rating_trials.length,
+    // trials: 2,
     // name should be identical to the variable name
     name: "slider_main",
     data: _.shuffle(slider_rating_trials)

@@ -60,18 +60,16 @@ function random_utterance(slider_rating_trials) {
     // slider_rating_trials[i].question2 = "The green block will touch the ground, but the blue block will not touch the ground.";
     // slider_rating_trials[i].question3 = "The blue block will touch the ground, but the green block will not touch the ground.";
     // slider_rating_trials[i].question4 = "Neither the green block nor the blue block will touch the ground.";
-    slider_rating_trials[i].question1 = "<b>Blue will</b> and <b>green will</b> touch the ground.";
-    slider_rating_trials[i].question2 = "<b>Blue will not</b> and <b>green will</b> touch the ground.";
-    slider_rating_trials[i].question3 = "<b>Blue will</b> and <b>green will not</b> touch the ground.";
-    slider_rating_trials[i].question4 = "<b>Blue will not</b> and <b>green will not</b> touch the ground.";
-
-    slider_rating_trials[i].allUtterances = _.shuffle([
-      slider_rating_trials[i].question1,
-      slider_rating_trials[i].question2,
-      slider_rating_trials[i].question3,
-      slider_rating_trials[i].question4
-    ]);
+    let utterances = ["<b>Blue will</b> and <b>green will</b> touch the ground.",
+                      "<b>Blue will not</b> and <b>green will</b> touch the ground.",
+                      "<b>Blue will</b> and <b>green will not</b> touch the ground.",
+                      "<b>Blue will not</b> and <b>green will not</b> touch the ground."
+                    ];
+    slider_rating_trials[i].allUtterances = _.shuffle(utterances);
+    slider_rating_trials[i].question1 = slider_rating_trials[i].allUtterances[0];
+    slider_rating_trials[i].question2 = slider_rating_trials[i].allUtterances[1];
+    slider_rating_trials[i].question3 = slider_rating_trials[i].allUtterances[2];
+    slider_rating_trials[i].question4 = slider_rating_trials[i].allUtterances[3];
   }
-  console.log(slider_rating_trials);
   return slider_rating_trials;
 }

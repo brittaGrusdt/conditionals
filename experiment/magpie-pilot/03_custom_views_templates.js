@@ -80,7 +80,7 @@ const multi_slider_generator = {
     const option2 = config.data[CT].optionRight;
     return `<div class='magpie-multi-slider-grid' id='target'>
               <question1 class='magpie-view-question grid-question' id ='question1' >${
-                config.data[CT].allUtterances[0]
+                config.data[CT].question1
               }</question1>
               <slider1 class='magpie-grid-slider' id='slider1'>
                 <span class='magpie-response-slider-option optionWide'>${option1}</span>
@@ -89,7 +89,7 @@ const multi_slider_generator = {
                 <output name="outputSlider1" id="output1" class="thick">50%</output>
               </slider1>
               <question2 class='magpie-view-question grid-question' id ='question2' >${
-                config.data[CT].allUtterances[1]
+                config.data[CT].question2
               }</question2>
               <slider2 class='magpie-grid-slider' id='slider2'>
                 <span class='magpie-response-slider-option optionWide'>${option1}</span>
@@ -98,7 +98,7 @@ const multi_slider_generator = {
                 <output name="outputSlider2" id="output2" class="thick">50%</output>
               </slider2>
               <question3 class='magpie-view-question grid-question' id ='question3' >${
-                config.data[CT].allUtterances[2]
+                config.data[CT].question3
               }</question3>
               <slider3 class='magpie-grid-slider' id='slider3'>
                 <span class='magpie-response-slider-option optionWide'>${option1}</span>
@@ -107,7 +107,7 @@ const multi_slider_generator = {
                 <output name="outputSlider3" id="output3" class="thick">50%</output>
               </slider3>
               <question4 class='magpie-view-question grid-question' id ='question4' >${
-                config.data[CT].allUtterances[3]
+                config.data[CT].question4
               }</question4>
               <slider4 class='magpie-grid-slider' id='slider4'>
                 <span class='magpie-response-slider-option optionWide'>${option1}</span>
@@ -208,16 +208,9 @@ const multi_slider_generator = {
         let trial_data = {
           trial_name: config.name,
           trial_number: CT + 1,
-          response: [
-          $("#response1")
-            .val(),
-          $("#response2")
-            .val(),
-          $("#response3")
-            .val(),
-          $("#response4")
-            .val()
-        ],
+          response: [$("#response1").val(), $("#response2").val(),
+                      $("#response3").val(), $("#response4").val()
+                    ],
           RT: RT
         };
 
