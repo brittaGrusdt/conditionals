@@ -25,6 +25,32 @@
   margin: 45px auto;
 }
 
+.magpie-view-stimulus-grid {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "animation animation"
+    "run next";
+  grid-template-columns: 50% 50%;
+  padding: 20px;
+}
+animationTitle {
+  grid-column: 1/3;
+  grid-row: 1/2;
+}
+animation {
+  grid-column: 1 / 3;
+  grid-row: 2 / 3;
+}
+run {
+  grid-column: 1/2;
+  grid-row: 3 / 4;
+}
+next {
+  grid-column: 2/3;
+  grid-row: 3 / 4;
+}
+
 /* grid box for answer container */
 .magpie-multi-slider-grid {
   display: grid;
@@ -102,7 +128,7 @@ slider4 {
   max-width: 700px;
 }
 
-.image {
+.stimulus {
   display: flex;
   align-items: center;
   justify-content: center;

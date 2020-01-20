@@ -8,31 +8,71 @@
 // and has to call magpie.findNextView() eventually to proceed to the next view (or the next trial in this view),
 // if it is an trial view it also makes sense to call magpie.trial_data.push(trial_data) to save the trial information
 
+const animation_view  = {
+    name: "animation",
+    title: "title",
+    CT: 0,
+    trials: 1,
+    data: "",
+    // The render function gets the magpie object as well as the current trial in view counter as input
+    render: function(CT, magpie){
+      let startTime = Date.now();
+      const view_template = `
+        <div class='magpie-view-stimulus-grid'>
+          <animationTitle class='stimulus'>
+            <h1>Click on Run to see what will happen!</h1>
+          </animationTitle>
+          <animation id='animationDiv'>
+            <canvas id='animationCanvas'></canvas>
+          </animation>
+          <run>
+            <button id="runButton" class="magpie-view-button">Run</button>
+          </run>
+          <next>
+            <button id='buttonNextAnimation' class='magpie-view-button'>Next scenario</button>
+          </next>
+        </div>
+      `;
+      $('#main').html(view_template);
+      render = Render.create({
+        element: document.getElementById('animationDiv'),
+        engine: engine,
+        options: {
+          width: CANVAS.width,
+          height: CANVAS.height,
+          // showAngleIndicator: true,
+          // showCollisions: true,
+          // showVelocity: true,
+          wireframes: false,
+          background: 'transparent'
+        }
+      });
+
+      showScene(worldObjects);
+      let nbClicks = 0;
+      $('#runButton').on('click', function(e){
+        nbClicks += 1;
+        if(nbClicks === 1) {
+          runAnimation(worldObjects);
+        }
+      });
+      $("#buttonNextAnimation").on("click", function () {
+          magpie.findNextView();
+      });
+    }
+};
+
 // generate a new multi_slider
-// <button id="runButton" onclick="clickOnRun()">Run</button>
 const multi_slider_generator = {
   stimulus_container_gen: function (config, CT) {
-    let htmlCode ;
-    // if(config.name == "slider_test"){
-    //   // training trials with feedback from animations
-    //   htmlCode = `
-    //   <div class='magpie-view'>
-    //     <script>showScene(worldObjects)</script>;
-    //   </div>
-    //   `;
-    //
-    // } else {
-      // experimental trials
-      htmlCode = `<div class='magpie-view'>
-      <h1 class='image'>
+    return `<div class='magpie-view'>
+      <h1 class='stimulus'>
       ${config.data[CT].QUD}
       </h1>
-      <div class='image'>
+      <div class='stimulus'>
       <img src=${config.data[CT].picture}>
       </div>
       </div>`;
-    // }
-    return htmlCode;
   },
 
   answer_container_gen: function (config, CT) {
@@ -72,7 +112,7 @@ const multi_slider_generator = {
                 <span class='magpie-response-slider-option'>${option2}</span>
               </slider4>
               </div>
-              <button id='buttonNext' class='grid-button magpie-view-button'>Next scene</button>`;
+              <button id='buttonNext' class='grid-button magpie-view-button'>Next scenario</button>`;
   },
 
   handle_response_function: function (
@@ -116,9 +156,7 @@ const multi_slider_generator = {
           $("#utterance2")
             .removeClass("magpie-nodisplay");
           isAnswered.q1 = true;
-          console.log(s.value);
           counter += 1;
-          console.log(counter);
         } else if (counter == 1) {
           var t = document.getElementById("response2");
           t.value = Math.floor(Math.random() * 101);
@@ -127,9 +165,7 @@ const multi_slider_generator = {
           $("#utterance3")
             .removeClass("magpie-nodisplay");
           isAnswered.q2 = true;
-          console.log(t.value);
           counter += 1;
-          console.log(counter);
         } else if (counter == 2) {
           var u = document.getElementById("response3");
           u.value = Math.floor(Math.random() * 101);
@@ -139,9 +175,7 @@ const multi_slider_generator = {
           $("#utterance4")
             .removeClass("magpie-nodisplay");
           isAnswered.q3 = true;
-          console.log(u.value);
           counter += 1;
-          console.log(counter);
         } else if (counter == 3) {
           var v = document.getElementById("response4");
           v.value = Math.floor(Math.random() * 101);
@@ -149,20 +183,14 @@ const multi_slider_generator = {
             .toggleClass("magpie-nodisplay");
           isAnswered.q4 = true;
           toggleNextIfDone();
-          console.log(v.value);
           counter += 1;
-          console.log(counter);
         } else if (counter == 4) {
-          $("#runButton")
-            .removeClass("magpie-nodisplay");
-          $("#next")
-            .removeClass("magpie-nodisplay");
-          console.log(counter);
+          $("#runButton").removeClass("magpie-nodisplay");
+          $("#next").removeClass("magpie-nodisplay");
         }
       }
       return keyName;
     });
-
     // check the sliders for all 4 utterance and handle next button
     // this is code without debut mode
 
@@ -192,8 +220,7 @@ const multi_slider_generator = {
       toggleNextIfDone();
     });
 
-    $("#buttonNext")
-      .on("click", function () {
+    $("#buttonNext").on("click", function () {
         const RT = Date.now() - startingTime; // measure RT before anything else
         let trial_data = {
           trial_name: config.name,
