@@ -54,6 +54,9 @@ createWorld = function(place2Render){
       World.clear(engine.world)
       Engine.clear(engine);
       animationStarted = false;
+      if(MODE == "experiment"){
+        $('#buttonNextAnimation').removeClass('grid-button');
+      }
 
       addSimulationEffects(objPropsBefore, objPropsAfter, 0.01)
     }
@@ -99,17 +102,6 @@ var showScene = function (worldObjects, place2Render) {
 
   // run the renderer for visualization
   Render.run(render);
-
-  // var mouse = Mouse.create(render.canvas),
-  //     mouseConstraint = MouseConstraint.create(engine, {
-  //       mouse: mouse,
-  //       constraint: {
-  //         stiffness: 0.2,
-  //         render: {visible: false}
-  //       }
-  //     });
-  // World.add(engine.world, mouseConstraint);
-  // render.mouse = mouse;
 
   freezeAnimation();
 }

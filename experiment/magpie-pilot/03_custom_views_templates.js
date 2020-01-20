@@ -29,11 +29,12 @@ const animation_view  = {
             <button id="runButton" class="magpie-view-button">Run</button>
           </run>
           <next>
-            <button id='buttonNextAnimation' class='magpie-view-button'>Next scenario</button>
+            <button id='buttonNextAnimation' class='magpie-view-button grid-button'>Next scenario</button>
           </next>
         </div>
       `;
       $('#main').html(view_template);
+
       console.log(allScenes);
       let sceneData = defineScene(allScenes[CT]);
       let worldObjects = createScene(allScenes[CT]["platform.type"], sceneData, "train");
@@ -47,7 +48,6 @@ const animation_view  = {
         }
       });
       $("#buttonNextAnimation").on("click", function () {
-
           magpie.findNextView();
       });
     }
