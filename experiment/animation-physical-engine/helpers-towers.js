@@ -185,6 +185,7 @@ getRandomTrainData = function(){
      "A.orientation": _.sample(CATEGORIES.orientation),
      "C.orientation": _.sample(CATEGORIES.orientation),
      "platform.type": "seesaw",
+     //for seesaw only use stacked blocks since it's easier to generate randomly
      "AC.position": ["stack_A_on_C", "stack_C_on_A"],
      "id": "train1"
    },
@@ -193,6 +194,7 @@ getRandomTrainData = function(){
      "A.orientation": _.sample(CATEGORIES.orientation),
      "C.orientation": _.sample(CATEGORIES.orientation),
      "platform.type": "basic1",
+     //for basic1 only use stacked blocks since it's easier to generate randomly
      "AC.position": ["stack_A_on_C", "stack_C_on_A"],
      "platform1.height": _.sample(CATEGORIES["platform.height"]),
      "platform1.width": _.sample(CATEGORIES["platform.width"]),
@@ -212,7 +214,7 @@ getRandomTrainData = function(){
     "id": "train3",
   }
 ];
-  return train_data[Math.floor(Math.random() * train_data.length)]
+  return train_data
 }
 
 

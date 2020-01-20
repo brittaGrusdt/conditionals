@@ -165,15 +165,26 @@ let idxScene = Math.floor(Math.random()*10)
 // idxScene =  9
 console.log(data[idxScene].id)
 
+let allScenes;
 let sceneProps;
-if(TRAIN_MODE){
-  sceneProps = getRandomTrainData();
-  console.log(sceneProps)
-} else  {
-  sceneProps = data[idxScene]
+let worldObjects;
+
+if(MODE === "experiment"){
+  allScenes =   _.shuffle(getRandomTrainData());
+  console.log(allScenes)
+
+} else {
+    if(MODE === "train"){
+      allScenes = getRandomTrainData();
+      idxScene = Math.floor(Math.random() * allScenes.length);
+      sceneProps = allScenes[idxScene];
+      console.log(sceneProps)
+    } else {
+      sceneProps = data[idxScene]
+      }
+    let sceneData = defineScene(sceneProps);
+    worldObjects = createScene(sceneProps["platform.type"], sceneData, MODE === "train");
 }
-let sceneData = defineScene(sceneProps);
-let worldObjects = createScene(sceneProps["platform.type"], sceneData, TRAIN_MODE);
 
 // OLD
 // var ground = makeBlock(

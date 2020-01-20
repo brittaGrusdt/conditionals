@@ -12,7 +12,7 @@ const animation_view  = {
     name: "animation",
     title: "title",
     CT: 0,
-    trials: 1,
+    trials: allScenes.length,
     data: "",
     // The render function gets the magpie object as well as the current trial in view counter as input
     render: function(CT, magpie){
@@ -34,21 +34,11 @@ const animation_view  = {
         </div>
       `;
       $('#main').html(view_template);
-      render = Render.create({
-        element: document.getElementById('animationDiv'),
-        engine: engine,
-        options: {
-          width: CANVAS.width,
-          height: CANVAS.height,
-          // showAngleIndicator: true,
-          // showCollisions: true,
-          // showVelocity: true,
-          wireframes: false,
-          background: 'transparent'
-        }
-      });
+      console.log(allScenes);
+      let sceneData = defineScene(allScenes[CT]);
+      let worldObjects = createScene(allScenes[CT]["platform.type"], sceneData, "train");
+      showScene(worldObjects, document.getElementById('animationDiv'));
 
-      showScene(worldObjects);
       let nbClicks = 0;
       $('#runButton').on('click', function(e){
         nbClicks += 1;
@@ -57,6 +47,7 @@ const animation_view  = {
         }
       });
       $("#buttonNextAnimation").on("click", function () {
+
           magpie.findNextView();
       });
     }

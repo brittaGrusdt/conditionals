@@ -8,31 +8,57 @@ var Engine = Matter.Engine,
     Mouse = Matter.Mouse;
     MouseConstraint = Matter.MouseConstraint;
 
-// create engine
-var engine = Engine.create({
-  timing: {
-    timeScale: 1
-  }
-});
+let engine;
+let render;
 
-var render = Render.create({
-  element: document.body,
-  engine: engine,
-  options: {
-    width: CANVAS.width,
-    height: CANVAS.height,
-    // showAngleIndicator: true,
-    // showCollisions: true,
-    // showVelocity: true,
-    wireframes: false,
-    background: 'transparent'
-  }
-});
+createWorld = function(place2Render){
+  // create engine
+  engine = Engine.create({
+    timing: {
+      timeScale: 1
+    }
+  });
 
-// Render.lookAt(render, {
-//   min: {x: 0, y: 0},
-//   max: {x: 800, y:600}
-// })
+  render = Render.create({
+    element: place2Render,
+    engine: engine,
+    options: {
+      width: CANVAS.width,
+      height: CANVAS.height,
+      // showAngleIndicator: true,
+      // showCollisions: true,
+      // showVelocity: true,
+      wireframes: false,
+      background: 'transparent'
+    }
+  });
+
+  // after duration of simulation freeze and save data
+  Events.on(engine, 'afterUpdate', function (event) {
+    //document.getElementById("timestamp").innerHTML =
+    //  "timestamp: " + engine.timing.timestamp;
+
+    // only do this once after specified nb of ms passed
+    if (animationStarted && engine.timing.timestamp >= SIMULATION.duration) {
+      freezeAnimation();
+      Render.stop(render)
+
+      // save body positions + labels after animation
+      engine.world.bodies.forEach(function (body) {
+        objPropsAfter[body.label] = JSON.parse(JSON.stringify(body.position));
+      });
+      //document.getElementById("greenAfterX").innerHTML += Math.round(objPropsAfter["greenBlock"].x, 2);
+      //document.getElementById("greenAfterY").innerHTML += Math.round(objPropsAfter["greenBlock"].y, 2);
+
+      // Stop animation and clear world
+      World.clear(engine.world)
+      Engine.clear(engine);
+      animationStarted = false;
+
+      addSimulationEffects(objPropsBefore, objPropsAfter, 0.01)
+    }
+  });
+}
 
 let objPropsBefore = {};
 let objPropsAfter = {};
@@ -42,31 +68,6 @@ var freezeAnimation = function () {
   engine.timing.timeScale = 0
 }
 
-// after duration of simulation freeze and save data
-Events.on(engine, 'afterUpdate', function (event) {
-  //document.getElementById("timestamp").innerHTML =
-  //  "timestamp: " + engine.timing.timestamp;
-
-  // only do this once after specified nb of ms passed
-  if (animationStarted && engine.timing.timestamp >= SIMULATION.duration) {
-    freezeAnimation();
-    Render.stop(render)
-
-    // save body positions + labels after animation
-    engine.world.bodies.forEach(function (body) {
-      objPropsAfter[body.label] = JSON.parse(JSON.stringify(body.position));
-    });
-    //document.getElementById("greenAfterX").innerHTML += Math.round(objPropsAfter["greenBlock"].x, 2);
-    //document.getElementById("greenAfterY").innerHTML += Math.round(objPropsAfter["greenBlock"].y, 2);
-
-    // Stop animation and clear world
-    World.clear(engine.world)
-    Engine.clear(engine);
-    animationStarted = false;
-
-    addSimulationEffects(objPropsBefore, objPropsAfter, 0.01)
-  }
-});
 
 /**
  * shows world to model with given objects.
@@ -78,7 +79,8 @@ Events.on(engine, 'afterUpdate', function (event) {
  * @param {Array<Matter.Bodies>} objectsDynamic dynamic objects in modeled world,
  * e.g. blocks
  */
-var showScene = function (worldObjects) {
+var showScene = function (worldObjects, place2Render) {
+  createWorld(place2Render);
   worldObjects.forEach(function(obj){
     if(obj.add2World){
       World.add(engine.world, obj)

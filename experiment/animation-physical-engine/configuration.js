@@ -1,4 +1,6 @@
-let TRAIN_MODE = true;
+// let MODE = "train";
+// let MODE = "experiment";
+let MODE = "";
 
 // // canvas size
 const CANVAS = {"width": 800, "height": 400}
