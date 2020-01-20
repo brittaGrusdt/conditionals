@@ -110,10 +110,10 @@ setLocationsTraining = function(pType, mapID2Def){
     mapID2Def.b2.x = randomNbInRange(b2Range);
   } else {
     // stack random
-    let base = pType == "seesaw" ? mapID2Def.plank : GROUND;
+    let base = pType == "seesaw" ? mapID2Def.plank : mapID2Def.p1;
     // (mapID2Def.b1.y > mapID2Def.b2.y) ? mapID2Def.b2 : mapID2Def.b1;
 
-    randomStacked(mapID2Def.b1, mapID2Def.b2, mapID2Def.p1);
+    randomStacked(mapID2Def.b1, mapID2Def.b2, base);
   }
 }
 

@@ -37,7 +37,7 @@ const animation_view  = {
 
       console.log(allScenes);
       let sceneData = defineScene(allScenes[CT]);
-      let worldObjects = createScene(allScenes[CT]["platform.type"], sceneData, "train");
+      let worldObjects = createScene(allScenes[CT]["platform.type"], sceneData, true);
       showScene(worldObjects, document.getElementById('animationDiv'));
 
       let nbClicks = 0;

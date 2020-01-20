@@ -103,7 +103,7 @@ setupBasic2 = function(data, p1, p2, b1, b2){
   b2.y = yPos(b2.height, p2.height, p2.y)
 }
 
-setLocationObjs = function(objs, data, training){
+setLocationObjs = function(objs, data){
   let pType = data["platform.type"]
   if (pType == "seesaw"){
     setup2Blocks1Base(data, objs.b1, objs.b2, objs.plank);
