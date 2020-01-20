@@ -53,15 +53,14 @@ const instructions = magpieViews.view_generator("instructions", {
   text: `In this experiment you are shown pictures of blocks that are arranged in different scenarios.
           <br/>
           <br/>
-         You will be asked to rate the likelihood of certain events to occur in the scenarios presented to you.
-         In particular, you will be asked for the likelihood of certain blocks to <b>touch the ground</b>.
-          <br/>
-         For a block to touch the ground it is sufficient that a small part or an edge of the block has contact
-         to the ground.
+         For each presented scenarios you will be asked to rate the likelihood that certain blocks touch or do not <b>touch the ground</b>.
+         A block is considered to touch the ground as soon as a small part or an edge of the block has come in contact
+         with the ground.
           <br />
          The colored blocks all have the same properties, they are only distinguishable by their color.
           <br/>
-         For each scenario you are asked to judge four events. There are 22 scenarios in total.
+         For each scenario you are asked to judge four events. You will only be able to proceed to the next scenario after you have rated all four events.
+         There are 25 scenarios in total.
             <br />
             <br />
         You may want to go to full screen mode during the experiment. Usually, you enter and exit full screen mode by pressing F11. That is, pressing F11 once opens full screen mode and pressing it again stops full screen mode.
