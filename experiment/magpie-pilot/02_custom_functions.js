@@ -56,10 +56,14 @@ check_response = function (data, next) {
 // function to randomly order the four utterences, given per trial
 function random_utterance(slider_rating_trials) {
   for (var i = 0; i < slider_rating_trials.length; i++) {
-    slider_rating_trials[i].question1 = "The green block and the blue block will touch the ground.";
-    slider_rating_trials[i].question2 = "The green block will touch the ground, but the blue block will not touch the ground.";
-    slider_rating_trials[i].question3 = "The blue block will touch the ground, but the green block will not touch the ground.";
-    slider_rating_trials[i].question4 = "Neither the green block nor the blue block will touch the ground.";
+    // slider_rating_trials[i].question1 = "The green block and the blue block will touch the ground.";
+    // slider_rating_trials[i].question2 = "The green block will touch the ground, but the blue block will not touch the ground.";
+    // slider_rating_trials[i].question3 = "The blue block will touch the ground, but the green block will not touch the ground.";
+    // slider_rating_trials[i].question4 = "Neither the green block nor the blue block will touch the ground.";
+    slider_rating_trials[i].question1 = "<b>Blue will</b> and <b>green will</b> touch the ground.";
+    slider_rating_trials[i].question2 = "<b>Blue will not</b> and <b>green will</b> touch the ground.";
+    slider_rating_trials[i].question3 = "<b>Blue will</b> and <b>green will not</b> touch the ground.";
+    slider_rating_trials[i].question4 = "<b>Blue will not</b> and <b>green will not</b> touch the ground.";
 
     slider_rating_trials[i].allUtterances = _.shuffle([
       slider_rating_trials[i].question1,
