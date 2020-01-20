@@ -79,37 +79,37 @@ const multi_slider_generator = {
     const option1 = config.data[CT].optionLeft;
     const option2 = config.data[CT].optionRight;
     return `<div class='magpie-multi-slider-grid' id='target'>
-              <question1 class='magpie-view-question' id ='question1' >${
+              <question1 class='magpie-view-question grid-question' id ='question1' >${
                 config.data[CT].allUtterances[0]
               }</question1>
               <slider1 class='magpie-grid-slider'>
-                <span class='magpie-response-slider-option'>${option1}</span>
+                <span class='magpie-response-slider-option optionWide'>${option1}</span>
                 <input type='range' id='response1' name='answer1' class='magpie-response-slider' min='0' max='100' value='50'/>
-                <span class='magpie-response-slider-option'>${option2}</span>
+                <span class='magpie-response-slider-option optionWide'>${option2}</span>
               </slider1>
-              <question2 class='magpie-view-question' id ='question2' >${
+              <question2 class='magpie-view-question grid-question' id ='question2' >${
                 config.data[CT].allUtterances[1]
               }</question2>
               <slider2 class='magpie-grid-slider'>
-                <span class='magpie-response-slider-option'>${option1}</span>
+                <span class='magpie-response-slider-option optionWide'>${option1}</span>
                 <input type='range' id='response2' name='answer2' class='magpie-response-slider' min='0' max='100' value='50'/>
-                <span class='magpie-response-slider-option'>${option2}</span>
+                <span class='magpie-response-slider-option optionWide'>${option2}</span>
               </slider2>
-              <question3 class='magpie-view-question' id ='question3' >${
+              <question3 class='magpie-view-question grid-question' id ='question3' >${
                 config.data[CT].allUtterances[2]
               }</question3>
               <slider3 class='magpie-grid-slider'>
-                <span class='magpie-response-slider-option'>${option1}</span>
+                <span class='magpie-response-slider-option optionWide'>${option1}</span>
                 <input type='range' id='response3' name='answer3' class='magpie-response-slider' min='0' max='100' value='50'/>
-                <span class='magpie-response-slider-option'>${option2}</span>
+                <span class='magpie-response-slider-option optionWide'>${option2}</span>
               </slider3>
-              <question4 class='magpie-view-question' id ='question4' >${
+              <question4 class='magpie-view-question grid-question' id ='question4' >${
                 config.data[CT].allUtterances[3]
               }</question4>
               <slider4 class='magpie-grid-slider'>
-                <span class='magpie-response-slider-option'>${option1}</span>
+                <span class='magpie-response-slider-option optionWide'>${option1}</span>
                 <input type='range' id='response4' name='answer4' class='magpie-response-slider' min='0' max='100' value='50'/>
-                <span class='magpie-response-slider-option'>${option2}</span>
+                <span class='magpie-response-slider-option optionWide'>${option2}</span>
               </slider4>
               </div>
               <button id='buttonNext' class='grid-button magpie-view-button'>Next scenario</button>`;

@@ -51,6 +51,10 @@ next {
   grid-row: 3 / 4;
 }
 
+.grid-question {
+  margin: 0px 0px 30px 0px;
+  width: 100%;
+}
 /* grid box for answer container */
 .magpie-multi-slider-grid {
   display: grid;
@@ -75,41 +79,61 @@ picture {
 question1 {
   grid-column: 1 / 2;
   grid-row: 3 / 4;
+  align-self: start;  /* according to column (top (start) down (end) center stretch)*/
+  justify-self: center;  /* according to row (left (start) center right (end) stretch)*/
 }
 slider1 {
   grid-column: 2 / 3;
   grid-row: 3 / 4;
+  align-self: center;
+  justify-self: start;
 }
 question2 {
   grid-column: 1 / 2;
   grid-row: 4 / 5;
+  align-self: start;
+  justify-self: center;
 }
 slider2 {
   grid-column: 2 / 3;
   grid-row: 4 / 5;
+  align-self: center;
+  justify-self: start;
 }
 question3 {
   grid-column: 1 / 2;
   grid-row: 5 / 6;
+  align-self: start;
+  justify-self: center;
 }
 slider3 {
   grid-column: 2 / 3;
   grid-row: 5 / 6;
+  align-self: center;
+  justify-self: start;
 }
 question4 {
   grid-column: 1 / 2;
   grid-row: 6 / 7;
+  align-self: start;
+  justify-self: center;
 }
 slider4 {
   grid-column: 2 / 3;
   grid-row: 6 / 7;
+  align-self: center;
+  justify-self: start;
 }
 
 /* assign the stimulus questions + slider to corresponding grid space */
 .magpie-grid-slider {
-  margin: 30px 0px;
+  margin: 0px 0px 30px 0px;
+  padding: 0px 0px 0px 0px;
 }
 
+.optionWide {
+  width: 120px;
+}
 
 /* change margin of next button so that all fits onto one screen */
 /* gray + hovering disabled as long as not all responses are given */

@@ -63,9 +63,6 @@ const instructions = magpieViews.view_generator("instructions", {
          There are 25 scenarios in total.
             <br />
             <br />
-        You may want to go to full screen mode during the experiment. Usually, you enter and exit full screen mode by pressing F11. That is, pressing F11 once opens full screen mode and pressing it again stops full screen mode.
-          <br />
-          <br />
         The experiment will take you about 30 minutes.
         You will be shown some examples first.`,
   buttonText: "go to example trials"
