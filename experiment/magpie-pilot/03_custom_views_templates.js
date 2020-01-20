@@ -103,7 +103,7 @@ const multi_slider_generator = {
                 <input type='range' id='response3' name='answer3' class='magpie-response-slider' min='0' max='100' value='50'/>
                 <span class='magpie-response-slider-option'>${option2}</span>
               </slider3>
-              <question4 class='magpie-view-question' id ='question3' >${
+              <question4 class='magpie-view-question' id ='question4' >${
                 config.data[CT].allUtterances[3]
               }</question4>
               <slider4 class='magpie-grid-slider'>
