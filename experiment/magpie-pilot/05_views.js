@@ -59,12 +59,15 @@ const instructions = magpieViews.view_generator("instructions", {
           <br />
          The colored blocks all have the same properties, they are only distinguishable by their color.
           <br/>
-         For each scenario you are asked to judge four events. You will only be able to proceed to the next scenario after you have rated all four events.
+         For each scenario you are asked to judge four events. You will only be able to proceed to the next scenario after you have rated all four events by moving the sliders. The circles of the sliders will turn green after you have moved them. If you cannot proceed to the next scenario, make sure that the circles of all sliders have turned green.
          There are 25 scenarios in total.
             <br />
             <br />
-        The experiment will take you about 30 minutes in total.
-        You will be shown some animated examples first to get familiar with the stimuli. The button to proceed to the next animated scenario will be activated 3 seconds after you hit the run button to start the animation.`,
+        The experiment will take you about 20-25 minutes.
+        Before you are presented the main 25 scenarios, you will be shown three training examples to get familiar with the stimuli.
+          <br/>
+          <br />
+        The training examples are animated. The animation will start when you click on the 'Run'-button. You will only be able to proceed to the next training example after you clicked the 'Run'-button and rated all four events by moving the sliders.`,
   buttonText: "go to example trials"
 });
 
