@@ -11,6 +11,10 @@ var Engine = Matter.Engine,
 let engine;
 let render;
 
+let objPropsBefore = {};
+let objPropsAfter = {};
+let animationStarted = false
+
 createWorld = function(place2Render){
   // create engine
   engine = Engine.create({
@@ -54,18 +58,13 @@ createWorld = function(place2Render){
       World.clear(engine.world)
       Engine.clear(engine);
       animationStarted = false;
-      if(MODE == "experiment"){
-        $('#buttonNextAnimation').removeClass('grid-button');
-      }
 
-      addSimulationEffects(objPropsBefore, objPropsAfter, 0.01)
+      if(MODE !== "experiment"){
+        addSimulationEffects(objPropsBefore, objPropsAfter, 0.01);
+      }
     }
   });
 }
-
-let objPropsBefore = {};
-let objPropsAfter = {};
-let animationStarted = false
 
 var freezeAnimation = function () {
   engine.timing.timeScale = 0

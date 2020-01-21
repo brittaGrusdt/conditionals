@@ -196,7 +196,8 @@ getRandomTrainData = function(){
      "platform.type": "basic1",
      //for basic1 only use stacked blocks since it's easier to generate randomly
      "AC.position": ["stack_A_on_C", "stack_C_on_A"],
-     "platform1.height": _.sample(CATEGORIES["platform.height"]),
+     // set to low due to space
+     "platform1.height": "default",
      "platform1.width": _.sample(CATEGORIES["platform.width"]),
      "id": "train2"
    },
@@ -206,9 +207,10 @@ getRandomTrainData = function(){
     "C.orientation": _.sample(CATEGORIES.orientation),
     "platform.type": "basic2",
     "AC.position": _.sample(CATEGORIES.position),
-    "platform1.height": _.sample(CATEGORIES["platform.height"]),
+    // set to low due to space
+    "platform1.height": "default",
     "platform1.width": _.sample(CATEGORIES["platform.width"]),
-    "platform2.height": _.sample(CATEGORIES["platform.height"]),
+    "platform2.height": "default",
     "platform2.width": _.sample(CATEGORIES["platform.width"]),
     "platform.dist": _.sample(CATEGORIES["platform.dist"]),
     "id": "train3",

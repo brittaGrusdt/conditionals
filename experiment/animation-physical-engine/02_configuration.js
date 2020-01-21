@@ -1,9 +1,9 @@
-// let MODE = "train";
+let MODE = "train";
 // let MODE = "experiment";
-let MODE = "";
+// let MODE = "";
 
 // // canvas size
-const CANVAS = {"width": 800, "height": 400}
+const CANVAS = {"width": 800, "height": 300}
 const SIMULATION = {"duration": 5000}
 
 // default values for width/height of platforms

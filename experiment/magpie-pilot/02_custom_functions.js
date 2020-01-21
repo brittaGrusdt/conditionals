@@ -54,7 +54,7 @@ check_response = function (data, next) {
 // custom functions:
 
 // function to randomly order the four utterences, given per trial
-function random_utterance(slider_rating_trials) {
+function random_utterance(slider_rating_trials=[{}, {}, {}, {}]) {
   for (var i = 0; i < slider_rating_trials.length; i++) {
     // slider_rating_trials[i].question1 = "The green block and the blue block will touch the ground.";
     // slider_rating_trials[i].question2 = "The green block will touch the ground, but the blue block will not touch the ground.";
@@ -73,3 +73,15 @@ function random_utterance(slider_rating_trials) {
   }
   return slider_rating_trials;
 }
+
+repliedAll = function(r1, r2, r3, r4, counter=0){
+  return (r1.hasClass('replied') &&
+          r2.hasClass('replied') &&
+          r3.hasClass('replied') &&
+          r4.hasClass('replied')|| counter>=3);
+}
+toggleNextIfDone = function (button, condition) {
+    if(condition){
+      button.removeClass("grid-button");
+    }
+};
