@@ -9,6 +9,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "magpie-modules": "^0.1.1"
+    "magpie-modules": "^0.1.1",
+    "matter-js": "^0.14.2"
   }
 }
