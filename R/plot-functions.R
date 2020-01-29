@@ -10,7 +10,7 @@ level2color <- tribble(~level, ~col,
                        "PL", colors[[2]])
 
 plot_bns <- function(data_wide){
-  df <- data_wide %>% group_by(level, bn_id) %>% summarize(prob=sum(prob))
+  df <- data_wide %>% group_by(level, bn_id) %>% summarise(prob=sum(prob))
   df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
     p <- df %>% 
       ggplot() + 
@@ -26,7 +26,7 @@ plot_bns <- function(data_wide){
 }
 
 plot_cns_default <- function(data_wide, level=NULL){
-    df <- data_wide %>% group_by(level, cn) %>% summarize(prob=round(sum(prob), 3))
+    df <- data_wide %>% group_by(level, cn) %>% summarise(prob=round(sum(prob), 3))
     df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
     
     if(is.null(level)){
@@ -85,7 +85,7 @@ plot_cns_default <- function(data_wide, level=NULL){
 
 
 plot_cns <- function(data_wide, level=NULL, save_as=NULL){
-  df <- data_wide %>% group_by(level, cn) %>% summarize(prob=sum(prob))
+  df <- data_wide %>% group_by(level, cn) %>% summarise(prob=sum(prob))
   df$level <- factor(df$level, levels = c("prior", "LL", "PL"))
   
   if(is.null(level)){

@@ -3,7 +3,9 @@ library(dplyr)
 
 SEED <- 1234
 set.seed(SEED)
-cns <- readRDS(file.path("./data/default-model/cns-default.rds", fsep=.Platform$file.sep))
+# cns_path <- file.path("./data/default-model/cns-default.rds", fsep=.Platform$file.sep)
+cns_path <- file.path("/net/store/cogmod/users/brgrusdt/MA-project/conditionals/data/default-model/cns-default.rds", fsep = .Platform$file.sep)
+cns <- readRDS(cns_path)
 CNS_DEP <- cns[cns != "A || C"]
 
 # Table Generation --------------------------------------------------------
@@ -47,7 +49,7 @@ create_dependent_tables <- function(params){
     tables <- probs %>% dplyr::select(-cond1, -cond2, -marginal) %>% rowid_to_column("id") 
     tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
                     mutate(val=round(val, 4))
-    tables_wide <- tables_long %>% group_by(id) %>% summarize(ps = list(val)) %>% add_column(cn=(!! cn)) %>% 
+    tables_wide <- tables_long %>% group_by(id) %>% summarise(ps = list(val)) %>% add_column(cn=(!! cn)) %>% 
       mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
     
     all_tables[[idx]] <- tables_wide
@@ -71,7 +73,7 @@ create_independent_tables <- function(params){
   
   tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
                   mutate(val=round(val, 4))
-  tables_wide <- tables_long %>% group_by(id) %>% summarize(ps = list(val)) %>% add_column(cn="A || C") %>% 
+  tables_wide <- tables_long %>% group_by(id) %>% summarise(ps = list(val)) %>% add_column(cn="A || C") %>% 
     mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
   
   return(tables_wide)
@@ -168,7 +170,7 @@ plot_tables <- function(data){
 # analysis generated tables
 # tables_data <- marginalize(tables_long %>% rename(level=cn), c("A")) %>%
 #   mutate(p=case_when(p==0 ~ 0.00001, TRUE~p), `P(C|A)`=AC/p)
-# tables_data %>% group_by(level) %>% summarize(m=mean(`P(C|A)`))
+# tables_data %>% group_by(level) %>% summarise(m=mean(`P(C|A)`))
 
-
-
+# df <- tables %>% spread(key=cell, val=val) %>% mutate(pca=AC/(AC+`A-C`), pac=AC/(AC+`-AC`))
+# df %>% group_by(cn) %>% summarise(mean_pca=mean(pca, na.rm = TRUE), mean_pac=mean(pac, na.rm = TRUE))

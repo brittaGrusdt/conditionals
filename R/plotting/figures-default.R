@@ -94,7 +94,7 @@ df_wide %>% ggplot(aes(x=p_marginal, color=marginal)) +
 df <- data %>% filter(bias=="none" & level=="prior") 
 
 plots <- df %>% mutate(val=prob*val) %>% plot_tables()
-p_cns <- df %>% spread(key=cell, val=val) %>% group_by(cn) %>% summarize(marginal=sum(prob))
+p_cns <- df %>% spread(key=cell, val=val) %>% group_by(cn) %>% summarise(marginal=sum(prob))
 all_bars <- list(); idx<-1;
 for(causal_net in p_cns$cn){
   df_val <- p_cns %>% filter(cn==causal_net) %>%
@@ -215,10 +215,10 @@ ggsave(paste(TARGET_DIR, "comparison-vois-cp.png", sep=.Platform$file.sep),
 
 # 4.3 marginal distribution over causal nets
 df_none <- data_wide %>% filter(bias=="none") %>% group_by(level, cn) %>%
-            summarize(prob=round(sum(prob), 2))
+            summarise(prob=round(sum(prob), 2))
 df_none$level <- factor(df_none$level, levels = c("prior", "LL", "PL"))
 df_cp <- data_wide %>% filter(bias=="lawn") %>% group_by(level, cn) %>%
-          summarize(prob=round(sum(prob), 2))
+          summarise(prob=round(sum(prob), 2))
 df_cp$level <- factor(df_cp$level, levels = c("prior", "LL", "PL"))
 
 plot_cns <- function(data){
@@ -282,7 +282,7 @@ ggsave(fn, p, width=12, height=5.5)
 # 5.2. marginal distribution of speaker_intents
 df <- data_biscuits_intents %>% spread(key=cell, val=val)
 marginal_intents_bc <- df %>% group_by(level, intention, bias) %>%
-  summarize(p=sum(prob)) %>% rename(value=p)
+  summarise(p=sum(prob)) %>% rename(value=p)
 
 evs <- marginal_intents_bc %>% mutate(value=round(as.double(value),2))
 p <- evs %>% biscuit_barplot("")
@@ -447,11 +447,11 @@ default <- data_wide %>% filter(bias=="none") %>% compute_cond_prob("P(C|A)")
 prior <- default %>% filter(level=="prior") %>%
         mutate(p=case_when(p>=0.9 ~ TRUE, TRUE ~ FALSE)) %>% 
         mutate(cn=case_when(cn=="A || C" ~ "indep", TRUE ~ "dep")) %>%
-        group_by(cn, p) %>% summarize(s=sum(prob)) %>% add_column(level="prior")
+        group_by(cn, p) %>% summarise(s=sum(prob)) %>% add_column(level="prior")
 
 posterior <- default %>% filter(level!="prior") %>%
               mutate(cn=case_when(cn=="A || C" ~ "indep", TRUE ~ "dep")) %>% 
-              group_by(cn, level) %>% summarize(s=sum(prob)) %>% add_column(p=TRUE)
+              group_by(cn, level) %>% summarise(s=sum(prob)) %>% add_column(p=TRUE)
   
 df <- bind_rows(posterior, prior) %>% mutate(s=round(s, 2)) %>% unite("cn_p", cn, p) %>% 
         mutate(level=factor(level, levels=c("prior", "LL", "PL")))

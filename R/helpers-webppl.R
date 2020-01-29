@@ -16,6 +16,8 @@ webppl_distrs_to_tibbles <- function(posterior){
 }
 
 run_webppl <- function(path_wppl_file, params){
+  print(path_wppl_file)
+  print(params$packages)
   data <-   webppl(program_file = path_wppl_file,
                    data = params,
                    data_var = "data",
@@ -45,12 +47,12 @@ structure_listener_data <- function(posterior, params){
 }
 
 
-# Summarize webppl distributions ------------------------------------------
+# summarise webppl distributions ------------------------------------------
 listener_beliefs <- function(posterior, level, params, vars_condition_on=NA){
   # @posterior: in long format, must have columns *cell* and *val*
   df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
   listener <- df %>% group_by(cn, intention, cell) %>%
-              summarize(val=sum(val), marginal_cn_int=sum(prob)) %>% 
+              summarise(val=sum(val), marginal_cn_int=sum(prob)) %>% 
               add_column(bias=params$bias)
 
   if(!is.na(vars_condition_on)){
@@ -97,7 +99,7 @@ structure_speaker_data <- function(posterior, params){
 average_speaker <- function(distrs, params){
   # @distrs: long format with columns: utterance, intention, ...
   df <- distrs %>% group_by(utterance, intention) %>%
-    summarize(mean_per_intention=mean(probs)) %>% add_column(bias=params$bias)
+    summarise(mean_per_intention=mean(probs)) %>% add_column(bias=params$bias)
   if(params$save){df %>% save_data(paste(params$target, "-avg-speaker.rds", sep=""))}
   return(df)
 }

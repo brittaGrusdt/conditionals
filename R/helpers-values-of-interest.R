@@ -8,7 +8,7 @@ get_cp_values_cns <- function(distr_wide){
   p_cns <- distr_wide %>% dplyr::select(prob, bn_id, cn, level, intention)
   # get marginal probabilities for each cn
   marginal <- p_cns %>% group_by(cn, level, intention) %>%
-    summarize(marginal=sum(prob))
+    summarise(marginal=sum(prob))
   
   # distributions to compare with
   marginal <- marginal %>%
@@ -26,7 +26,7 @@ get_cp_values_cns <- function(distr_wide){
     ))
   
   voi_cns <- marginal %>% group_by(level, intention) %>%
-    summarize(cp_cns_ac=hellinger(marginal, marginal_cp1),
+    summarise(cp_cns_ac=hellinger(marginal, marginal_cp1),
               cp_cns_anc=hellinger(marginal, marginal_cp2)) %>% 
     gather(cp_cns_ac, cp_cns_anc, key="key", value="value")
   
@@ -51,7 +51,7 @@ get_cp_values_bns <- function(distr_wide){
                                   c(0.5, 0, 0, 0.5))
     ) 
   values <- values %>% group_by(level, intention) %>%
-    summarize(cp_bns_ac=sum(prob*hellinger_ac),
+    summarise(cp_bns_ac=sum(prob*hellinger_ac),
               cp_bns_anc=sum(prob*hellinger_anc))
   voi_bns <- values %>% gather(cp_bns_ac, cp_bns_anc, key="key", value="value")
   
@@ -86,7 +86,7 @@ get_speaker_uncertainty <- function(distr, theta, val){
   p_intervals <- marginal %>% filter(p>=theta | p<=1-theta)
   # p_intervals <- marginal %>% filter(p<=1-theta)
   
-  evs <- p_intervals %>% group_by(level, intention) %>% summarize(value=sum(prob)) %>%
+  evs <- p_intervals %>% group_by(level, intention) %>% summarise(value=sum(prob)) %>%
     add_column(key=paste("epistemic_uncertainty", val, sep="_"))
   return(evs)
 }
