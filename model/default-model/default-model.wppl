@@ -1,7 +1,6 @@
 // Parameters
 // var thresholds = {t: 0.899, f: 0.0499, theta: 0.899, theta_likely : 0.499}
-var thresholds = {t: 0.899, f: 0.0499, theta: 0.749, theta_likely : 0.499}
-
+globalStore.thresholds = {t: 0.899, f: 0.0499, theta: data["theta"][0], theta_likely : 0.499}
 
 // states + utterances
 globalStore.cns = data["cns"]

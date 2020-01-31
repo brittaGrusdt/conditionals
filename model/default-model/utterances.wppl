@@ -4,6 +4,7 @@
 //   "bias": ["none"]
 //   "tables": //add example here
 // }
+globalStore.thresholds = {t: 0.899, f: 0.0499, theta: data["theta"][0], theta_likely : 0.499}
 
 var verbose = data["verbose"][0]
 var variables = data["vars"]
