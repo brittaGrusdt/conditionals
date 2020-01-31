@@ -91,7 +91,7 @@ structure_speaker_data <- function(posterior, params){
   df <- acceptability_conditions(speaker_wide)
   df <- df %>% gather(key="utterance", value="probs",
                       -bn_id, -level, -intention, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`,
-                      -p_delta, -p_rooij)
+                      -p_delta, -p_rooij, -id)
   if(params$save){df %>% save_data(paste(params$target, "-speaker.rds", sep=""))}
   return(df)
 }

@@ -15,7 +15,7 @@ if(globalStore.bias == "judy"){
 var tables_list = data["tables"]
 
 globalStore.Tables = map(function(obj){
-  Categorical({"vs": obj["vs"], "ps": obj["ps"]})
+  return {"id": obj["stimulus_id"], "Table": Categorical({"vs": obj["vs"], "ps": obj["ps"]})}
 }, tables_list)
 
 globalStore.speaker_intents = data["speaker_intents"]
