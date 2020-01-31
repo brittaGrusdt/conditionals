@@ -134,8 +134,9 @@ if(LEVEL_MAX == "speaker"){
 
   } else{
     // 2. run speaker with all bayes nets in prior (use n_samples=0)
+    // display('# all input bns: ' + all_bns.length)
     var bns = filter(function(bn){meaning(UTT, bn.table)}, all_bns)
-    display('# used bns (where utt is true): ' + bns.length)
+    // display('# used bns (where utt is true): ' + bns.length)
     var distributions = run_speaker(bns)
     distributions
   }

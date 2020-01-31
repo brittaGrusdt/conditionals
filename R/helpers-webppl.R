@@ -16,8 +16,10 @@ webppl_distrs_to_tibbles <- function(posterior){
 }
 
 run_webppl <- function(path_wppl_file, params){
-  print(path_wppl_file)
-  print(params$packages)
+  if(params$verbose){
+    print(paste('model file read from:', path_wppl_file))
+    print(paste('packages loaded from:' ,params$packages))
+  }
   data <-   webppl(program_file = path_wppl_file,
                    data = params,
                    data_var = "data",
