@@ -24,7 +24,7 @@ globalStore.indep_sigma = data["indep_sigma"][0]
 
 if(verbose){
   display("bias: " + bias)
-  display("verbose: " + verbose)
+  display("theta: " + globalStore.thresholds.theta)
   display("# tables: " + globalStore.Tables.length)
   display("vars: " + variables)
 }
