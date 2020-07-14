@@ -1,0 +1,111 @@
+default:
+  generate_utterances: false
+  generate_tables: false
+  generate_cns: false
+  save: true
+  cost_conditional: 0
+  alpha: 3
+  theta: 0.9
+  indep_sigma: 0.001
+  nor_beta: !expr NA
+  nor_theta: !expr NA
+  add_accept_conditions: true
+  vars: !expr c("A", "C")
+  verbose: false
+  packages:  !expr c("./node_modules/conditionalsHelpers",
+                     "./node_modules/conditionalsDefault")
+  model_path: "./model/default-model/default-model.wppl"
+  seed: 1234
+  # seed: !expr as.numeric(Sys.time())
+
+## 1. bias configurations ##
+               
+none: 
+  target_dir: "./data/default-model"
+  target_fn: "results-none.rds"
+  level_max: "PL"
+  utt: "A > C"
+  utts_fn: "utterances-none.rds"
+  cns_fn: "cns-default.rds"
+  speaker_intents: !expr c("")
+  bias: "none"
+  n_tables: 500
+  tables_fn: "tables-default.rds"
+
+pizza:
+  target_dir: "./data/douven-examples"
+  target_fn: "results-pizza-without-intents.rds"
+  level_max: "PL"
+  utt: "A > C"
+  utts_fn: "utterances-pizza.rds"
+  cns_fn: "cns-pizza.rds"
+  speaker_intents: !expr c("") # c("ISA", "PA")
+  bias: "pizza"
+  n_tables: 4500
+  tables_fn: "tables_independent.rds"
+
+pizza_intents:
+  target_dir: "./data/douven-examples"
+  target_fn: "results-pizza-with-intents.rds"
+  level_max: "PL"
+  utt: "A > C"
+  utts_fn: "utterances-pizza.rds"
+  cns_fn: "cns-pizza.rds"
+  speaker_intents: !expr c("ISA", "PA")
+  bias: "pizza"
+  n_tables: 4500
+  tables_fn: "tables_independent.rds"
+
+lawn:
+  bias: "lawn"
+  target_dir: "./data/douven-examples"
+  target_fn: "results-lawn.rds"
+  level_max: "PL"
+  utt: "A > C"
+  utts_fn: "utterances-lawn.rds"
+  cns_fn: "cns-lawn.rds"
+  speaker_intents: !expr c("")
+  n_tables: 500
+  tables_fn: "tables-default.rds"
+
+## 2. configuration for other levels than Pragmatic listener ##
+speaker:
+  target_dir: "./data/default-model"
+  target_fn: "results-speaker.rds"
+  level_max: "speaker"
+  utt: ""
+  n_samples: 1000 #0 for all bns from prior
+
+# speaker given certain utt. is true, i.e. speaker only gets states where utt
+# is applicable (done in webppl)
+speaker_c:
+  inherits: speaker 
+  target_fn: "resutls_speaker_given_C.rds"
+  utt: "C"
+# not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
+
+
+#prior:
+#  level_max: "prior_conditioned"
+#  target_fn: "resullts-prior.rds"
+#  target_dir: "./data/default-model"
+#  
+#ll:
+#  level_max: "ll_all_utts"
+#  target_fn: "results-ll.rds"
+#  target_dir: "./data/default-model"
+#
+#dutchman:
+#  target_dir: "./data/default-model"
+#  n_tables: 4500
+#  
+#judy:
+#  judy_q: 0.75
+#  target_dir: "./data/judy"
+#  target_fn: "results-judy.rds"
+#  utt: "A >q C"
+
+debug: 
+  verbose: true
+  target_dir: "./data/test-default"
+# there needs to be 1 blank final line!

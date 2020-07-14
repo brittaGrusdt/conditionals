@@ -93,7 +93,7 @@ create_tables <- function(params, target_path){
               mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,
                      indep_sigma=params$indep_sigma,
                      n_tables=params$n_tables,
-                     seed=SEED
+                     seed=params$seed
               )
   tables %>% save_data(target_path)
   return(tables)
@@ -105,14 +105,13 @@ filter_tables <- function(tables, params){
   } else{
     df <- tables %>% filter(nor_beta == params$nor_beta & nor_theta == params$nor_theta)
   }
-  df <- df %>% filter(n_tables == params$n_tables & indep_sigma == params$indep_sigma & 
-                      seed == params$seed)
+  df <- df %>% filter(n_tables == params$n_tables & indep_sigma == params$indep_sigma)
   return(df)
 }
 
 unnest_tables <- function(tables){
   tables <- tables %>% rowid_to_column()
-  tables_long <- tables %>% unnest() %>% rename(cell=vs, val=ps)
+  tables_long <- tables %>% unnest(cols=c(vs, ps)) %>% rename(cell=vs, val=ps)
   return(tables_long)
 }
 

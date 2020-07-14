@@ -146,6 +146,22 @@ adapt_bn_ids <- function(data_wide){
   return(df)
 }
 
+#@arg config_keys: order in config_keys is important since same key values
+# are overwritten!
+configure <- function(config_keys) {
+  key <- config_keys[[1]]
+  params <- config::get(config=key)
+  print(key)
+  for(key in config_keys[-1]){
+    print(key)
+    params2 <- config::get(config=key)
+    for (name in names(params2)) {
+      params[name] = params2[name]
+    }
+  }
+  return(params)
+}
+
 # plotting functions ------------------------------------------------------
 
 plot_evs <- function(data){

@@ -71,18 +71,20 @@ listener_beliefs <- function(posterior, level, params, vars_condition_on=NA){
 webppl_speaker_distrs_to_tibbles <- function(posterior){
   speaker <- posterior[names(posterior) != "bns"] 
   posterior_tibbles <- map2(speaker, names(speaker), function(x, y){
-    data_tibble <- x %>% rowid_to_column("bn_id") %>% unnest() %>% 
+    data_tibble <- x %>% rowid_to_column("bn_id") %>% unnest(cols = c(probs, support)) %>% 
       rename(utterance=support) %>% 
       add_column(level=y) %>% separate(level, sep="_", into=c("level", "intention"))
     return(data_tibble)             
   })
   speaker <- bind_rows(posterior_tibbles) 
-  bns_unique <- posterior$bns %>% rowid_to_column("bn_id") %>% unnest() %>% 
+  bns_unique <- posterior$bns %>% rowid_to_column("bn_id") %>%
+    unnest(cols = c(table.probs, table.support)) %>% 
     rename(cell=table.support, val=table.probs) %>%
-    spread(key=cell, val=val) %>% nest(-bn_id)
+    spread(key=cell, val=val) %>% nest(data = c(cn, `-A-C`, `-AC`, `A-C`, AC))
   
   bns <- bns_unique[speaker$bn_id,]$data
-  speaker_wide <- speaker %>% add_column(bn=bns) %>% unnest() %>% spread(key=utterance, val=probs, fill=0) 
+  speaker_wide <- speaker %>% add_column(bn=bns) %>% unnest(cols = c(bn)) %>% 
+    spread(key=utterance, val=probs, fill=0) 
   
   return(speaker_wide)
 }
@@ -93,8 +95,8 @@ structure_speaker_data <- function(posterior, params){
   df <- acceptability_conditions(speaker_wide)
   df <- df %>% gather(key="utterance", value="probs",
                       -bn_id, -level, -intention, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`,
-                      -p_delta, -p_rooij, -id)
-  if(params$save){df %>% save_data(paste(params$target, "-speaker.rds", sep=""))}
+                      -p_delta, -p_rooij) #removed id (why there?)
+  if(params$save){df %>% save_data(params$target)}
   return(df)
 }
 
@@ -102,7 +104,9 @@ average_speaker <- function(distrs, params){
   # @distrs: long format with columns: utterance, intention, ...
   df <- distrs %>% group_by(utterance, intention) %>%
     summarise(mean_per_intention=mean(probs)) %>% add_column(bias=params$bias)
-  if(params$save){df %>% save_data(paste(params$target, "-avg-speaker.rds", sep=""))}
+  if(params$save){
+    fn <- str_split(params$target, "-speaker.rds")
+    df %>% save_data(paste(fn[[1]][1], "-avg-speaker.rds", sep=""))}
   return(df)
 }
 
