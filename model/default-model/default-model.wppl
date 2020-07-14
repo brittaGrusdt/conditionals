@@ -83,75 +83,44 @@ var run_speaker = function(bns){
      }
 }
 
+// var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
+// var distrs_pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
+//
+// var distributions = {"speaker_isa": distrs_isa, "speaker_pa": distrs_pa,
+//                      "bns": bns}
 
 // RUN MODEL
 if(LEVEL_MAX == "speaker"){
   // run speaker with only bayes nets for which certain conditions may hold
   // depending on value of UTT; use (UTT="" for no condition)
 
-  // 1. sample n_samples bayes  nets from prior
+  var prior_conditioned = Infer({model:function(){
+    var state = sample(globalStore.state_prior)
+    var Table = state["bn"]["table"]
+
+    let pac = Math.exp(Table.score("AC"))
+    let pnac = Math.exp(Table.score("-AC"))
+    let pa = pac + Math.exp(Table.score("A-C"))
+    let pc = pac + pnac
+    let p_c_given_a = pac / pa;
+    let p_c_given_na = pnac / (1-pa);
+    let p_delta = p_c_given_a - p_c_given_na;
+    let p_rooij = p_delta / (1 - p_c_given_na);
+    let probs = {pa, pc, p_c_given_a, p_delta, p_rooij}
+    condition(speaker_conditions(UTT, Table, probs) == true);
+    return state.bn
+  }});
   var n_samples = data["n_samples"][0]
   if(n_samples != 0){
-    var prior_conditioned = Infer({model:function(){
-      var state = sample(globalStore.state_prior)
-      var Table = state["bn"]["table"]
-
-      let pac = Math.exp(Table.score("AC"))
-      let pnac = Math.exp(Table.score("-AC"))
-      let pa = pac + Math.exp(Table.score("A-C"))
-      let p_c_given_a = pac / pa
-      let p_c_given_na = pnac / (1-pa)
-      let p_delta = p_c_given_a - p_c_given_na
-      let p_rooij = p_delta / (1 - p_c_given_na)
-
-      // p_rooij/p_delta larger than a threshold
-      if(UTT == "p_rooij") {
-        condition(p_rooij >= 0.75)
-      } else if(UTT == "p_delta") {
-        condition(p_delta > 0 && p_c_given_a >= 0.75)
-
-      } else if(UTT.startsWith("uncertain")){
-        // only states where speaker is uncertain about A and/or C
-        // (uncertainA/uncertainC/uncertainAC)
-        if(UTT.includes("A")){
-          condition(pa > 1- globalStore.thresholds.theta &&
-                    pa < globalStore.thresholds.theta)
-        }
-        if(UTT.includes("C")){
-          let pc = pac + pnac
-          condition(pc > 1- globalStore.thresholds.theta &&
-                    pc < globalStore.thresholds.theta)
-        }
-
-      } else if(UTT != ""){
-        // UTT is true/applicable in current state
-        condition(meaning(UTT, Table))
-      }
-      // otherwise states are simply sampled from unconditioned prior
-
-      // 2. when C is true, but not A and C, and not -A and C
-      // var meaning_ac = meaning("A and C", Table)
-      // var meaning_nac = meaning("-A and C", Table)
-      // condition(!meaning_ac && !meaning_nac)
-
-      return state.bn
-    }});
-
+    // draw n_samples from prior
     var bns = repeat(n_samples, function(){sample(prior_conditioned)})
     display('# samples from prior: ' + bns.length)
-    // var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
-    // var distrs_pa = map(function(bn){wrap_speaker(bn, "PA")}, bns)
-    //
-    // var distributions = {"speaker_isa": distrs_isa, "speaker_pa": distrs_pa,
-    //                      "bns": bns}
     var distributions = run_speaker(bns)
     distributions
-
   } else{
-    // 2. run speaker with all bayes nets in prior (use n_samples=0)
-    // display('# all input bns: ' + all_bns.length)
-    var bns = filter(function(bn){meaning(UTT, bn.table)}, all_bns)
-    // display('# used bns (where utt is true): ' + bns.length)
+    // use all bayes nets in support of prior
+    var bns = prior_conditioned.support();
+    display('# used bns (where condition, if any, holds): ' + bns.length)
     var distributions = run_speaker(bns)
     distributions
   }

@@ -80,8 +80,8 @@ webppl_speaker_distrs_to_tibbles <- function(posterior){
   bns_unique <- posterior$bns %>% rowid_to_column("bn_id") %>%
     unnest(cols = c(table.probs, table.support)) %>% 
     rename(cell=table.support, val=table.probs) %>%
-    spread(key=cell, val=val) %>% nest(data = c(cn, `-A-C`, `-AC`, `A-C`, AC))
-  
+    spread(key=cell, val=val) %>% nest(data = c(cn, `-A-C`, `-AC`, `A-C`, `AC`))
+
   bns <- bns_unique[speaker$bn_id,]$data
   speaker_wide <- speaker %>% add_column(bn=bns) %>% unnest(cols = c(bn)) %>% 
     spread(key=utterance, val=probs, fill=0) 
@@ -93,9 +93,10 @@ webppl_speaker_distrs_to_tibbles <- function(posterior){
 structure_speaker_data <- function(posterior, params){
   speaker_wide <- webppl_speaker_distrs_to_tibbles(posterior)
   df <- acceptability_conditions(speaker_wide)
-  df <- df %>% gather(key="utterance", value="probs",
-                      -bn_id, -level, -intention, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`,
-                      -p_delta, -p_rooij) #removed id (why there?)
+  df <- df %>% pivot_longer(cols=c(-bn_id, -intention, -p_delta, -p_rooij,
+                                   -level, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`),
+                            names_to = "utterance", values_to = "probs")
+  #removed id (why there?)
   if(params$save){df %>% save_data(params$target)}
   return(df)
 }
@@ -105,18 +106,7 @@ average_speaker <- function(distrs, params){
   df <- distrs %>% group_by(utterance, intention) %>%
     summarise(mean_per_intention=mean(probs)) %>% add_column(bias=params$bias)
   if(params$save){
-    fn <- str_split(params$target, "-speaker.rds")
-    df %>% save_data(paste(fn[[1]][1], "-avg-speaker.rds", sep=""))}
+    fn <- str_split(params$target, ".rds")
+    df %>% save_data(paste(fn[[1]][1], "-avg.rds", sep=""))}
   return(df)
 }
-
-
-
-
-
-
-
-
-
-
-

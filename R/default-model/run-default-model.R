@@ -6,7 +6,10 @@ library(rwebppl)
 library(tidyverse)
 library(config)
 
+# params <- configure(c("none", "debug"))
+# params <- configure(c("none", "speaker", "debug"))
 params <- configure(c("none", "speaker_uncertain", "debug"))
+# params <- configure(c("none", "speaker_certain", "debug"))
 
 # Setup -------------------------------------------------------------------
 # time_id <- str_replace_all(Sys.time(), c(" "="_", ":"="_"))

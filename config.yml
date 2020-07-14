@@ -91,9 +91,13 @@ speaker_c:
 # speaker only sees states where she is uncertain about A and/or C
 speaker_uncertain:
   inherits: speaker
-  target_fn: "results_speaker_uncertain.rds"
+  target_fn: "results-speaker-uncertain.rds"
   utt: "uncertainAC"
 
+speaker_certain:
+  inherits: speaker
+  target_fn: "results-speaker-certain.rds"
+  utt: "certainAC"
 
 #prior:
 #  level_max: "prior_conditioned"
