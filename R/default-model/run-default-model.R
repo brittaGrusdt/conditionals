@@ -6,10 +6,7 @@ library(rwebppl)
 library(tidyverse)
 library(config)
 
-params <- configure(c("none", "speaker", "debug"))
-
-# params$utt <- "p_delta"
-# params$utt <- "p_rooij"
+params <- configure(c("none", "speaker_uncertain", "debug"))
 
 # Setup -------------------------------------------------------------------
 # time_id <- str_replace_all(Sys.time(), c(" "="_", ":"="_"))
@@ -60,7 +57,7 @@ posterior <- run_webppl(params$model_path, params)
 # structure + save data
 if(params$level_max == "speaker"){
     speaker <- posterior %>% structure_speaker_data(params)
-    speaker_avg <- speaker %>% average_speaker(params)
+    speaker_avg <- speaker %>% average_speaker(params) %>% arrange(mean_per_intention)
     speaker_avg
 } else{
   data <- posterior %>% structure_listener_data(params)

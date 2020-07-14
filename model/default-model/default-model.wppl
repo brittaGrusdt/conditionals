@@ -86,26 +86,16 @@ var run_speaker = function(bns){
 
 // RUN MODEL
 if(LEVEL_MAX == "speaker"){
-  // run speaker with only bayes nets for which meaning of UTT is true
-  // use (UTT="" for all)
-  // 1. sample n_samples bayes  nets from prior or
+  // run speaker with only bayes nets for which certain conditions may hold
+  // depending on value of UTT; use (UTT="" for no condition)
+
+  // 1. sample n_samples bayes  nets from prior
   var n_samples = data["n_samples"][0]
   if(n_samples != 0){
     var prior_conditioned = Infer({model:function(){
-
       var state = sample(globalStore.state_prior)
       var Table = state["bn"]["table"]
 
-      //1. UTT is applicable in current state
-      // condition(meaning(UTT, Table))
-
-      // 2. when C is true, but not A and C, and not -A and C
-      // var meaning_ac = meaning("A and C", Table)
-      // var meaning_nac = meaning("-A and C", Table)
-      // condition(!meaning_ac && !meaning_nac)
-
-      // 3. Assertability conditions
-      // p_rooij/p_delta larger than a threshold
       let pac = Math.exp(Table.score("AC"))
       let pnac = Math.exp(Table.score("-AC"))
       let pa = pac + Math.exp(Table.score("A-C"))
@@ -114,13 +104,39 @@ if(LEVEL_MAX == "speaker"){
       let p_delta = p_c_given_a - p_c_given_na
       let p_rooij = p_delta / (1 - p_c_given_na)
 
-      if(UTT == "p_rooij"){
+      // p_rooij/p_delta larger than a threshold
+      if(UTT == "p_rooij") {
         condition(p_rooij >= 0.75)
-      } else if (UTT == "p_delta"){
+      } else if(UTT == "p_delta") {
         condition(p_delta > 0 && p_c_given_a >= 0.75)
+
+      } else if(UTT.startsWith("uncertain")){
+        // only states where speaker is uncertain about A and/or C
+        // (uncertainA/uncertainC/uncertainAC)
+        if(UTT.includes("A")){
+          condition(pa > 1- globalStore.thresholds.theta &&
+                    pa < globalStore.thresholds.theta)
+        }
+        if(UTT.includes("C")){
+          let pc = pac + pnac
+          condition(pc > 1- globalStore.thresholds.theta &&
+                    pc < globalStore.thresholds.theta)
+        }
+
+      } else if(UTT != ""){
+        // UTT is true/applicable in current state
+        condition(meaning(UTT, Table))
       }
+      // otherwise states are simply sampled from unconditioned prior
+
+      // 2. when C is true, but not A and C, and not -A and C
+      // var meaning_ac = meaning("A and C", Table)
+      // var meaning_nac = meaning("-A and C", Table)
+      // condition(!meaning_ac && !meaning_nac)
+
       return state.bn
-    }})
+    }});
+
     var bns = repeat(n_samples, function(){sample(prior_conditioned)})
     display('# samples from prior: ' + bns.length)
     // var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)

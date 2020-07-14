@@ -69,20 +69,30 @@ lawn:
   tables_fn: "tables-default.rds"
 
 ## 2. configuration for other levels than Pragmatic listener ##
+# @arg utt: - if set to "p_delta" or "p_rooij", respective value must be 
+#           large (see in webppl file) for all states given to the speaker, 
+#           - if set to "" no condition, just sampled from prior as usual
 speaker:
   target_dir: "./data/default-model"
   target_fn: "results-speaker.rds"
   level_max: "speaker"
   utt: ""
-  n_samples: 1000 #0 for all bns from prior
+  n_samples: 0 #0 for all bns from prior
 
-# speaker given certain utt. is true, i.e. speaker only gets states where utt
-# is applicable (done in webppl)
+
+# speaker given certain condition,
+# e.g. speaker only gets states where utt is applicable
 speaker_c:
   inherits: speaker 
-  target_fn: "resutls_speaker_given_C.rds"
+  target_fn: "results_speaker_given_C.rds"
   utt: "C"
 # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
+
+# speaker only sees states where she is uncertain about A and/or C
+speaker_uncertain:
+  inherits: speaker
+  target_fn: "results_speaker_uncertain.rds"
+  utt: "uncertainAC"
 
 
 #prior:
