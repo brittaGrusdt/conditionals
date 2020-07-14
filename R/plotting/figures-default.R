@@ -1,59 +1,96 @@
 library(tidyverse)
+library(config)
 library(ggplot2)
 library(latex2exp)
 library(cowplot)
 source("R/helper-functions.R")
 source("R/default-model/helpers-tables.R")
 source("R/plotting/plotting-functions.R")
+
+params <- configure(c('none', "debug"))
+
 # 0. Data --------------------------------------------------------------------
-TARGET_DIR <- file.path("data", "default-model", "figs", fsep=.Platform$file.sep)
-dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
-model_params <- list()
-model_params$theta=0.9
-model_params$alpha=3
-model_params$cost_conditional=0
+PLOT_DIR <- file.path(params$target_dir, "figs", fsep=.Platform$file.sep)
+dir.create(PLOT_DIR, recursive = TRUE)
 
-biscuit_voi_intents <- read_rds(
-  file.path("data", "default-model", "results-pizza-with-intents-voi.rds"))
-biscuit_voi_no_intents <- read_rds(
-  file.path("data", "default-model", "results-pizza-without-intents-voi.rds"))
+# speaker plots -----------------------------------------------------------
+params_unc <- configure(c("none", "speaker_uncertain", "debug"))
+params_cert <- configure(c('none', 'speaker_certain', 'debug'))
 
-none_voi <- read_rds(file.path("data", "default-model", "results-none-voi.rds"))
-cp_voi <- read_rds(file.path("data", "default-model", "results-lawn-voi.rds"))
-data_voi <- bind_rows(biscuit_voi_no_intents, none_voi, cp_voi) %>%
-  filter_by_model_params(model_params)
+fn_unc <- paste(str_sub(params_unc$target_fn, 1, -5), "-avg.rds", sep="");
+dat.unc <- read_rds(paste(params_unc$target_dir, fn_unc, sep=.Platform$file.sep)) %>% 
+  select(-intention, -bias) %>% add_column(condition="uncertain") %>%
+  arrange(mean_per_intention)
 
-data_biscuits_intents <- read_rds(
-  file.path("data", "default-model", "results-pizza-with-intents.rds"))
-data_biscuits_no_intents <- read_rds(
-  file.path("data", "default-model", "results-pizza-without-intents.rds"))
+fn_cert <- paste(str_sub(params_cert$target_fn, 1, -5), "-avg.rds", sep="");
+dat.cert <- read_rds(paste(params_cert$target_dir, fn_cert, sep=.Platform$file.sep)) %>% 
+  select(-intention, -bias)  %>% add_column(condition="certain") %>% 
+  arrange(mean_per_intention)
+
+data <- bind_rows(dat.cert, dat.unc) %>% rename(p=mean_per_intention) 
+data <- within(data, utterance <- factor(utterance, levels=dat.cert$utterance))
+
+p <- data %>% mutate(p=round(as.numeric(p), 2)) %>% 
+  ggplot(aes(x=utterance, y=p, fill=condition)) + 
+  geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
+  # facet_wrap(~condition) +
+  scale_y_continuous(limits=c(0,0.25)) +
+  # labs(y=TeX("$\\sum_{s\\in Uncertain_S(A)\\wedge s\\in Uncertain_S(C)} P_S(u|s)$"), x="") +
+  theme_classic(base_size=25) +
+  theme(legend.position = c(.95, .1), legend.justification=c("right", "bottom")) +
+  coord_flip()
+p
+
+ggsave(paste(PLOT_DIR, "speaker-uncertainty.png",
+             sep=.Platform$file.sep), p, width=10, height=8)
+
+
+
+# biscuit_voi_intents <- read_rds(
+#   file.path("data", "default-model", "results-pizza-with-intents-voi.rds"))
+# biscuit_voi_no_intents <- read_rds(
+#   file.path("data", "default-model", "results-pizza-without-intents-voi.rds"))
+
+# none_voi <- read_rds(file.path("data", "default-model", "results-none-voi.rds"))
+# cp_voi <- read_rds(file.path("data", "default-model", "results-lawn-voi.rds"))
+# data_voi <- bind_rows(biscuit_voi_no_intents, none_voi, cp_voi) %>%
+#   filter_by_model_params(model_params)
+
+data_voi <- params$data_voi %>% filter_by_model_params(params)
+
+# data_biscuits_intents <- read_rds(
+#   file.path("data", "default-model", "results-pizza-with-intents.rds"))
+# data_biscuits_no_intents <- read_rds(
+#   file.path("data", "default-model", "results-pizza-without-intents.rds"))
 data_default <- read_rds(file.path("data", "default-model", "results-none.rds"))
-data_cp <- read_rds(file.path("data", "default-model", "results-lawn.rds"))
-data_judy <- read_rds(file.path("data", "default-model", "results-judy.rds"))
+# data_cp <- read_rds(file.path("data", "default-model", "results-lawn.rds"))
+# data_judy <- read_rds(file.path("data", "default-model", "results-judy.rds"))
 
-data <- bind_rows(data_biscuits_no_intents, data_default, data_cp, data_judy) 
-data_wide <- data %>% spread(key=cell, val=val)
+# data <- bind_rows(data_biscuits_no_intents, data_default, data_cp, data_judy) 
+# data_wide <- data %>% spread(key=cell, val=val)
 
+data <- data_default
+data_wide <- params$data %>% spread(key=cell, val=val)
 
 # 1. Tables ------------------------------------------------------------------
-table_params <- list()
-table_params$n_tables <- 100000
-table_params$nor_beta <- NA
-table_params$nor_theta <- NA
-table_params$indep_sigma <- 0.01
-table_params$seed <- 1234
-table_params$bias <- "none"
+# table_params <- list()
+# table_params$n_tables <- 100000
+# table_params$nor_beta <- NA
+# table_params$nor_theta <- NA
+# table_params$indep_sigma <- 0.01
+# table_params$seed <- 1234
+# table_params$bias <- "none"
 
-fn <- paste("tables-dependent-", table_params$n_tables, ".rds", sep="")
+fn <- paste("tables-dependent-", params$n_tables, ".rds", sep="")
 # fn <- "tables-dependent.rds"
-tables_path <- file.path("data", "default-model", fn, fsep=.Platform$file.sep)
+tables_path <- file.path(params$target_dir, fn, fsep=.Platform$file.sep)
 
 if(!file.exists(tables_path)){
-  tables <- create_tables(table_params, tables_path)
+  tables <- create_tables(params, tables_path)
 } else {
-  tables <- readRDS(tables_path) %>% filter_tables(table_params)
+  tables <- readRDS(tables_path) %>% filter_tables(params)
   if(nrow(tables)==0){
-    tables <- create_tables(table_params, tables_path)
+    tables <- create_tables(params, tables_path)
   }
 }
 
@@ -68,7 +105,7 @@ tables_filtered <- tables %>%
 table_plots <- plot_tables(tables_filtered)
 p <- plot_grid(table_plots[[1]], table_plots[[2]], table_plots[[3]],
                label_size = 12, ncol=3)
-ggsave(paste(TARGET_DIR, "table_plots_filtered.png",
+ggsave(paste(PLOT_DIR, "table_plots_filtered.png",
              sep=.Platform$file.sep), p, width=15, height=5)
 
 table_plots <- plot_tables(tables)
@@ -76,7 +113,7 @@ p <- plot_grid(table_plots[[1]], table_plots[[2]], table_plots[[3]],
                table_plots[[4]], table_plots[[5]], table_plots[[6]],
                table_plots[[7]], table_plots[[8]], table_plots[[9]],
                label_size = 12, ncol=3)
-ggsave(paste(TARGET_DIR, "table_plots_all.png",
+ggsave(paste(PLOT_DIR, "table_plots_all.png",
              sep=.Platform$file.sep), p, width=10, height=15)
 
 # 2. Prior Default context ---------------------------------------------------
@@ -118,14 +155,14 @@ for(causal_net in p_cns$cn){
   all_bars[[idx]] <- p
   idx <- idx + 1
   fn <- paste("prior-3x3-plots-", idx, ".png", sep="")
-  target <- paste(TARGET_DIR, fn, sep=.Platform$file.sep)
+  target <- paste(PLOT_DIR, fn, sep=.Platform$file.sep)
   ggsave(target, p, width=2, height=6)
 }
 p <- plot_grid(plots[[1]], plots[[2]], plots[[3]], 
                plots[[4]], plots[[5]], plots[[6]], 
                plots[[7]], plots[[8]], plots[[9]],
                label_size = 12, ncol=3)
-target <- paste(TARGET_DIR, "prior-3x3-plots.png", sep=.Platform$file.sep)
+target <- paste(PLOT_DIR, "prior-3x3-plots.png", sep=.Platform$file.sep)
 ggsave(target, p, width=20, height=25)
 
 
@@ -143,7 +180,7 @@ p <- df %>% ggplot(aes(x=accept_cond_val)) + geom_density() +
                    labeller(accept_cond=c(`p_delta`="△P", `p_rooij`="△*P"))
                  ) + labs(x="") + theme_classic(base_size=20)
 
-fn <- paste(TARGET_DIR, "distributions-accept-conditions.png", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "distributions-accept-conditions.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=11, height=5)
 
 
@@ -172,7 +209,7 @@ p <- voi_none %>% mutate(value=round(as.numeric(value), 2)) %>%
   theme(legend.position = "bottom") +
   coord_flip()
 p
-ggsave(paste(TARGET_DIR, "none-voi-epistemic-uncertainty.png",
+ggsave(paste(PLOT_DIR, "none-voi-epistemic-uncertainty.png",
              sep=.Platform$file.sep), p, width=11, height=5)
 
 # 4.2 CP-reading
@@ -204,12 +241,12 @@ p <- voi_lawn_none %>% filter(key=="p_nc_given_na") %>%
                       labels=c("Default", "CP")
                       )
 p
-ggsave(paste(TARGET_DIR, "comparison-vois-cp.png", sep=.Platform$file.sep),
+ggsave(paste(PLOT_DIR, "comparison-vois-cp.png", sep=.Platform$file.sep),
        p, width=15, height=8)
 
 ####
 # p <- plot_cp_vois(data %>% filter(bias=="none"))
-# fn <- paste(TARGET_DIR, "none-vois-cp.png", sep=.Platform$file.sep)
+# fn <- paste(PLOT_DIR, "none-vois-cp.png", sep=.Platform$file.sep)
 # ggsave(fn, p, width=15, height=6)
 ####
 
@@ -241,12 +278,12 @@ plot_cns <- function(data){
 # no bias
 p <- df_none %>% filter(prob > 0) %>%  plot_cns()
 p
-ggsave(paste(TARGET_DIR, "none-cns.png", sep=.Platform$file.sep), p, width=15, height=7)
+ggsave(paste(PLOT_DIR, "none-cns.png", sep=.Platform$file.sep), p, width=15, height=7)
 
 # cp-bias
 p <- df_cp %>% filter(prob > 0) %>% plot_cns()
 p    
-ggsave(paste(TARGET_DIR, "lawn-cns.png", sep=.Platform$file.sep), p, width=15, height=7)
+ggsave(paste(PLOT_DIR, "lawn-cns.png", sep=.Platform$file.sep), p, width=15, height=7)
 
 
 # 5. Biscuit conditionals ----------------------------------------------------
@@ -276,7 +313,7 @@ evs_pc <- data_voi %>% filter((key=="pc") & (bias=="pizza")) %>%
 p <- evs_pc %>% biscuit_barplot("") +
   theme(legend.position="none")
 p
-fn <- paste(TARGET_DIR, "pizza-pc.png", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "pizza-pc.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=12, height=5.5)
 
 # 5.2. marginal distribution of speaker_intents
@@ -287,7 +324,7 @@ marginal_intents_bc <- df %>% group_by(level, intention, bias) %>%
 evs <- marginal_intents_bc %>% mutate(value=round(as.double(value),2))
 p <- evs %>% biscuit_barplot("")
 p
-fn <- paste(TARGET_DIR, "pizza-intents.png", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "pizza-intents.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=12, height=6)
 
 
@@ -320,7 +357,7 @@ p <- speaker %>%
                             breaks=c("none", "isa_pizza", "pa_pizza", "_pizza"),
                             labels=c("default", "biscuit/isa", "biscuit/pa", "biscuit"))
 p
-fn <- paste(TARGET_DIR, "speaker-default-biscuits.png", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "speaker-default-biscuits.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=12, height=6)
 
 
@@ -348,7 +385,7 @@ p <- speaker %>%
   theme_classic(base_size=20) +
   theme(legend.position = "none") 
 p
-ggsave(paste(TARGET_DIR, "speaker-given-accept-conditions-fulfilled.png",
+ggsave(paste(PLOT_DIR, "speaker-given-accept-conditions-fulfilled.png",
              sep=.Platform$file.sep), p, width=15, height=6)
 
 # 6.2 speaker wrt assertability conditions
@@ -378,7 +415,7 @@ accept_condition_speaker_plot <-function(df_wide, ifac_applicable){
 # check cases where "A>C" may be assertable (P(C|A) large), but △*P is not small
 df_neg_wide <- df_wide %>% filter(p_delta<0 & p_c_given_a>=0.5)
 p <- accept_condition_speaker_plot(df_neg_wide, ifac_applicable=TRUE)
-fn <- paste(TARGET_DIR, "accept_conditions_negative", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "accept_conditions_negative", sep=.Platform$file.sep)
 ggsave(paste(fn, "and.png", sep="_"), p$and, width=15, height=8)
 ggsave(paste(fn, "vs.png", sep="_"), p$vs, width=15, height=8)
 
@@ -389,14 +426,14 @@ pos$`A > C` %>% summary()
 # 2.2 △P/△*P is positive
 df_pos_wide <- df_wide %>% filter(p_delta>0 & p_rooij>0)
 p <- accept_condition_speaker_plot(df_pos_wide, ifac_applicable = FALSE)
-fn <- paste(TARGET_DIR, "accept_conditions_positive", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "accept_conditions_positive", sep=.Platform$file.sep)
 ggsave(paste(fn, "and.png", sep="_"), p$and, width=18, height=8)
 ggsave(paste(fn, "vs.png", sep="_"), p$vs, width=18, height=8)
 
 # 2.3 both into one plot
 df_wide_both <- df_wide %>% filter(p_c_given_a>=0.5)
 p <- accept_condition_speaker_plot(df_wide_both, ifac_applicable = FALSE)
-fn <- paste(TARGET_DIR, "accept_conditions", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "accept_conditions", sep=.Platform$file.sep)
 ggsave(paste(fn, "and.png", sep="_"), p$and, width=18, height=8)
 ggsave(paste(fn, "vs.png", sep="_"), p$vs, width=18, height=8)
 
@@ -429,13 +466,13 @@ comparison_plot <- function(df){
 # 2.3.1 p_delta<0 and therefore p_rooij<0
 df_neg <- df_long %>% filter(val<0) %>% spread(key=condition, val=val)
 plot_neg <- comparison_plot(df_neg)
-ggsave(paste(TARGET_DIR, "p_delta_vs_p_rooij_neg.png",
+ggsave(paste(PLOT_DIR, "p_delta_vs_p_rooij_neg.png",
              sep=.Platform$file.sep), plot_neg$both, width=20, height=8)
 
 # 2.3.2 p_delta>0 and therefore p_rooij>0
 df_pos <- df_long %>% filter(val>0) %>% spread(key=condition, val=val)
 plot_pos <- comparison_plot(df_pos)
-ggsave(paste(TARGET_DIR, "p_delta_vs_p_rooij_pos.png",
+ggsave(paste(PLOT_DIR, "p_delta_vs_p_rooij_pos.png",
              sep=.Platform$file.sep), plot_pos$both, width=20, height=8)
 
 
@@ -480,7 +517,7 @@ p <- df %>% ggplot(aes(x=level, y=s, fill=cn_p)) +
             legend.key.size = unit(1.5, "cm"))
 
 p
-fn <- paste(TARGET_DIR, "prior-ll-pl-dep-indep-ifac-true.png", sep=.Platform$file.sep)
+fn <- paste(PLOT_DIR, "prior-ll-pl-dep-indep-ifac-true.png", sep=.Platform$file.sep)
 ggsave(fn, p, width=14, height=4)
 
 
