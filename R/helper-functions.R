@@ -7,6 +7,7 @@ filter_vars <- function(df_long, vars){
   df <- df_long %>% mutate(keep=TRUE)
   for(var in vars){
     if(str_detect(var, "^-")){
+      # negative variable, starts with -
       df <- df %>% mutate(keep=case_when(!keep ~ keep, TRUE ~ str_detect(cell, var)))
     }
     else {
@@ -18,14 +19,13 @@ filter_vars <- function(df_long, vars){
 }
 
 
-gather_utterances <- function(df){
-  df <- df %>% gather(A, C, `-A`, `-C`,
-                      `C and A`, `-C and A`, `C and -A`, `-C and A`,
-                      `likely A`, `likely C`, `likely -A`, `likely -C`,
-                      `A > C`, `A > -C`, `-A > C`, `-A > -C`,
-                      `C > A`, `C > -A`, `-C > A`, `-C > -A`,
-                      key="utterance", val="p_utt")
-  return(df)
+sort_utterances <- function(utterances){
+  literals <- c("A", "C", "-A", "-C")
+  conjs <- c("C and A", "-C and A", "C and -A", "-C and -A")
+  likely <- c("likely A", "likely C", "likely -A", "likely -C")
+  ifs <- c("A > C", "A > -C", "-A > C", "-A > -C",
+           "C > A", "C > -A", "-C > A", "-C > -A")
+  return(utterances[order(match(utterances, c(conjs, literals, ifs, likely)))])
 }
 
 add_pspeaker_max_conj_lit <- function(df){
@@ -36,6 +36,8 @@ add_pspeaker_max_conj_lit <- function(df){
 }
 
 # Probabilities -----------------------------------------------------------
+#@arg vars: list of variables, if more than one, only states where all hold
+# are retained!
 marginalize <- function(data, vars){
   # data must be in long format, such that cell is one column and marginals can
   # be computed for any cell entries, returned object is in wide format

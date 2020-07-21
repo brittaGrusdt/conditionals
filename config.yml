@@ -1,6 +1,9 @@
 default:
   generate_utterances: false
-  generate_tables: false
+  generate_tables: true
+  cns: !expr c("A implies C", "C implies A",
+               "A implies -C", "C implies -A",
+               "A || C", "A,B->D->C")
   generate_cns: false
   save: true
   cost_conditional: 0
@@ -19,8 +22,8 @@ default:
   # seed: !expr as.numeric(Sys.time())
 
 ## 1. bias configurations ##
-               
-none: 
+
+none:
   target_dir: "./data/default-model"
   target_fn: "results-none.rds"
   level_max: "PL"
@@ -69,8 +72,8 @@ lawn:
   tables_fn: "tables-default.rds"
 
 ## 2. configuration for other levels than Pragmatic listener ##
-# @arg utt: - if set to "p_delta" or "p_rooij", respective value must be 
-#           large (see in webppl file) for all states given to the speaker, 
+# @arg utt: - if set to "p_delta" or "p_rooij", respective value must be
+#           large (see in webppl file) for all states given to the speaker,
 #           - if set to "" no condition, just sampled from prior as usual
 speaker:
   target_dir: "./data/default-model"
@@ -83,7 +86,7 @@ speaker:
 # speaker given certain condition,
 # e.g. speaker only gets states where utt is applicable
 speaker_c:
-  inherits: speaker 
+  inherits: speaker
   target_fn: "results_speaker_given_C.rds"
   utt: "C"
 # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
@@ -99,27 +102,26 @@ speaker_certain:
   target_fn: "results-speaker-certain.rds"
   utt: "certainAC"
 
-#prior:
-#  level_max: "prior_conditioned"
-#  target_fn: "resullts-prior.rds"
-#  target_dir: "./data/default-model"
-#  
-#ll:
-#  level_max: "ll_all_utts"
-#  target_fn: "results-ll.rds"
-#  target_dir: "./data/default-model"
-#
+prior:
+  level_max: "prior"
+  target_fn: "resullts-prior.rds"
+
+ll:
+  level_max: "LL"
+  target_fn: "results-ll.rds"
+  target_dir: "./data/default-model"
+
 #dutchman:
 #  target_dir: "./data/default-model"
 #  n_tables: 4500
-#  
+#
 #judy:
 #  judy_q: 0.75
 #  target_dir: "./data/judy"
 #  target_fn: "results-judy.rds"
 #  utt: "A >q C"
 
-debug: 
+debug:
   verbose: true
   target_dir: "./data/test-default"
 # there needs to be 1 blank final line!

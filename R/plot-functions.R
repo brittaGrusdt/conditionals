@@ -211,7 +211,6 @@ plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, t
   return(p)
 }
 
-# Plot all table distributions for each causal network respectively
 plot_tables <- function(data){
   cns <- data$cn %>% as.factor() %>% levels()
   data <- data %>% mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")))
@@ -234,6 +233,18 @@ plot_tables <- function(data){
       theme(legend.position = "none", text = element_text(size=20))
     print(p)
   }
+  # dont filter causal nets
+  p <- data %>%
+    ggplot(aes(x=val,  color = cell)) +
+    geom_density() +
+    facet_wrap(~cell, scales = "free_y",
+               labeller = labeller(
+                 cell = c(`AC` = "A ∧ C", `A-C` = "A ∧ ¬C",
+                          `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C"))
+    ) +
+    labs(title = "all cns", x="p") +
+    theme(legend.position = "none", text = element_text(size=20))
+  print(p)
 }
 
 plot_beta <- function(alpha, beta, xlab, color="black"){

@@ -6,6 +6,8 @@ library(rwebppl)
 library(tidyverse)
 library(config)
 
+# params <- configure(c("none", "prior", "debug"))
+# params <- configure(c("none", "ll", "debug"))
 # params <- configure(c("none", "debug"))
 # params <- configure(c("none", "speaker", "debug"))
 params <- configure(c("none", "speaker_uncertain", "debug"))
@@ -19,31 +21,28 @@ params$target <- file.path(params$target_dir, params$target_fn, fsep=.Platform$f
 params$utts_path <- file.path(params$target_dir, params$utts_fn, fsep = .Platform$file.sep)
 params$cns_path <- file.path(params$target_dir, params$cns_fn, fsep = .Platform$file.sep)     
 
+## Generate/Retrieve causal nets
+if(params$generate_cns){
+  cns <- run_webppl("./model/default-model/cns.wppl", params)
+  cns <- cns %>% map(function(x){x %>% pull(value)}) %>% unlist()
+  cns %>% save_data(params$cns_path)
+  params$cns <- cns
+}
 ## Generate/Retrieve tables
 tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
 if(params$generate_tables){
-  tables <- create_tables(params, tables_path)
+  tables <- create_tables(params, tables_path, params$cns)
 } else {
   tables <- readRDS(tables_path) %>% filter_tables(params)
   if(nrow(tables)==0){
-    tables <- create_tables(params, tables_path)
+    tables <- create_tables(params, tables_path, params$cns)
   }
   print(paste("tables read from:", tables_path))
 }
 tables_to_wppl <- tables %>% dplyr::select(ps, vs)
 params$tables=tables_to_wppl
 
-## Generate/Retrieve utterances and causal nets
-if(params$generate_cns){
-  cns <- run_webppl("./model/default-model/cns.wppl", params)
-  cns <- cns %>% map(function(x){x %>% pull(value)}) %>% unlist()
-  cns %>% save_data(params$cns_path)
-} else {
-  cns <- readRDS(params$cns_path)
-  print(paste("cns read from:", params$cns_path))
-}
-params$cns <- cns
-
+## Generate/Retrieve utterances
 if(params$generate_utterances){
   utterances <- run_webppl("./model/default-model/utterances.wppl", params)
   utterances <- utterances %>% map(function(x){x %>% pull(value)}) %>% unlist()
@@ -64,6 +63,6 @@ if(params$level_max == "speaker"){
     speaker_avg
 } else{
   data <- posterior %>% structure_listener_data(params)
-  trust <- data %>% listener_beliefs("PL", params)
+  # trust <- data %>% listener_beliefs("PL", params)
   data_voi <- voi_default(data, params)
 }

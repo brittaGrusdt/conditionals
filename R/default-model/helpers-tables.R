@@ -10,48 +10,115 @@ cns <- readRDS(cns_path)
 CNS_DEP <- cns[cns != "A || C"]
 
 # Table Generation --------------------------------------------------------
-create_dependent_tables <- function(params){
+create_me_tables <-function(params) {
+  cn <- "A,B->D->C"
+  get_pd_given_ab <- function(a, b, d, n=1){
+    val <- ifelse(xor(a, b), ifelse(a==1, "A", "B"), NA_character_)
+    if(is.na(val)){
+      p <- ifelse(is.na(d), 1, 0)
+    } else {
+      p <- ifelse(val == d, 1, 0);
+    }
+    return(rep(p, n))
+  }
+  get_pc_given_d = function(d, c=1, n=1){
+    if(is.na(d)) {
+      val <- ifelse(c==1, 0, 1)
+      p <- rep(val, n)
+    } else {
+      p <- rbeta(n, 10, 1)
+    }
+    return(p)
+  }
+
+  pa = rbeta(params$n_tables, 1, 1)
+  pb = rbeta(params$n_tables, 1, 1)
+  pc_given_dA = get_pc_given_d("A", 1, params$n_tables)
+  pc_given_dB = get_pc_given_d("B", 1, params$n_tables)
+  pc_given_dNA = get_pc_given_d(NA, 1, params$n_tables)
+  pna = 1-pa
+  pnb = 1-pb
+  pnc_given_dA = 1 - pc_given_dA
+  pnc_given_dB = 1 - pc_given_dB
+  pnc_given_dNA = 1- pc_given_dNA
+
+  tables <- tibble(`AC_Da`=pc_given_dA * get_pd_given_ab(1, 0, "A", params$n_tables) * pa * (1-pb),
+                   `A-C_Da`=pnc_given_dA * get_pd_given_ab(1, 0, "A", params$n_tables) * pa * (1-pb),
+
+                   `AC_Dna`=rep(0, params$n_tables),
+                   `A-C_Dna`=pnc_given_dNA * get_pd_given_ab(1, 1, NA, params$n_tables) * pa * pb,
+                   `-AC_Dna`=rep(0, params$n_tables),
+                   `-A-C_Dna`=pnc_given_dNA * get_pd_given_ab(0, 0, NA, params$n_tables) * (1-pa) * (1-pb),
+
+                   `-AC_Db`=pc_given_dB * get_pd_given_ab(0, 1, "B", params$n_tables) * (1-pa) * pb,
+                   `-A-C_Db`=pnc_given_dB * get_pd_given_ab(0, 1, "B", params$n_tables) * (1-pa) * pb,
+
+                   `AC_Db`=rep(0, params$n_tables),
+                   `A-C_Db`=rep(0, params$n_tables),
+                   `-AC_Da`=rep(0, params$n_tables),
+                   `-A-C_Da`=rep(0, params$n_tables)
+
+                   ) %>% rowid_to_column("id")
+
+  tables_long <- tables %>%
+    pivot_longer(c(-id), names_to = "cell", values_to = "val") %>% group_by(id) %>%
+    mutate(val=round(val, 4))
+    # summarize(s=sum(val)) # must sum to 1
+  tables_wide <- tables_long %>%
+    summarise(ps = list(val), vs=list(cell)) %>% add_column(cn=(!! cn)) %>%
+    dplyr::select(-id)
+
+  return(tables_wide)
+}
+
+create_dependent_tables <- function(params, cns){
   all_tables <- list()
   idx <- 1
-  for(cn in CNS_DEP){
-    theta <- rbeta(params$n_tables, 10, 1)
-    beta <- rbeta(params$n_tables, 1, 10)
-    
-    p_child_parent <- theta + beta * (1 - theta)
-    p_child_neg_parent <- beta
-    p_parent <- runif(params$n_tables)
-    
-    if(cn == "A implies C" || cn == "C implies A"){
-      probs <- tibble(cond1=p_child_parent, cond2=p_child_neg_parent, marginal=p_parent)
-    } else if(cn=="A implies -C" || cn=="C implies -A"){
-      probs <- tibble(cond1=1-p_child_parent, cond2=1-p_child_neg_parent, marginal=p_parent)
-    } else if(cn=="-A implies C" || cn=="-C implies A"){
-      probs <- tibble(cond1=p_child_neg_parent, cond2=p_child_parent, marginal=1-p_parent)
-    } else if(cn=="-A implies -C" || cn=="-C implies -A"){
-      probs <- tibble(cond1=1-p_child_neg_parent, cond2=1-p_child_parent, marginal=1-p_parent)
-    }
-    
-    # A -> C and -A -> C use the same probabilities (P(C|A), P(C|-A), P(A)/P(-A))
-    if(startsWith(cn, "A") || startsWith(cn, "-A")){
-      probs <- probs %>% mutate(`AC`=cond1 * marginal,
-                                `A-C`=(1-cond1) * marginal,
-                                `-AC`=cond2 * (1-marginal),
-                                `-A-C`=(1-cond2) * (1-marginal))
-    } else if(startsWith(cn, "C") || startsWith(cn, "-C")){
-      # diagonals are switched
-      probs <- probs %>% mutate(`AC`=cond1 * marginal,
-                                `A-C`=cond2 * (1-marginal),
-                                `-AC`=(1-cond1) * marginal,
-                                `-A-C`=(1-cond2) * (1-marginal))
+  for(cn in cns){
+    if(cn ==  "A,B->D->C") {
+      tables_wide <- create_me_tables(params)
     } else {
-      stop(paste(cn, "not implemented."))
+      theta <- rbeta(params$n_tables, 10, 1)
+      beta <- rbeta(params$n_tables, 1, 10)
+
+      p_child_parent <- theta + beta * (1 - theta)
+      p_child_neg_parent <- beta
+      p_parent <- runif(params$n_tables)
+
+      if(cn == "A implies C" || cn == "C implies A"){
+        probs <- tibble(cond1=p_child_parent, cond2=p_child_neg_parent, marginal=p_parent)
+      } else if(cn=="A implies -C" || cn=="C implies -A"){
+        probs <- tibble(cond1=1-p_child_parent, cond2=1-p_child_neg_parent, marginal=p_parent)
+      } else if(cn=="-A implies C" || cn=="-C implies A"){
+        probs <- tibble(cond1=p_child_neg_parent, cond2=p_child_parent, marginal=1-p_parent)
+      } else if(cn=="-A implies -C" || cn=="-C implies -A"){
+        probs <- tibble(cond1=1-p_child_neg_parent, cond2=1-p_child_parent, marginal=1-p_parent)
+      }
+
+      # A -> C and -A -> C use the same probabilities (P(C|A), P(C|-A), P(A)/P(-A))
+      if(startsWith(cn, "A") || startsWith(cn, "-A")){
+        probs <- probs %>% mutate(`AC`=cond1 * marginal,
+                                  `A-C`=(1-cond1) * marginal,
+                                  `-AC`=cond2 * (1-marginal),
+                                  `-A-C`=(1-cond2) * (1-marginal))
+      } else if(startsWith(cn, "C") || startsWith(cn, "-C")){
+        # diagonals are switched
+        probs <- probs %>% mutate(`AC`=cond1 * marginal,
+                                  `A-C`=cond2 * (1-marginal),
+                                  `-AC`=(1-cond1) * marginal,
+                                  `-A-C`=(1-cond2) * (1-marginal))
+      } else {
+        stop(paste(cn, "not implemented."))
+      }
+      tables <- probs %>% dplyr::select(-cond1, -cond2, -marginal) %>%
+        rowid_to_column("id")
+      tables_long <- tables %>%
+        gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>%
+        mutate(val=round(val, 4))
+      tables_wide <- tables_long %>% group_by(id) %>%
+        summarise(ps = list(val)) %>% add_column(cn=(!! cn)) %>%
+        mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
     }
-    
-    tables <- probs %>% dplyr::select(-cond1, -cond2, -marginal) %>% rowid_to_column("id") 
-    tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
-                    mutate(val=round(val, 4))
-    tables_wide <- tables_long %>% group_by(id) %>% summarise(ps = list(val)) %>% add_column(cn=(!! cn)) %>% 
-      mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
     
     all_tables[[idx]] <- tables_wide
     idx <- idx + 1
@@ -80,14 +147,15 @@ create_independent_tables <- function(params){
   return(tables_wide)
 }
 
-create_tables <- function(params, target_path){
+create_tables <- function(params, target_path, cns=CNS_DEP){
+  cns_dep=cns[cns != "A || C"]
   tables_all <- list()
   if(params$bias == "dutchman" || params$bias == "pizza"){
     tables_ind <- create_independent_tables(params)
     tables_dep <- tibble()
   } else {
       tables_ind <- create_independent_tables(params)
-      tables_dep <- create_dependent_tables(params)
+      tables_dep <- create_dependent_tables(params, cns_dep)
   }
   tables <- bind_rows(tables_ind, tables_dep) %>% rowid_to_column("id") %>% 
               mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,
