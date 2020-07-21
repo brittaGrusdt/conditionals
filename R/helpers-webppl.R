@@ -57,6 +57,8 @@ structure_listener_data <- function(posterior, params){
   
   if(params$save){
     df_long %>% save_data(params$target)
+    params %>% save_data(paste(params$target_dir, params$target_params,
+                               sep = .Platform$file.sep))
   }
   return(df_long)
 }
@@ -122,8 +124,11 @@ structure_speaker_data <- function(posterior, params){
                                    -level, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`),
                             names_to = "utterance", values_to = "probs") %>%
         add_column(bias=params$bias)
-  #removed id (why there?)
-  if(params$save){df %>% save_data(params$target)}
+  if(params$save){
+    df %>% save_data(params$target)
+    params %>% save_data(paste(params$target_dir, params$target_params,
+                               sep = .Platform$file.sep))
+  }
   return(df)
 }
 
@@ -140,6 +145,7 @@ average_speaker <- function(distrs, params){
     fn <- str_split(params$target, ".rds")
     df %>% save_data(paste(fn[[1]][1], "-avg.rds", sep=""))
     df_cns %>% save_data(paste(fn[[1]][1], "-avg-cns.rds", sep=""))
+    params %>% save_data(params$target_params)
   }
   return(df)
 }

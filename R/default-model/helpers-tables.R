@@ -88,7 +88,7 @@ create_dependent_tables <- function(params, cns){
       p_child_neg_parent <- beta
       p_parent <- runif(params$n_tables)
 
-      if(cn == "A implies C" || cn == "C implies A"){
+      if(cn == "A implies C" || cn == "C implies A" || cn == "only A implies C"){
         probs <- tibble(cond1=p_child_parent, cond2=p_child_neg_parent, marginal=p_parent)
       } else if(cn=="A implies -C" || cn=="C implies -A"){
         probs <- tibble(cond1=1-p_child_parent, cond2=1-p_child_neg_parent, marginal=p_parent)
@@ -99,7 +99,7 @@ create_dependent_tables <- function(params, cns){
       }
 
       # A -> C and -A -> C use the same probabilities (P(C|A), P(C|-A), P(A)/P(-A))
-      if(startsWith(cn, "A") || startsWith(cn, "-A")){
+      if(startsWith(cn, "A") || startsWith(cn, "-A") || startsWith(cn, "only A")){
         probs <- probs %>% mutate(`AC`=cond1 * marginal,
                                   `A-C`=(1-cond1) * marginal,
                                   `-AC`=cond2 * (1-marginal),
@@ -222,15 +222,12 @@ plot_tables <- function(data){
       filter(cn==causal_net) %>%
       ggplot(aes(x=val,  color = cell)) +
       geom_density() +
-      facet_wrap(~cell, ncol = 2, scales = "free_y",
+      facet_wrap(~cell, ncol = 2, scales = "free",
                  labeller = labeller(cell = c(`AC` = "A ∧ C", `A-C` = "A ∧ ¬C",
-                                              `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C")
-                                     )
+                                              `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C"))
                  ) +
       labs(title = cn_title, x="probability") +
-      # theme_minimal(base_size = 20) +
       theme_classic(base_size = 20) +
-      # theme_void(base_size = 20) +
       theme(legend.position = "none", axis.text.x = element_text(size=10))
     plots[[idx]] <- p
     idx <- idx + 1

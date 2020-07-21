@@ -1,11 +1,11 @@
 default:
   generate_utterances: false
-  generate_tables: true
+  generate_tables: false
   cns: !expr c("A implies C", "C implies A",
                "A implies -C", "C implies -A",
                "A || C",
-               "A,B->D->C") 
-               # "only A implies C")
+               "only A implies C")
+               # "A,B->D->C") 
   generate_cns: false
   save: true
   cost_conditional: 0
@@ -28,6 +28,7 @@ default:
 none:
   target_dir: "./data/default-model"
   target_fn: "results-none.rds"
+  target_params: "results-none-params.rds"
   level_max: "PL"
   utt: "A > C"
   utts_fn: "utterances-none.rds"
@@ -40,6 +41,7 @@ none:
 pizza:
   target_dir: "./data/douven-examples"
   target_fn: "results-pizza-without-intents.rds"
+  target_params: "results-pizza-without-intents-params.rds"
   level_max: "PL"
   utt: "A > C"
   utts_fn: "utterances-pizza.rds"
@@ -52,6 +54,7 @@ pizza:
 pizza_intents:
   target_dir: "./data/douven-examples"
   target_fn: "results-pizza-with-intents.rds"
+  target_params: "results-pizza-with-intents-params.rds"
   level_max: "PL"
   utt: "A > C"
   utts_fn: "utterances-pizza.rds"
@@ -65,6 +68,7 @@ lawn:
   bias: "lawn"
   target_dir: "./data/douven-examples"
   target_fn: "results-lawn.rds"
+  target_params: "results-lawn-params.rds"
   level_max: "PL"
   utt: "A > C"
   utts_fn: "utterances-lawn.rds"
@@ -80,6 +84,7 @@ lawn:
 speaker:
   target_dir: "./data/default-model"
   target_fn: "results-speaker.rds"
+  target_params: "results-speaker-params.rds"
   level_max: "speaker"
   utt: ""
   n_samples: 0 #0 for all bns from prior
@@ -90,6 +95,7 @@ speaker:
 speaker_c:
   inherits: speaker
   target_fn: "results_speaker_given_C.rds"
+  target_params: "results-speaker-given-C-params.rds"
   utt: "C"
 # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
 
@@ -97,21 +103,26 @@ speaker_c:
 speaker_uncertain:
   inherits: speaker
   target_fn: "results-speaker-uncertain.rds"
+  target_params: "results-speaker-uncertain-params.rds"
   utt: "uncertainAC"
 
 speaker_certain:
   inherits: speaker
   target_fn: "results-speaker-certain.rds"
+  target_params: "results-speaker-certain-params.rds"
   utt: "certainAC"
 
 prior:
   level_max: "prior"
   target_fn: "results-prior.rds"
+  target_params: "results-prior-params.rds"
 
 ll:
   level_max: "LL"
   target_fn: "results-ll.rds"
   target_dir: "./data/default-model"
+  target_params: "results-ll-params.rds"
+
 
 #dutchman:
 #  target_dir: "./data/default-model"
