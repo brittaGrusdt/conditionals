@@ -8,7 +8,7 @@ get_cp_values_cns <- function(distr_wide){
   p_cns <- distr_wide %>% dplyr::select(prob, bn_id, cn, level, intention)
   # get marginal probabilities for each cn
   marginal <- p_cns %>% group_by(cn, level, intention) %>%
-    summarise(marginal=sum(prob))
+    summarise(marginal=sum(prob), .groups="keep")
   
   # distributions to compare with
   marginal <- marginal %>%
@@ -27,7 +27,8 @@ get_cp_values_cns <- function(distr_wide){
   
   voi_cns <- marginal %>% group_by(level, intention) %>%
     summarise(cp_cns_ac=hellinger(marginal, marginal_cp1),
-              cp_cns_anc=hellinger(marginal, marginal_cp2)) %>% 
+              cp_cns_anc=hellinger(marginal, marginal_cp2),
+              .groups="keep") %>% 
     gather(cp_cns_ac, cp_cns_anc, key="key", value="value")
   
   return(voi_cns)
@@ -52,7 +53,7 @@ get_cp_values_bns <- function(distr_wide){
     ) 
   values <- values %>% group_by(level, intention) %>%
     summarise(cp_bns_ac=sum(prob*hellinger_ac),
-              cp_bns_anc=sum(prob*hellinger_anc))
+              cp_bns_anc=sum(prob*hellinger_anc), .groups="keep")
   voi_bns <- values %>% gather(cp_bns_ac, cp_bns_anc, key="key", value="value")
   
   return(voi_bns)
@@ -78,24 +79,40 @@ voi_conditional_perfection <- function(posterior, params){
   return(val_cp)
 }
 
-# speaker-uncertainty ---------------------------------------------
+# speaker-uncertainty/listener's ignorance inferences  --------------------
 
-# theta <= P(C) <= 1-theta where theta is threshold at which utterances count as true
-get_speaker_uncertainty <- function(distr, theta, val){
+# theta <= P(val) <= 1-theta where theta is threshold at which utterances count as true
+get_states_p_certain <- function(distr, theta, val){
   marginal <- marginalize(distr, c(val))
   p_intervals <- marginal %>% filter(p>=theta | p<=1-theta)
-  # p_intervals <- marginal %>% filter(p<=1-theta)
-  
-  evs <- p_intervals %>% group_by(level, intention) %>% summarise(value=sum(prob)) %>%
+  return(p_intervals)
+}
+
+# directly compute expected value for 'val'
+get_speaker_uncertainty_evs <- function(distr, theta, val) {
+  p_intervals <- get_states_p_certain(distr, theta, val)
+  evs <- p_intervals %>% group_by(level, intention) %>%
+    summarise(value=sum(prob), .groups="keep") %>%
     add_column(key=paste("epistemic_uncertainty", val, sep="_"))
   return(evs)
 }
 
-
-voi_epistemic_uncertainty <- function(posterior, params){
-  val_pc <- get_speaker_uncertainty(posterior, params$theta, "C")
-  val_pa <- get_speaker_uncertainty(posterior, params$theta, "A")
-  val_no_bias <- add_model_params(bind_rows(val_pc, val_pa), params)
+# filter for those states where C is uncertain OR where A is uncertain,
+# take EV from union
+voi_epistemic_certainty <- function(posterior, params){
+  bns_pc <- get_states_p_certain(posterior, params$theta, "C") %>% select(-p)
+  bns_pa <- get_states_p_certain(posterior, params$theta, "A") %>% select(-p)
+  df <- bind_rows(bns_pc, bns_pa) %>% 
+    group_by(bn_id, cn) %>% distinct()
+  # bn_ids <- intersect(bns_pc$bn_id, bns_pa$bn_id)
+  # df <- bind_rows(bns_pc %>% filter(bn_id %in% bn_ids),
+                  # bns_pa %>% filter(bn_id %in% bn_ids)) %>%
+    # group_by(bn_id, cn) %>% distinct()
+  evs <- df %>% group_by(level, intention) %>%
+    summarise(value=sum(prob), .groups="keep") %>%
+    add_column(key="epistemic_certainty_a_or_c")
+  
+  val_no_bias <- add_model_params(evs, params)
   return(val_no_bias)
 }
 
@@ -115,13 +132,13 @@ voi_pa <- function(posterior, params){
 
 voi_default <- function(posterior, params){
   # @posterior: in long format, must have columns *cell* and *val* 
-  uncertainty <- voi_epistemic_uncertainty(posterior, params)
+  certainty <- voi_epistemic_certainty(posterior, params)
   pa <- voi_pa(posterior, params)
   pc <- voi_pc(posterior, params)
   cp <- voi_conditional_perfection(posterior, params)
   
-  results <- bind_rows(uncertainty, pa, pc, cp)
-  if(params$save){results %>% save_data(paste(params$target, "-voi.rds", sep=""))}
+  results <- bind_rows(certainty, pa, pc, cp)
+  if(params$save){results %>% save_data(paste(str_sub(params$target, 1, -5), "-voi.rds", sep=""))}
   return(results)
 }
 # Acceptability/Assertability conditions ----------------------------------
@@ -132,8 +149,10 @@ acceptability_conditions <- function(data_wide){
           compute_cond_prob("P(C|-A)") %>% rename(p_c_given_na=p) %>%
           mutate(p_delta=round(p_c_given_a - p_c_given_na, 3),
                  p_nc_given_na=round(1-p_c_given_na, 3),
-                 p_rooij=round(p_delta/p_nc_given_na, 3)) %>% 
-          select(-p_nc_given_na, -p_c_given_a, -p_c_given_na)
+                 p_rooij=round(p_delta/p_nc_given_na, 3),
+                 pc=`AC` + `-AC`,
+                 p_diff=round(p_c_given_a - pc, 3)) %>% 
+          select(-p_nc_given_na, -p_c_given_a, -p_c_given_na, -pc)
   return(df)
 }
 

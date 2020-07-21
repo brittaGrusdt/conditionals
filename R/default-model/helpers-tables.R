@@ -65,8 +65,8 @@ create_me_tables <-function(params) {
     mutate(val=round(val, 4))
     # summarize(s=sum(val)) # must sum to 1
   tables_wide <- tables_long %>%
-    summarise(ps = list(val), vs=list(cell)) %>% add_column(cn=(!! cn)) %>%
-    dplyr::select(-id)
+    summarise(ps = list(val), vs=list(cell), .groups = 'drop') %>%
+    add_column(cn=(!! cn)) %>% dplyr::select(-id)
 
   return(tables_wide)
 }
@@ -79,8 +79,11 @@ create_dependent_tables <- function(params, cns){
       tables_wide <- create_me_tables(params)
     } else {
       theta <- rbeta(params$n_tables, 10, 1)
-      beta <- rbeta(params$n_tables, 1, 10)
-
+      if(cn == "only A implies C") {
+        beta <- rep(0, params$n_tables) 
+      } else {
+        beta <- rbeta(params$n_tables, 1, 10)
+      }
       p_child_parent <- theta + beta * (1 - theta)
       p_child_neg_parent <- beta
       p_parent <- runif(params$n_tables)
@@ -116,7 +119,7 @@ create_dependent_tables <- function(params, cns){
         gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>%
         mutate(val=round(val, 4))
       tables_wide <- tables_long %>% group_by(id) %>%
-        summarise(ps = list(val)) %>% add_column(cn=(!! cn)) %>%
+        summarise(ps = list(val), .groups = 'drop') %>% add_column(cn=(!! cn)) %>%
         mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
     }
     
@@ -141,7 +144,8 @@ create_independent_tables <- function(params){
   
   tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
                   mutate(val=round(val, 4))
-  tables_wide <- tables_long %>% group_by(id) %>% summarise(ps = list(val)) %>% add_column(cn="A || C") %>% 
+  tables_wide <- tables_long %>% group_by(id) %>%
+    summarise(ps = list(val), .groups = 'drop') %>% add_column(cn="A || C") %>% 
     mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
   
   return(tables_wide)

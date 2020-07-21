@@ -67,7 +67,7 @@ structure_listener_data <- function(posterior, params){
 listener_beliefs <- function(posterior, level, params, vars_condition_on=NA){
   df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
   listener <- df %>% group_by(cn, intention, cell) %>%
-              summarise(val=sum(val), marginal_cn_int=sum(prob)) %>% 
+              summarise(val=sum(val), marginal_cn_int=sum(prob), .groups="keep") %>% 
               add_column(bias=params$bias)
 
   if(!is.na(vars_condition_on)){
@@ -133,7 +133,8 @@ average_speaker <- function(distrs, params){
   df <- data %>% summarise(mean_per_intention=mean(probs)) %>%
     add_column(bias=params$bias)
   df_cns <- data %>% group_by(utterance, intention, cn) %>%
-    summarise(mean_per_intention=mean(probs)) %>% add_column(bias=params$bias)
+    summarise(mean_per_intention=mean(probs), .groups="keep") %>%
+    add_column(bias=params$bias)
 
   if(params$save){
     fn <- str_split(params$target, ".rds")
