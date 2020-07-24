@@ -205,27 +205,31 @@ ggsave(paste(PLOT_DIR, "accept-conditions.png",
 
 
 # Conditional Perfection --------------------------------------------------
-# params <- read_rds(paste(target_dir, "results-none-params.rds", sep=.Platform$file.sep))
-params <- read_rds(paste(target_dir, "results-lawn-params.rds", sep=.Platform$file.sep))
+data_cp_plots <- function(params){
+  data <- read_rds(file.path(params$target_dir, params$target_fn, fsep = .Platform$file.sep)) %>%
+    ungroup() %>% group_by(bn_id, level) %>% select(-p_delta, -p_rooij, -p_diff, -bias)
+  if("intention" %in% names(params)){
+    data <- data %>% select(-intention)
+  }
+  data.wide <- data %>%
+    pivot_wider(names_from = "cell", values_from = "val") %>% 
+    compute_cond_prob("P(-C|-A)") %>%  rename(`-C_-A` = p) %>% 
+    compute_cond_prob("P(A|C)") %>% rename(`A_C` = p)
+  
+  # Expected values for P(-C|-A) and P(A|C) and for causal nets
+  ev_nc_na = data.wide %>% rename(p=`-C_-A`) %>% expected_val("P(-C|-A)")
+  ev_a_c = data.wide %>% rename(p=`A_C`) %>% expected_val("P(A|C)") 
+  ev_probs <- bind_rows(ev_a_c, ev_nc_na) %>%
+    mutate(level=factor(level, levels=c("prior", "LL", "PL")))
+  
+  ev_cns = data.wide %>% ungroup() %>% group_by(level, cn) %>% 
+    summarise(ev=sum(prob), .groups="drop_last") %>%
+    mutate(s=sum(ev), level=factor(level, levels=c("prior", "LL", "PL")))
+  
+  return(list(probs=ev_probs, cns=ev_cns))  
+}
 
-data <- read_rds(file.path(params$target_dir, params$target_fn, fsep = .Platform$file.sep)) %>%
-  ungroup() %>% group_by(bn_id, level) %>% select(-p_delta, -p_rooij, -p_diff, -bias, -intention)
-data.wide <- data %>%
-  pivot_wider(names_from = "cell", values_from = "val") %>% 
-  compute_cond_prob("P(-C|-A)") %>%  rename(`-C_-A` = p) %>% 
-  compute_cond_prob("P(A|C)") %>% rename(`A_C` = p)
-
-# Expected values for P(-C|-A) and P(A|C) and for causal nets
-ev_nc_na = data.wide %>% rename(p=`-C_-A`) %>% expected_val("P(-C|-A)")
-ev_a_c = data.wide %>% rename(p=`A_C`) %>% expected_val("P(A|C)") 
-ev_probs <- bind_rows(ev_a_c, ev_nc_na) %>%
-  mutate(level=factor(level, levels=c("prior", "LL", "PL")))
-
-ev_cns = data.wide %>% ungroup() %>% group_by(level, cn) %>% 
-  summarise(ev=sum(prob), .groups="drop_last") %>%
-  mutate(s=sum(ev), level=factor(level, levels=c("prior", "LL", "PL")))
-
-plot_evs_cp <- function(data, evs_probs){
+plot_evs_cp <- function(data, evs_probs, breaks, labels){
   lim1 = ifelse(max(data$ev) < 1-0.1, max(data$ev)+0.1, 1)
   lim2 = ifelse(max(evs_probs$ev) < 1-0.1, max(evs_probs$ev)+0.1, 1)
   lim = ifelse(lim1 > lim2, lim1, lim2)
@@ -236,21 +240,7 @@ plot_evs_cp <- function(data, evs_probs){
     scale_y_continuous(limits=c(0, lim)) +
     scale_x_discrete(name=paste(strwrap("causal nets / conditional probs", width=20),
                                 collapse="\n"),
-                     # breaks=c("P(A|C)", "P(-C|-A)", "A || C",
-                     #          "A implies C", "only A implies C", "A implies -C",
-                     #          "C implies A", "C implies -A"
-                     #         ),
-                     # labels=c("P(A|C)", "P(¬C|¬A)",  "A,C indep.",
-                     #          "A implies C", "only A implies C", "A implies ¬C",
-                     #          "C implies A", "C implies ¬A")
-                     # ) +
-                     breaks=c("P(A|C)", "P(-C|-A)", "A || C",
-                              "A,B->C", "only A implies C", "A,B->D->C", "A implies C"
-                     ),
-                     labels=c("P(A|C)", "P(¬C|¬A)",  "A,C indep.",
-                              "A,B implies C", "only A implies C", "A xor B implies C", "A implies C")
-    ) +
-
+                     breaks=breaks, labels=labels) +
     scale_fill_discrete(name="Interpretation Level",
                         breaks=c("prior", "LL", "PL"),
                         labels=c("A priori", "Literal", "Pragmatic")) +
@@ -267,8 +257,25 @@ plot_evs_cp <- function(data, evs_probs){
   return(p)
 }
 
-p <- plot_evs_cp(ev_cns, ev_probs)
+params_none <- read_rds(paste(target_dir, "results-none-params.rds", sep=.Platform$file.sep))
+dat.none = data_cp_plots(params_none)
+
+breaks=c("P(A|C)", "P(-C|-A)", "A || C", "A implies C", "A implies -C",
+         "C implies A", "C implies -A")
+labels=c("P(A|C)", "P(¬C|¬A)",  "A,C indep.", "A implies C", "A implies -C",
+         "C implies A", "C implies ¬A")
+p <- plot_evs_cp(dat.none$cns, dat.none$probs, breaks, labels)
 ggsave(paste(PLOT_DIR, "none-evs-cp.png", sep=.Platform$file.sep), p, width=16, height=8)
+
+
+breaks[[5]] = "A,B->C"; breaks[[6]] = "only A implies C"; breaks[[7]] = "A,B->D->C";
+labels[[5]] = "A,B implies C"; labels[[6]] = "only A implies C"; labels[[7]] = "A xor B implies C";
+params_lawn <- read_rds(paste(target_dir, "results-lawn-params.rds", sep=.Platform$file.sep))
+dat.lawn = data_cp_plots(params_lawn)
+p <- plot_evs_cp(dat.lawn$cns, dat.lawn$probs, breaks, labels)
+ggsave(paste(PLOT_DIR, "lawn-evs-cp.png", sep=.Platform$file.sep), p, width=16, height=8)
+
+
 
 p <- plot_evs_bar(ev_probs)
 ggsave(paste(PLOT_DIR, "none-evs-cp-probs.png", sep=.Platform$file.sep), p, width=18, height=8)

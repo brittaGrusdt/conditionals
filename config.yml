@@ -114,12 +114,10 @@ prior:
 ll:
   level_max: "LL"
   utt: "A > C"
-  target_fn: "results-ll.rds"
 
 pl:
   level_max: "PL"
   utt: "A > C"
-  target_fn: "results-pl.rds"
 
 
 #dutchman:
