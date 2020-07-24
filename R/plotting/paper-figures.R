@@ -62,6 +62,7 @@ dat.none.voi <- read_rds(file.path(params$target_dir, "results-none-voi.rds",
                                    fsep = .Platform$file.sep)) %>%
   filter(startsWith(key, "epistemic_certainty"))
 
+# todo: check this again, PL/LL missing in plot?!
 p <- dat.none.voi %>% mutate(value=round(as.numeric(value), 2)) %>% 
   ggplot(aes(x=level, y=value, fill=key)) + 
   geom_bar(stat="identity")  +

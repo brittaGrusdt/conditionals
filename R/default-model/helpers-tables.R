@@ -3,9 +3,8 @@ library(dplyr)
 
 SEED <- 1234
 set.seed(SEED)
-# BASE_DIR <- "/net/store/cogmod/users/brgrusdt/MA-project/conditionals/
-BASE_DIR <- "/home/britta/UNI/Osnabrueck/MA-project/conditionals/"
-cns_path <- file.path(paste(BASE_DIR, "data/default-model/cns-default.rds", sep=""), fsep = .Platform$file.sep)
+BASE_DIR <- getwd()
+cns_path <- file.path(paste(BASE_DIR, "/data/default-model/cns-default.rds", sep=""), fsep = .Platform$file.sep)
 cns <- readRDS(cns_path)
 CNS_DEP <- cns[cns != "A || C"]
 
