@@ -6,12 +6,20 @@ library(rwebppl)
 library(tidyverse)
 library(config)
 
-# params <- configure(c("none", "prior", "debug"))
-# params <- configure(c("none", "ll", "debug"))
-# params <- configure(c("none", "debug"))
-# params <- configure(c("none", "speaker", "debug"))
-params <- configure(c("none", "speaker_uncertain", "debug"))
-# params <- configure(c("none", "speaker_certain", "debug"))
+debug <- TRUE
+# params <- configure(c("bias_none", "prior"))
+# params <- configure(c("bias_none", "ll"))
+# params <- configure(c("bias_none", "pl"))
+# params <- configure(c("bias_none", "speaker"))
+# params <- configure(c("bias_none", "speaker_uncertain"))
+# params <- configure(c("bias_none", "speaker_certain"))
+
+params <- configure(c("bias_lawn", "pl"))
+
+if(debug){
+  params$verbose <- TRUE
+  params$target_dir <- "./data/test-default"
+}
 
 # Setup -------------------------------------------------------------------
 # time_id <- str_replace_all(Sys.time(), c(" "="_", ":"="_"))
@@ -47,11 +55,12 @@ if(params$generate_utterances){
   utterances <- run_webppl("./model/default-model/utterances.wppl", params)
   utterances <- utterances %>% map(function(x){x %>% pull(value)}) %>% unlist()
   utterances %>% save_data(params$utts_path)
-} else {
+  params$utterances <- utterances
+} else if(!"utterances" %in% names(params)) {
   utterances <- readRDS(params$utts_path)
   print(paste("utterances read from:", params$utts_path))
+  params$utterances <- utterances
 }
-params$utterances <- utterances
 
 # Run Model ---------------------------------------------------------------
 posterior <- run_webppl(params$model_path, params)

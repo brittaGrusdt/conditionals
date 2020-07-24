@@ -185,20 +185,20 @@ plot_conditional_prob <- function(data, p, level=NULL, evs=NULL){
 }
 
 plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, title=""){
-  xlab <- paste("E[P(", paste(val_marginal_str, collapse = ","), ")]", sep="")
-  df <- data_evs %>% mutate(level=as.factor(level))
+  ll <- paste(strwrap("Literal interpretation",  width=12), collapse="\n")
+  pl <- paste(strwrap("Pragmatic interpretation", width=15), collapse="\n")
+  df <- data_evs %>%
+    mutate(level=factor(level, levels = c("prior", "LL", "PL")),
+           p = factor(p))
   if(is.null(level)){
     p <- df %>% 
       ggplot() + 
-      geom_bar(mapping = aes(x=level, y=ev, fill=level),
+      geom_bar(mapping = aes(x=p, y=ev, fill=level),
                stat="identity", position="dodge") + 
-      # facet_wrap(~level) + 
-      labs(x=xlab, y="probability", title=title) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1),
-            text = element_text(size= 25),
-            legend.position = "none")
-            # legend.title = element_blank(),
-            # legend.direction = "horizontal")
+      labs(y="Expected value", x="") +
+      scale_fill_discrete(name="Beliefs", breaks=c("prior", "LL", "PL"),
+                          labels=c("A priori", ll, pl)) +
+      theme(text = element_text(size= 25), legend.position="right")
   }else{
     col <- level2color %>% filter(level== (!!level)) %>% pull(col)
     p <- df %>% filter(level==(!! level)) %>% 
@@ -207,9 +207,7 @@ plot_evs_bar <- function(data_evs, val_marginal_str, level=NULL, save_as=NULL, t
       labs(x=xlab, y="probability", title=level) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1),
             text = element_text(size= 15), legend.position = "none")
-            # legend.position = "bottom", legend.title = element_blank(), legend.direction = "horizontal")
   }
-  if(!is.null(save_as)){ggsave(save_as, p)}
   return(p)
 }
 

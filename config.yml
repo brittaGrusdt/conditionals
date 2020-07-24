@@ -1,11 +1,6 @@
 default:
   generate_utterances: false
-  generate_tables: false
-  cns: !expr c("A implies C", "C implies A",
-               "A implies -C", "C implies -A",
-               "A || C",
-               "only A implies C")
-               # "A,B->D->C") 
+  generate_tables: true
   generate_cns: false
   save: true
   cost_conditional: 0
@@ -15,78 +10,78 @@ default:
   nor_beta: !expr NA
   nor_theta: !expr NA
   add_accept_conditions: true
-  vars: !expr c("A", "C")
   verbose: false
   packages:  !expr c("./node_modules/conditionalsHelpers",
                      "./node_modules/conditionalsDefault")
   model_path: "./model/default-model/default-model.wppl"
-  seed: 1234
+  seed: 1234 # for generating tables
   # seed: !expr as.numeric(Sys.time())
 
 ## 1. bias configurations ##
 
-none:
+bias_none:
   target_dir: "./data/default-model"
   target_fn: "results-none.rds"
   target_params: "results-none-params.rds"
-  level_max: "PL"
-  utt: "A > C"
   utts_fn: "utterances-none.rds"
+  vars: !expr c("A", "C")
+  cns: !expr c("A implies C", "C implies A",
+               "A implies -C", "C implies -A",
+               "A || C")
   cns_fn: "cns-default.rds"
   speaker_intents: !expr c("")
   bias: "none"
   n_tables: 500
   tables_fn: "tables-default.rds"
 
-pizza:
-  target_dir: "./data/douven-examples"
+bias_pizza:
+  target_dir: "./data/special-conditionals"
   target_fn: "results-pizza-without-intents.rds"
   target_params: "results-pizza-without-intents-params.rds"
-  level_max: "PL"
-  utt: "A > C"
   utts_fn: "utterances-pizza.rds"
+  vars: !expr c("A", "C")
+  cns: !expr c("A implies C", "C implies A",
+               "A implies -C", "C implies -A",
+               "A || C")
   cns_fn: "cns-pizza.rds"
   speaker_intents: !expr c("") # c("ISA", "PA")
   bias: "pizza"
   n_tables: 4500
   tables_fn: "tables_independent.rds"
 
-pizza_intents:
-  target_dir: "./data/douven-examples"
+bias_pizza_intents:
+  inherits: bias_pizza
   target_fn: "results-pizza-with-intents.rds"
   target_params: "results-pizza-with-intents-params.rds"
-  level_max: "PL"
-  utt: "A > C"
-  utts_fn: "utterances-pizza.rds"
-  cns_fn: "cns-pizza.rds"
   speaker_intents: !expr c("ISA", "PA")
-  bias: "pizza"
-  n_tables: 4500
-  tables_fn: "tables_independent.rds"
 
-lawn:
+bias_lawn:
   bias: "lawn"
-  target_dir: "./data/douven-examples"
+  target_dir: "./data/special-conditionals"
   target_fn: "results-lawn.rds"
   target_params: "results-lawn-params.rds"
-  level_max: "PL"
-  utt: "A > C"
   utts_fn: "utterances-lawn.rds"
+  vars: !expr c("A", "C", "B")
+  cns: !expr c("A,B->C", "only A implies C", "A,B->D->C", "A implies C", "A || C")
   cns_fn: "cns-lawn.rds"
+  utterances: !expr c("B > C", "A > C", "A", "-A", "C", "-C", "B", "-B",
+                      "likely A", "likely -A", "likely C", "likely -C",
+                      "likely B", "likely -B")
   speaker_intents: !expr c("")
   n_tables: 500
-  tables_fn: "tables-default.rds"
+  tables_fn: "tables-lawn.rds"
 
-## 2. configuration for other levels than Pragmatic listener ##
+
+## 2. Level configurations ##
 # @arg utt: - if set to "p_delta" or "p_rooij", respective value must be
 #           large (see in webppl file) for all states given to the speaker,
 #           - if set to "" no condition, just sampled from prior as usual
 speaker:
+  level_max: "speaker"
+  utt: ""
   target_dir: "./data/default-model"
   target_fn: "results-speaker.rds"
   target_params: "results-speaker-params.rds"
-  level_max: "speaker"
-  utt: ""
   n_samples: 0 #0 for all bns from prior
 
 
@@ -114,14 +109,17 @@ speaker_certain:
 
 prior:
   level_max: "prior"
-  target_fn: "results-prior.rds"
-  target_params: "results-prior-params.rds"
+  utt: "A > C"
 
 ll:
   level_max: "LL"
+  utt: "A > C"
   target_fn: "results-ll.rds"
-  target_dir: "./data/default-model"
-  target_params: "results-ll-params.rds"
+
+pl:
+  level_max: "PL"
+  utt: "A > C"
+  target_fn: "results-pl.rds"
 
 
 #dutchman:
@@ -134,7 +132,4 @@ ll:
 #  target_fn: "results-judy.rds"
 #  utt: "A >q C"
 
-debug:
-  verbose: true
-  target_dir: "./data/test-default"
 # there needs to be 1 blank final line!

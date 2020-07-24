@@ -49,16 +49,17 @@ marginalize <- function(data, vars){
   return(df)
 }
 
-marginal_cns <- function(data_wide){
-  data_wide %>% group_by(level, cn, intention) %>% summarise(marginal=sum(prob))
-}
-
 # takes the expected value of column *p* with probability in column *prob*
 # args: df_wide; tibble with one bn per row, at least columns *p*, *prob*, *level*, *intention*
 #       value_str: str describing value, e.g. *P(A)* for expected val of P(A)
 expected_val <- function(df_wide, value_str){
-  evs <- df_wide %>% mutate(ev_prod=p * prob) %>% group_by(intention, level) %>%
-    summarise(ev=sum(ev_prod)) %>% add_column(p=value_str) %>% ungroup()
+  evs <- df_wide %>% mutate(ev_prod=p * prob)
+  if(!"intention" %in% colnames(df_wide)){
+    evs <- evs %>% group_by(level)
+  } else {
+    evs <- evs %>% group_by(intention, level)
+  }
+  evs <- evs %>% summarise(ev=sum(ev_prod), .groups="drop") %>% add_column(p=value_str) %>% ungroup()
   
   # fill non-existent levels for plotting
   levels <- evs$level 

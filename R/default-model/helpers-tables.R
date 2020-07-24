@@ -71,12 +71,78 @@ create_me_tables <-function(params) {
   return(tables_wide)
 }
 
+create_ab_tables <-function(params, cn) {
+  if(cn == "A,B->D->C") {
+  # here we need B in support instead of D (as in me_tables - function)
+    tables = create_me_tables(params) %>% rowid_to_column("bn_id") %>%
+      unnest(cols = c(ps, vs)) %>%
+      mutate(vs = case_when(vs ==  "AC_Dna" ~ "AC_B",
+                            vs ==  "-A-C_Dna" ~ "-A-C_-B",
+                            vs ==  "A-C_Dna" ~ "A-C_B",
+                            vs ==  "-AC_Dna" ~ "-AC_-B",
+   
+                            vs ==  "AC_Da" ~ "AC_-B",
+                            vs ==  "-A-C_Da" ~ "impossible1", # 0 probability
+                            vs ==  "A-C_Da" ~ "A-C_-B",
+                            vs ==  "-AC_Da" ~ "impossible2", # 0
+
+                            vs ==  "AC_Db" ~ "impossible3", #0
+                            vs ==  "-A-C_Db" ~ "-A-C_B", 
+                            vs ==  "A-C_Db" ~ "impossible4", # 0
+                            vs ==  "-AC_Db" ~ "-AC_B",
+                            TRUE ~ NA_character_)) %>% group_by(bn_id) %>% 
+      pivot_wider(names_from = vs, values_from = ps) %>%
+      select(-impossible1, -impossible2, -impossible3, -impossible4) %>% 
+      ungroup() %>% select(-bn_id)
+  } else if(cn == "A,B->C"){
+      pa = rbeta(params$n_tables, 1, 1)
+      pb = rbeta(params$n_tables, 1, 1)
+      pc_given_ab = rbeta(params$n_tables, 10, 1)
+      pc_given_anb = rbeta(params$n_tables, 10, 1)
+      pc_given_nab = rbeta(params$n_tables, 10, 1)
+      pc_given_nanb = rep(0, params$n_tables)
+      pna = 1-pa
+      pnb = 1-pb
+      pnc_given_ab = 1 - pc_given_ab
+      pnc_given_anb = 1 - pc_given_anb
+      pnc_given_nab = 1- pc_given_nab
+      pnc_given_nanb = 1- pc_given_nanb
+
+      tables <- tibble(`AC_B` = pc_given_ab * pa * pb,
+                       `AC_-B` = pc_given_anb * pa * (1-pb),
+                       `A-C_B` = pnc_given_ab * pa * pb,
+                       `A-C_-B` = pnc_given_anb * pa * (1-pb),
+                       `-AC_B` = pc_given_nab * (1-pa) * pb,
+                       `-AC_-B` = rep(0, params$n_tables),
+                       `-A-C_B` = pnc_given_nab * (1-pa) * pb,
+                       `-A-C_-B` = pnc_given_nanb * (1-pa) * (1-pb)
+                       ) %>% add_column(cn=(!! cn))
+
+  }
+  tables_long <- tables %>% rowid_to_column("bn_id") %>%
+    pivot_longer(c(-bn_id, -cn), names_to = "cell", values_to = "val") %>% group_by(bn_id) %>%
+    mutate(val=round(val, 4))
+  # summarize(s=sum(val)) # must sum to 1
+  tables_wide <- tables_long %>%
+    summarise(ps = list(val), vs=list(cell), .groups = 'drop') %>%
+    add_column(cn=(!! cn)) %>% dplyr::select(-bn_id)
+  return(tables_wide)
+}
+
+
+
 create_dependent_tables <- function(params, cns){
   all_tables <- list()
   idx <- 1
   for(cn in cns){
     if(cn ==  "A,B->D->C") {
-      tables_wide <- create_me_tables(params)
+      if(params$bias == "lawn"){
+        tables_wide <- create_ab_tables(params, cn)
+      } else {
+        tables_wide <- create_me_tables(params)
+      }
+    } else if(cn == "A,B->C") {
+      tables_wide <- create_ab_tables(params, cn)
     } else {
       theta <- rbeta(params$n_tables, 10, 1)
       if(cn == "only A implies C") {
@@ -187,6 +253,7 @@ unnest_tables <- function(tables){
   return(tables_long)
 }
 
+# TODO: compare with same function in helper-functions.R!
 adapt_bn_ids <- function(data_wide){
   # makes sure that bn_ids are identical across levels PL/LL/prior
   prior <- data_wide %>% filter(level=="prior") %>% arrange(cn, `AC`, `-AC`, `A-C`, `-A-C`)
