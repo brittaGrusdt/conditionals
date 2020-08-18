@@ -79,7 +79,7 @@ p <- dat.none.voi %>% mutate(value=round(as.numeric(value), 2)) %>%
   #                     breaks=c("epistemic_uncertainty_A", "epistemic_uncertainty_C"),
   #                     labels=c("Antecedent (X=A)", "Consequent (X=C)")
   #                     ) + 
-  labs(y=TeX("$\\sum_{s\\in Certain_s(A) \\bigcup Certain_s(C)\\} Pr(s|u=If A, C)$"), x="") +
+  labs(y=TeX("$\\sum_{s\\in Certain_s(A) \\bigcup Certain_s(C)\\} Pr(s|u=A\\rightarrow C)$"), x="") +
   theme_classic(base_size=25) +
   theme(legend.position = "none") +
   coord_flip()
@@ -90,8 +90,8 @@ ggsave(paste(PLOT_DIR, "ignorance-inferences.png",
 
 # speaker plots certain/uncertain -----------------------------------------
 params <- read_rds(paste(target_dir, "results-speaker-params.rds", sep=.Platform$file.sep))
-
 utterances <- read_rds(paste(params$target_dir, params$utts_fn, sep=.Platform$file.sep))
+
 fn <- paste(str_sub(params$target_fn, 1, -5), "-avg.rds", sep="");
 data <- read_rds(paste(params$target_dir, fn, sep=.Platform$file.sep)) %>%
   ungroup() %>%
@@ -117,7 +117,7 @@ ggsave(paste(PLOT_DIR, "speaker.png",
 params_unc <- read_rds(paste(target_dir, "results-speaker-uncertain-params.rds", sep=.Platform$file.sep))
 params_cert <- read_rds(paste(target_dir, "results-speaker-certain-params.rds", sep=.Platform$file.sep))
 
-plot_speaker_un_certain <- function(split_cns){
+plot_speaker_un_certain <- function(split_cns=FALSE, chunk_utts=FALSE){
   fn_unc <- paste(str_sub(params_unc$target_fn, 1, -5), "-avg.rds", sep="");
   fn_cert <- paste(str_sub(params_cert$target_fn, 1, -5), "-avg.rds", sep="");
   if(split_cns) {
@@ -127,44 +127,98 @@ plot_speaker_un_certain <- function(split_cns){
   dat.unc <- read_rds(paste(params_unc$target_dir, fn_unc, sep=.Platform$file.sep)) %>%
     ungroup() %>% 
     select(-intention, -bias) %>% add_column(condition="uncertain") %>%
-    arrange(mean_per_intention)
-  
+    arrange(mean_per_intention) %>% rename(p=mean_per_intention)
   dat.cert <- read_rds(paste(params_cert$target_dir, fn_cert, sep=.Platform$file.sep)) %>%
     ungroup() %>% 
     select(-intention, -bias)  %>% add_column(condition="certain") %>% 
-    arrange(mean_per_intention)
+    arrange(mean_per_intention) %>% rename(p=mean_per_intention)
   
-  data <- bind_rows(dat.cert, dat.unc) %>% rename(p=mean_per_intention)
-  data <- within(data, utterance <- factor(utterance,  levels=sort_utterances(utterances)))
+  if(split_cns) {
+    dat.unc <- dat.unc %>%
+      mutate(cn=case_when(cn=="A || C" ~ "A,C independent",
+                          TRUE ~ "A,C dependent")) %>% 
+      group_by(cn) %>%
+      mutate(norm=sum(p), p=p/norm)
+      
+    dat.cert <- dat.cert %>%
+      mutate(cn=case_when(cn=="A || C" ~ "A,C independent",
+                          TRUE ~ "A,C dependent")) %>% 
+      group_by(cn) %>%
+      mutate(norm=sum(p), p=p/norm)
+  }
+  
+  if(chunk_utts) {
+    fn = "_chunked.png"
+    # utts <- c("conjunctions", "conditionals", "literals", "likely")
+    utts <- c("conj_lit", "conditionals",  "likely")
+    
+    dat.unc = dat.unc %>%
+      summarise(likely=sum(p[str_detect(utterance, "likely")]),
+                conditionals=sum(p[str_detect(utterance, ">")]),
+                conjunctions=sum(p[str_detect(utterance, "and")]),
+                literals=1-sum(p[str_detect(utterance, "likely") |
+                                 str_detect(utterance, "and") |
+                                 str_detect(utterance, ">")]), .groups="keep") %>% 
+      mutate(conj_lit = conjunctions + literals) %>% 
+      select(conj_lit, likely, conditionals) %>% 
+      pivot_longer(cols=utts, names_to = "utterance", values_to = "p") %>%
+      add_column(condition="uncertain")
+                  
+    dat.cert = dat.cert %>%
+      summarise(likely=sum(p[str_detect(utterance, "likely")]),
+                conjunctions=sum(p[str_detect(utterance, "and")]),
+                conditionals=sum(p[str_detect(utterance, ">")]),
+                literals=1-sum(p[str_detect(utterance, "likely") |
+                                 str_detect(utterance, "and") |
+                                 str_detect(utterance, ">")]), .groups="keep"
+                ) %>%
+      mutate(conj_lit = conjunctions + literals) %>% 
+      select(conj_lit, likely, conditionals) %>% 
+      pivot_longer(cols=utts, names_to = "utterance", values_to = "p") %>%
+      add_column(condition="certain")
+  } else {
+    fn <- ".png"
+    utts <- utterances
+  }
+  
+  data <- bind_rows(dat.cert, dat.unc)
+  data <- within(data, utterance <- factor(utterance,  levels=sort_utterances(utts)))
 
   p <- data %>% mutate(p=round(as.numeric(p), 2)) %>% 
     ggplot(aes(x=utterance, y=p, fill=condition)) + 
     geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
-    scale_y_continuous(limits=c(0,0.25)) +
-    labs(y=TeX("$\\frac{1}{|S_{c/u}|} \\cdot \\sum_{s \\in S_{c/u}} P_S(u|s)$"), x="utterance") +
+    labs(y=TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$"), x="utterance") +
     theme_bw(base_size=25)
+  
   if(split_cns) {
-    p <- p + facet_wrap(~cn) +
+    p <- data %>% mutate(p=round(as.numeric(p), 2)) %>% 
+      ggplot(aes(x=utterance, y=p, fill=cn)) + 
+      geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
+      labs(y=TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$"), x="utterance") +
+      theme_bw(base_size=25)
+    
+    p <- p + facet_wrap(~condition) +
       theme(axis.text.x = element_text(angle = 40, hjust = 1, size = 15),
             legend.position = "bottom")
     w <- 18
     h <- 8
-    fn <- "speaker-un_certain_cns.png"
+    fn <- paste("speaker-un_certain_cns", fn, sep="")
   } else {
     p <- p +
       theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 15),
-            legend.position = c(.2, .95), legend.justification=c("right", "top"))
+            legend.position = c(.97, .95), legend.justification=c("right", "top"))
     w <- 13
     h <- 5
-    fn <- "speaker-un_certain.png"
+    fn <- paste("speaker-un_certain", fn, sep="")
   }
   ggsave(paste(PLOT_DIR, fn, sep=.Platform$file.sep), p,
          width=w, height=h)
   return(p)
 }
-plot_speaker_un_certain(split_cns = FALSE)
-plot_speaker_un_certain(split_cns = TRUE)
-
+plot_speaker_un_certain(split_cns = FALSE, chunk_utts = FALSE)
+plot_speaker_un_certain(split_cns = FALSE, chunk_utts = TRUE)
+plot_speaker_un_certain(split_cns = TRUE, chunk_utts = FALSE)
+plot_speaker_un_certain(split_cns = TRUE, chunk_utts=TRUE)
 
 # speaker delta_p ----------------------------------------------------------
 params <- read_rds(paste(target_dir, "results-speaker-params.rds", sep=.Platform$file.sep))
