@@ -6,15 +6,18 @@ library(rwebppl)
 library(tidyverse)
 library(config)
 
-debug <- TRUE
+debug <- FALSE
 # params <- configure(c("bias_none", "prior"))
+params <- configure(c("bias_none", "priorN"))
 # params <- configure(c("bias_none", "ll"))
 # params <- configure(c("bias_none", "pl"))
 # params <- configure(c("bias_none", "speaker"))
+# params <- configure(c("bias_none", "speakerN"))
+# params <- configure(c("bias_none", "speaker_literal"))
 # params <- configure(c("bias_none", "speaker_uncertain"))
 # params <- configure(c("bias_none", "speaker_certain"))
 
-params <- configure(c("bias_lawn", "pl"))
+# params <- configure(c("bias_lawn", "pl"))
 
 if(debug){
   params$verbose <- TRUE
@@ -39,11 +42,11 @@ if(params$generate_cns){
 ## Generate/Retrieve tables
 tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
 if(params$generate_tables){
-  tables <- create_tables(params, tables_path, params$cns)
+  tables <- create_tables(params, tables_path, params$cns, params$seed_tables)
 } else {
   tables <- readRDS(tables_path) %>% filter_tables(params)
   if(nrow(tables)==0){
-    tables <- create_tables(params, tables_path, params$cns)
+    tables <- create_tables(params, tables_path, params$cns, params$seed_tables)
   }
   print(paste("tables read from:", tables_path))
 }
@@ -66,12 +69,31 @@ if(params$generate_utterances){
 posterior <- run_webppl(params$model_path, params)
 
 # structure + save data
-if(params$level_max == "speaker"){
-    speaker <- posterior %>% structure_speaker_data(params)
-    speaker_avg <- speaker %>% average_speaker(params) %>% arrange(mean_per_intention)
-    speaker_avg
-} else{
+# update pathes depending on configuration
+if(params$level_max %in% c("speaker", "literal-speaker")) {
+  params$target <- file.path(params$target_dir, paste(params$target_fn, ".rds", sep=""),
+                             fsep=.Platform$file.sep)
+  params$target_params <- file.path(params$target_dir, paste(params$target_fn, "params.rds", sep="-"),
+                                    fsep=.Platform$file.sep)
+  params$target_fn <- paste(params$target_fn, ".rds", sep="")
+} else {
+  params$target <- file.path(params$target_dir, paste(params$target_fn, "-", params$level_max, ".rds", sep=""),
+                             fsep=.Platform$file.sep)
+  params$target_params <- file.path(params$target_dir, paste(params$target_fn, params$level_max, "params.rds", sep="-"),
+                                    fsep=.Platform$file.sep)
+  params$target_fn <- paste(params$target_fn, "-", params$level_max, ".rds", sep="")
+}
+
+# restructure data and save
+if(params$level_max == "speaker") {
+  speaker <- posterior %>% structure_speaker_data(params)
+  speaker_avg <- speaker %>% average_speaker(params) %>% arrange(mean_per_intention)
+  speaker_avg
+} else if(params$level_max %in% c("priorN", "literal-speaker")){
+    data <- structure_bns(posterior, params)
+} else {
   data <- posterior %>% structure_listener_data(params)
   # trust <- data %>% listener_beliefs("PL", params)
   data_voi <- voi_default(data, params)
 }
+

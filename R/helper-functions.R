@@ -79,6 +79,8 @@ compute_cond_prob <- function(distr_wide, prob){
     distr <- distr_wide %>% mutate(p=`-A-C`/(`-AC`+`-A-C`))
   }else if(prob=="P(A|C)"){
     distr <- distr_wide %>% mutate(p=`AC`/(`-AC`+`AC`))
+  }else if(prob=="P(A|-C)"){
+    distr <- distr_wide %>% mutate(p=`A-C`/(`A-C`+`-A-C`))
   }else if(prob=="P(-A|-C)"){
     distr <- distr_wide %>% mutate(p=`-A-C`/(`A-C`+`-A-C`))
   } else if(prob=="P(C|-A)"){

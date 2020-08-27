@@ -63,6 +63,11 @@ var wrap_speaker = function(bn, intention){
   speaker(state, BIAS, false)
 }
 
+var wrap_literal_speaker = function(bn, intention){
+  var state = {bn, intention}
+  literal_speaker(state, BIAS, false)
+}
+
 var wrap_ll = function(u){
   display(u)
   literal_listener(u, BIAS)
@@ -93,23 +98,7 @@ var run_speaker = function(bns){
 if(LEVEL_MAX == "speaker"){
   // run speaker with only bayes nets for which certain conditions may hold
   // depending on value of UTT; use (UTT="" for no condition)
-
-  var prior_conditioned = Infer({model:function(){
-    var state = sample(globalStore.state_prior)
-    var Table = state["bn"]["table"]
-
-    let pac = Math.exp(Table.score("AC"))
-    let pnac = Math.exp(Table.score("-AC"))
-    let pa = pac + Math.exp(Table.score("A-C"))
-    let pc = pac + pnac
-    let p_c_given_a = pac / pa;
-    let p_c_given_na = pnac / (1-pa);
-    let p_delta = p_c_given_a - p_c_given_na;
-    let p_rooij = p_delta / (1 - p_c_given_na);
-    let probs = {pa, pc, p_c_given_a, p_delta, p_rooij}
-    condition(speaker_conditions(UTT, Table, probs) == true);
-    return state.bn
-  }});
+  var prior_conditioned = priorConditionedForSpeaker(UTT);
   var n_samples = data["n_samples"][0]
   if(n_samples != 0){
     // draw n_samples from prior
@@ -124,6 +113,17 @@ if(LEVEL_MAX == "speaker"){
     var distributions = run_speaker(bns)
     distributions
   }
+} else if(LEVEL_MAX == "literal-speaker") {
+    display('literal speaker: only states where ' + UTT + ' is true.')
+    var prior = priorConditionedForSpeaker(UTT)
+    var bns = repeat(data["n_samples"][0], function(){
+      var bn = sample(prior)
+      return(bn)
+    });
+    display('# samples from prior: ' + bns.length)
+    var distributions = {"bns": bns}
+    distributions
+
 } else if(LEVEL_MAX == "ll_all_utts"){
   var distributions = {"ll": map(wrap_ll, globalStore.utterances)}
   distributions
@@ -141,7 +141,17 @@ if(LEVEL_MAX == "speaker"){
   var obj = {distributions}
   obj
 
-} else{
+} else if (LEVEL_MAX == "priorN"){
+  var n_samples = data["n_samples"][0]
+  var bns = repeat(n_samples, function(){
+    var s = sample(globalStore.state_prior)
+    return(s.bn)
+  })
+  display('# samples from prior: ' + bns.length)
+  var distributions = {"bns": bns}
+  distributions
+
+}else{
   var distributions = LEVEL_MAX == "prior" ? {"prior": globalStore.state_prior} :
                       LEVEL_MAX == "LL" ? {"prior": globalStore.state_prior, "LL": run("LL")} :
                       LEVEL_MAX == "PL" ? {"prior": globalStore.state_prior, "LL": run("LL"),

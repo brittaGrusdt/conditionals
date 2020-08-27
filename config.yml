@@ -1,6 +1,7 @@
 default:
   generate_utterances: false
   generate_tables: true
+  seed_tables: 202008
   generate_cns: false
   save: true
   cost_conditional: 0
@@ -14,15 +15,15 @@ default:
   packages:  !expr c("./node_modules/conditionalsHelpers",
                      "./node_modules/conditionalsDefault")
   model_path: "./model/default-model/default-model.wppl"
-  seed: 1234 # for generating tables
-  # seed: !expr as.numeric(Sys.time())
+  # seed:  202008 # for webppl
+  seed: !expr as.numeric(Sys.time())
 
 ## 1. bias configurations ##
 
 bias_none:
   target_dir: "./data/default-model"
-  target_fn: "results-none.rds"
-  target_params: "results-none-params.rds"
+  target_fn: "results-none"
+  target_params: "results-none-params"
   utts_fn: "utterances-none.rds"
   vars: !expr c("A", "C")
   cns: !expr c("A implies C", "C implies A",
@@ -31,13 +32,13 @@ bias_none:
   cns_fn: "cns-default.rds"
   speaker_intents: !expr c("")
   bias: "none"
-  n_tables: 500
+  n_tables: 2000
   tables_fn: "tables-default.rds"
 
 bias_pizza:
   target_dir: "./data/special-conditionals"
-  target_fn: "results-pizza-without-intents.rds"
-  target_params: "results-pizza-without-intents-params.rds"
+  target_fn: "results-pizza-without-intents"
+  target_params: "results-pizza-without-intents-params"
   utts_fn: "utterances-pizza.rds"
   vars: !expr c("A", "C")
   cns: !expr c("A implies C", "C implies A",
@@ -46,20 +47,20 @@ bias_pizza:
   cns_fn: "cns-pizza.rds"
   speaker_intents: !expr c("") # c("ISA", "PA")
   bias: "pizza"
-  n_tables: 4500
+  n_tables: 10000
   tables_fn: "tables_independent.rds"
 
 bias_pizza_intents:
   inherits: bias_pizza
-  target_fn: "results-pizza-with-intents.rds"
-  target_params: "results-pizza-with-intents-params.rds"
+  target_fn: "results-pizza-with-intents"
+  target_params: "results-pizza-with-intents-params"
   speaker_intents: !expr c("ISA", "PA")
 
 bias_lawn:
   bias: "lawn"
   target_dir: "./data/special-conditionals"
-  target_fn: "results-lawn.rds"
-  target_params: "results-lawn-params.rds"
+  target_fn: "results-lawn"
+  target_params: "results-lawn-params"
   utts_fn: "utterances-lawn.rds"
   vars: !expr c("A", "C", "B")
   cns: !expr c("A,B->C", "only A implies C", "A,B->D->C", "A implies C", "A || C")
@@ -68,8 +69,8 @@ bias_lawn:
                       "likely A", "likely -A", "likely C", "likely -C",
                       "likely B", "likely -B")
   speaker_intents: !expr c("")
-  n_tables: 500
-  tables_fn: "tables-lawn.rds"
+  n_tables: 2000
+  tables_fn: "tables-lawn"
 
 
 ## 2. Level configurations ##
@@ -80,36 +81,56 @@ speaker:
   level_max: "speaker"
   utt: ""
   target_dir: "./data/default-model"
-  target_fn: "results-speaker.rds"
-  target_params: "results-speaker-params.rds"
+  target_fn: "results-speaker"
+  target_params: "results-speaker-params"
   n_samples: 0 #0 for all bns from prior
 
+speakerN:
+  level_max: "speaker"
+  utt: ""
+  target_dir: "./data/default-model"
+  target_fn: "results-speaker-20000"
+  target_params: "results-speaker-2000-params"
+  n_samples: 20000 # bns sampled from prior
+  
+speaker_literal:
+  level_max: "literal-speaker"
+  utt: "A > C" #condition s.t. only states where utt is true are considered
+  target_dir: "./data/default-model"
+  target_fn: "results-speaker-literal"
+  target_params: "results-speaker-literal-params"
+  n_samples: 20000 # bns sampled from prior
 
 # speaker given certain condition,
 # e.g. speaker only gets states where utt is applicable
 speaker_c:
   inherits: speaker
-  target_fn: "results_speaker_given_C.rds"
-  target_params: "results-speaker-given-C-params.rds"
+  target_fn: "results_speaker_given_C"
+  target_params: "results-speaker-given-C-params"
   utt: "C"
 # not-conj, when utt=C, but neither A and C nor -A and C are true (in webppl)!
 
 # speaker only sees states where she is uncertain about A and/or C
 speaker_uncertain:
   inherits: speaker
-  target_fn: "results-speaker-uncertain.rds"
-  target_params: "results-speaker-uncertain-params.rds"
+  target_fn: "results-speaker-uncertain"
+  target_params: "results-speaker-uncertain-params"
   utt: "uncertainAC"
 
 speaker_certain:
   inherits: speaker
-  target_fn: "results-speaker-certain.rds"
-  target_params: "results-speaker-certain-params.rds"
+  target_fn: "results-speaker-certain"
+  target_params: "results-speaker-certain-params"
   utt: "certainAC"
 
 prior:
   level_max: "prior"
   utt: "A > C"
+
+priorN:
+  level_max: "priorN"
+  utt: ""
+  n_samples: 20000
 
 ll:
   level_max: "LL"
@@ -122,12 +143,12 @@ pl:
 
 #dutchman:
 #  target_dir: "./data/default-model"
-#  n_tables: 4500
+#  n_tables: 10000
 #
 #judy:
 #  judy_q: 0.75
 #  target_dir: "./data/judy"
-#  target_fn: "results-judy.rds"
+#  target_fn: "results-judy"
 #  utt: "A >q C"
 
 # there needs to be 1 blank final line!

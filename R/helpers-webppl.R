@@ -15,6 +15,26 @@ webppl_distrs_to_tibbles <- function(posterior){
   return(df)
 }
 
+structure_bns <- function(posterior, params){
+  data.long <- posterior$bns %>% rowid_to_column(var = "bn_id") %>%
+    unnest(c(table.probs, table.support)) %>%
+    rename(val=table.probs, cell=table.support) %>%
+    add_column(bias=params$bias, level=params$level_max)
+
+  if(params$add_accept_conditions){
+    df_wide <- data.long %>% spread(key=cell, val=val)
+    df <- acceptability_conditions(df_wide)
+    data.long <- df %>% group_by(bn_id, cn, level) %>%
+      pivot_longer(cols = c(-bn_id, -cn, -level, -bias, -p_delta, -p_rooij, -p_diff),
+                   names_to = "cell", values_to = "val")
+  }
+  if(params$save){
+    data.long %>% save_data(params$target)
+    params %>% save_data(params$target_params)
+  }
+  return(data.long)
+}
+
 run_webppl <- function(path_wppl_file, params){
   if(params$verbose){
     print(paste('model file read from:', path_wppl_file))
@@ -45,9 +65,7 @@ structure_listener_data <- function(posterior, params){
                                TRUE ~ `A-C`),
              `AC` = case_when(is.na(`AC`) ~ rowSums(select(., starts_with("AC_"))),
                               TRUE ~ `AC`)
-    ) %>% select(!ends_with("_Da") & !ends_with("_Dna") & !ends_with("_Db"))
-    # we don't need variable D for analysis
-
+    )
     df <- acceptability_conditions(df_wide)
     df_long <- df %>% group_by(bn_id, cn, level) %>%
       pivot_longer(cols = c(-bn_id, -intention, -cn, -prob,
@@ -57,8 +75,7 @@ structure_listener_data <- function(posterior, params){
   
   if(params$save){
     df_long %>% save_data(params$target)
-    params %>% save_data(paste(params$target_dir, params$target_params,
-                               sep = .Platform$file.sep))
+    params %>% save_data(params$target_params)
   }
   return(df_long)
 }
@@ -126,8 +143,7 @@ structure_speaker_data <- function(posterior, params){
         add_column(bias=params$bias)
   if(params$save){
     df %>% save_data(params$target)
-    params %>% save_data(paste(params$target_dir, params$target_params,
-                               sep = .Platform$file.sep))
+    params %>% save_data(params$target_params)
   }
   return(df)
 }
@@ -145,7 +161,6 @@ average_speaker <- function(distrs, params){
     fn <- str_split(params$target, ".rds")
     df %>% save_data(paste(fn[[1]][1], "-avg.rds", sep=""))
     df_cns %>% save_data(paste(fn[[1]][1], "-avg-cns.rds", sep=""))
-    params %>% save_data(params$target_params)
   }
   return(df)
 }
