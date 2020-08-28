@@ -63,11 +63,6 @@ var wrap_speaker = function(bn, intention){
   speaker(state, BIAS, false)
 }
 
-var wrap_literal_speaker = function(bn, intention){
-  var state = {bn, intention}
-  literal_speaker(state, BIAS, false)
-}
-
 var wrap_ll = function(u){
   display(u)
   literal_listener(u, BIAS)
