@@ -3,11 +3,14 @@ library(config)
 library(ggplot2)
 library(latex2exp)
 library(cowplot)
+library(grid)
 source("R/helper-functions.R")
 source("R/default-model/helpers-tables.R")
 source("R/plotting/plotting-functions.R")
 
 params <- configure(c('none', "debug"))
+dat.none = read_rds(paste(params$target_dir, params$target_fn, sep=.Platform$file.sep))
+dat.none_wide <- dat.none %>% spread(key=cell, val=val)
 
 # 0. Data --------------------------------------------------------------------
 PLOT_DIR <- file.path(params$target_dir, "figs", fsep=.Platform$file.sep)
@@ -35,14 +38,17 @@ p <- data %>% mutate(p=round(as.numeric(p), 2)) %>%
   geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
   # facet_wrap(~condition) +
   scale_y_continuous(limits=c(0,0.25)) +
-  # labs(y=TeX("$\\sum_{s\\in Uncertain_S(A)\\wedge s\\in Uncertain_S(C)} P_S(u|s)$"), x="") +
-  theme_classic(base_size=25) +
-  theme(legend.position = c(.95, .1), legend.justification=c("right", "bottom")) +
-  coord_flip()
+  labs(y=TeX("$\\frac{1}{|S_{c/u}|} \\cdot \\sum_{s \\in S_{c/u}} P_S(u|s)$"), x="utterance") +
+  # theme_classic(base_size=25) +
+  theme_bw(base_size=25) +
+  theme(legend.position = c(.2, .95), legend.justification=c("right", "top"),
+        axis.text.x = element_text(angle = 30, hjust = 1)) 
+  # theme(legend.position="right", panel.spacing = unit(2, "lines"))
+  # coord_flip()
 p
 
-ggsave(paste(PLOT_DIR, "speaker-uncertainty.png",
-             sep=.Platform$file.sep), p, width=10, height=8)
+ggsave(paste(PLOT_DIR, "speaker.png",
+             sep=.Platform$file.sep), p, width=13, height=5)
 
 
 
@@ -86,7 +92,7 @@ fn <- paste("tables-dependent-", params$n_tables, ".rds", sep="")
 tables_path <- file.path(params$target_dir, fn, fsep=.Platform$file.sep)
 
 if(!file.exists(tables_path)){
-  tables <- create_tables(params, tables_path)
+  tables <- create_tables(params, tables_path, params$cns)
 } else {
   tables <- readRDS(tables_path) %>% filter_tables(params)
   if(nrow(tables)==0){
@@ -96,10 +102,10 @@ if(!file.exists(tables_path)){
 
 tables <- tables %>% unnest_tables()
 tables_filtered <- tables %>%
-  filter(cn=="A implies C" | cn=="A || C" | cn=="C implies A") %>% 
+  filter(cn=="A implies C" | cn=="A || C" | cn=="A,B->D->C") %>%  # cn=="C implies A") %>% 
           # cn=="-A implies C" | cn=="A implies -C") %>%
   mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")),
-         cn=factor(cn, levels=c("A || C", "A implies C", "C implies A")))
+         cn=factor(cn, levels=c("A || C", "A implies C",  "A,B->D->C")))
                                 # "-A implies C", "A implies -C")))
 
 table_plots <- plot_tables(tables_filtered)
@@ -185,13 +191,15 @@ ggsave(fn, p, width=11, height=5)
 
 
 # 4. Values-of-interest ------------------------------------------------------
-# 4.1 speaker's uncertainty 
-voi_none <- data_voi %>% filter(startsWith(key, "epistemic_uncertainty") & bias=="none") 
+# 4.1 speaker given certain about A or C 
+dat.none.voi <- read_rds(file.path(params$target_dir, "results-none-voi.rds",
+                                   fsep = .Platform$file.sep)) %>%
+  filter(startsWith(key, "epistemic_certainty") & bias=="none") 
 
-p <- voi_none %>% mutate(value=round(as.numeric(value), 2)) %>% 
+p <- dat.none.voi %>% mutate(value=round(as.numeric(value), 2)) %>% 
   ggplot(aes(x=level, y=value, fill=key)) + 
-  geom_bar(stat="identity", position=position_dodge())  +
-  geom_text(aes( label = value, x = level,  y = value ), hjust=-0.1, size=6,
+  geom_bar(stat="identity")  +
+  geom_text(aes(label = value, x = level,  y = value ), hjust=-0.1, size=6,
             position=position_dodge(0.9)) + 
   scale_x_discrete(limits = c("prior", "LL", "PL"),
                    labels = c("Prior Belief",
@@ -199,17 +207,17 @@ p <- voi_none %>% mutate(value=round(as.numeric(value), 2)) %>%
                                     collapse="\n"),
                               paste(strwrap("Pragmatic interpretation", width=15),
                                     collapse="\n"))) +
-  scale_y_continuous(limits=c(0,0.2)) +
-  scale_fill_discrete(name="",
-                      breaks=c("epistemic_uncertainty_A", "epistemic_uncertainty_C"),
-                      labels=c("Antecedent (X=A)", "Consequent (X=C)")
-                      ) + 
-  labs(y=TeX("$\\sum_{s\\in Uncertain_S(X)} Pr(s)$"), x="") +
+  scale_y_continuous(limits=c(0,0.5)) +
+  # scale_fill_discrete(name="",
+  #                     breaks=c("epistemic_uncertainty_A", "epistemic_uncertainty_C"),
+  #                     labels=c("Antecedent (X=A)", "Consequent (X=C)")
+  #                     ) + 
+  labs(y=TeX("$\\sum_{s\\in Certain_s(A) \\bigcup Certain_s(C)\\}} Pr(s|u)$"), x="") +
   theme_classic(base_size=25) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "none") +
   coord_flip()
 p
-ggsave(paste(PLOT_DIR, "none-voi-epistemic-uncertainty.png",
+ggsave(paste(PLOT_DIR, "ignorance-inferences.png",
              sep=.Platform$file.sep), p, width=11, height=5)
 
 # 4.2 CP-reading
@@ -392,13 +400,6 @@ ggsave(paste(PLOT_DIR, "speaker-given-accept-conditions-fulfilled.png",
 fn_default <- "results-none-speaker.rds"
 speaker_default <- read_rds(file.path("data", "default-model", fn_default)) %>% 
                     select(-intention) 
-speaker_default <- speaker_default %>%
-  compute_cond_prob("P(C|A)") %>% rename(p_c_given_a=p) %>%
-  compute_cond_prob("P(C|-A)") %>% rename(p_c_given_na=p) %>% 
-  filter(cn=="A implies -C" | cn=="A implies C" |
-         cn=="C implies -A" | cn=="C implies A" | cn=="A || C") %>%
-  spread(key=utterance, val=probs)
-
 df_wide <- speaker_default %>% group_by(bn_id) %>% add_pspeaker_max_conj_lit()
 df_long <- df_wide %>% gather(p_delta, p_rooij, key=condition, val=val) 
 
@@ -477,12 +478,12 @@ ggsave(paste(PLOT_DIR, "p_delta_vs_p_rooij_pos.png",
 
 
 # Default context ---------------------------------------------------------
-# ratio for dep/independent causal nets when P(C|A) is greater or equal or lower
-# than 0.9 (to explain increase in LL for bayes nets where P(C)>=0.9 or P(C)<=0.1)
-default <- data_wide %>% filter(bias=="none") %>% compute_cond_prob("P(C|A)")
+# ratio for dep/independent causal nets when P(C|A) is >= or < theta
+# (to explain increase in LL for bayes nets where P(C)>=theta or P(C)<=1-theta) ?
+default <- dat.none_wide %>% filter(bias=="none") %>% compute_cond_prob("P(C|A)")
 
 prior <- default %>% filter(level=="prior") %>%
-        mutate(p=case_when(p>=0.9 ~ TRUE, TRUE ~ FALSE)) %>% 
+        mutate(p=case_when(p>=params$theta ~ TRUE, TRUE ~ FALSE)) %>% 
         mutate(cn=case_when(cn=="A || C" ~ "indep", TRUE ~ "dep")) %>%
         group_by(cn, p) %>% summarise(s=sum(prob)) %>% add_column(level="prior")
 

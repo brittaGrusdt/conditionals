@@ -7,11 +7,8 @@ library(grid)
 source("R/helper-functions.R")
 source("R/default-model/helpers-tables.R")
 
-target_dir <- "./data/test-default"
-params <- read_rds(paste(target_dir, "results-none-params.rds", sep=.Platform$file.sep))
-
-dat.none = read_rds(paste(params$target_dir, params$target_fn, sep=.Platform$file.sep))
-dat.none_wide <- dat.none %>% spread(key=cell, val=val)
+target_dir <- "./data/default-model"
+params <- read_rds(paste(target_dir, "results-none-prior-params.rds", sep=.Platform$file.sep))
 
 PLOT_DIR <- file.path(params$target_dir, "figs", fsep=.Platform$file.sep)
 dir.create(PLOT_DIR, recursive = TRUE)
@@ -47,7 +44,8 @@ tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$fil
 tables_per_cns(tables_path, "table_plots_none.png")
 
 # bias: lawn
-params_lawn <- read_rds(paste(target_dir, "results-lawn-params.rds", sep=.Platform$file.sep))
+params_lawn <- read_rds(paste("./data/special-conditionals",
+                              "results-lawn-PL-params.rds", sep=.Platform$file.sep))
 tables_path <- file.path(params_lawn$target_dir, params_lawn$tables_fn, fsep=.Platform$file.sep)
 tables_per_cns(tables_path, "table_plots_lawn.png")
 
@@ -58,34 +56,35 @@ source("R/plot-functions.R")
 
 # prior + listener interpretations of conditional If A, C
 # given speaker is certain about A or C or both
-dat.none.voi <- read_rds(file.path(params$target_dir, "results-none-voi.rds",
+dat.none.voi <- read_rds(file.path(params$target_dir, "results-none-PL-voi.rds",
                                    fsep = .Platform$file.sep)) %>%
-  filter(startsWith(key, "epistemic_certainty"))
+  filter(key == "epistemic_uncertainty")
 
-# todo: check this again, PL/LL missing in plot?!
-p <- dat.none.voi %>% mutate(value=round(as.numeric(value), 2)) %>% 
-  ggplot(aes(x=level, y=value, fill=key)) + 
-  geom_bar(stat="identity")  +
-  geom_text(aes(label = value, x = level,  y = value ), hjust=-0.1, size=6,
+df <- dat.none.voi %>% mutate(value=round(as.numeric(value), 2)) %>%
+  group_by(level, intention, uncertainty) %>% 
+  pivot_wider(names_from = uncertainty, values_from= value) %>% 
+  summarise(`A or C`= sum(both, `only A`, `only C`), `A and C` = both,
+            .groups = "keep") %>% 
+  pivot_longer(cols = c(`A or C`, `A and C`), names_to = "key", values_to = "val") %>% 
+  filter(level != "prior") 
+
+p <- df %>% filter(key == "A and C") %>% 
+  ggplot(aes(x=level, y=val)) + 
+  geom_bar(stat="identity", position="dodge")  +
+  geom_text(aes(label = val, x = level,  y = val ), hjust=-0.1, size=6,
             position=position_dodge(0.9)) + 
-  scale_x_discrete(limits = c("prior", "LL", "PL"),
-                   labels = c("Prior Belief",
-                              paste(strwrap("Literal interpretation", width=12),
-                                    collapse="\n"),
-                              paste(strwrap("Pragmatic interpretation", width=15),
-                                    collapse="\n"))) +
-  scale_y_continuous(limits=c(0,0.5)) +
-  # scale_fill_discrete(name="",
-  #                     breaks=c("epistemic_uncertainty_A", "epistemic_uncertainty_C"),
-  #                     labels=c("Antecedent (X=A)", "Consequent (X=C)")
-  #                     ) + 
-  labs(y=TeX("$\\sum_{s\\in Certain_s(A) \\bigcup Certain_s(C)\\} Pr(s|u=A\\rightarrow C)$"), x="") +
+  scale_x_discrete(limits = c("LL", "PL"),               
+    labels=c(paste(strwrap("Literal interpretation", width=20), collapse="\n"),
+             paste(strwrap("Pragmatic interpretation", width=20), collapse="\n"))
+    ) + 
+  labs(y= TeX("$\\sum_{s\\in Uncertain_s(A) \\bigcap Uncertain_s(C) \\}
+            Pr(s|u=A\\rightarrow C)$"), x="") +
   theme_classic(base_size=25) +
   theme(legend.position = "none") +
   coord_flip()
 p
 ggsave(paste(PLOT_DIR, "ignorance-inferences.png",
-             sep=.Platform$file.sep), p, width=11, height=5)
+             sep=.Platform$file.sep), p, width=13.5, height=4)
 
 
 # speaker plots certain/uncertain -----------------------------------------
@@ -113,7 +112,7 @@ p
 ggsave(paste(PLOT_DIR, "speaker.png",
              sep=.Platform$file.sep), p, width=13, height=5)
 
-# split into uncertain/certain states
+# split into uncertain/certain states TODO here!!
 params_unc <- read_rds(paste(target_dir, "results-speaker-uncertain-params.rds", sep=.Platform$file.sep))
 params_cert <- read_rds(paste(target_dir, "results-speaker-certain-params.rds", sep=.Platform$file.sep))
 
@@ -221,41 +220,240 @@ plot_speaker_un_certain(split_cns = TRUE, chunk_utts = FALSE)
 plot_speaker_un_certain(split_cns = TRUE, chunk_utts=TRUE)
 
 # speaker delta_p ----------------------------------------------------------
-params <- read_rds(paste(target_dir, "results-speaker-params.rds", sep=.Platform$file.sep))
+params_prior <- read_rds(paste(target_dir, "results-none-priorN-params.rds", sep=.Platform$file.sep))
+prior <-  read_rds(file.path(params_prior$target_dir, params_prior$target_fn)) %>%
+  pivot_wider(names_from = "cell", values_from = "val") %>% 
+  mutate(level = "prior") %>% 
+  select(-bias)
+params_literal <- read_rds(paste(target_dir, "results-speaker-literal-params.rds", sep=.Platform$file.sep))
+params_speaker <- read_rds(paste(target_dir, "results-speaker-20000-params.rds", sep=.Platform$file.sep))
 
-speaker_default <- read_rds(file.path(params$target_dir, params$target_fn)) %>%
-  select(-intention) %>% 
-  compute_cond_prob("P(C|A)") %>% rename(p_c_given_a=p) %>%
-  compute_cond_prob("P(C|-A)") %>% rename(p_c_given_na=p) %>% 
-  spread(key=utterance, val=probs) %>%
-  select(bn_id, cn, `AC`, `A-C`, `-AC`, `-A-C`, `A > C`, p_delta, p_rooij, p_diff) %>% 
-  pivot_longer(cols = c(p_delta, p_rooij, p_diff), names_to = "condition", values_to = "val") %>% 
-  filter(val > 0)
+getSpeaker <- function(params, cat) {
+  speaker <- read_rds(file.path(params$target_dir, params$target_fn)) %>%
+    select(-intention, -bias) %>%
+    group_by(bn_id, cn) %>%
+    mutate(utterance = paste("utt", utterance, sep="_")) %>% 
+    pivot_wider(names_from = utterance, values_from=probs) %>%
+    mutate(level = cat)
+  return(speaker)
+}
 
-p <- speaker_default %>%
-  ggplot(aes(x=val, y=`A > C`, color=condition)) +
-  geom_point(size=2, alpha=0.7) +
-  facet_wrap(~cn, scales="free", strip.position = "top",
-             labeller=labeller(cn=c(`A || C`="A,C independent",
-                                    `A implies C`="A implies C",
-                                    `C implies A`="C implies A",
-                                    `A implies -C`="A implies ¬C",
-                                    `C implies -A`="C implies ¬A",
-                                    `only A implies C`="only A implies C"
-                                    ))        
-             ) +
-  theme_bw(base_size=25) + 
-  scale_color_discrete(name="accept/assert condition",
-                      breaks=c("p_diff", "p_delta", "p_rooij"),
-                      labels=c(unname(c(TeX("$p_{diff}$"))), "△P", "△*P")) +
-  labs(y=TeX("$P_S(u=If A, C|s)$"), x="value condition") +
-  theme(legend.position="bottom",
-        legend.box = "vertical",
-        legend.key.width = unit("2.5", "cm")
-  ) 
-p
-ggsave(paste(PLOT_DIR, "accept-conditions.png",
+speaker <- getSpeaker(params_speaker, "speaker") %>%
+  pivot_longer(cols = starts_with("utt_"), names_to = "utterance",
+               values_to = "probs") %>% 
+  group_by(bn_id, level, cn) %>% 
+  mutate(p_best=max(probs), u_best=list(utterance[probs == max(probs)])) %>%
+  unnest(u_best)
+
+# get data from implemented literal speaker
+# (20000 samples since conditioned s.t. A > C is true)
+speaker_literal <- read_rds(file.path(params_literal$target_dir, params_literal$target_fn)) %>%
+  pivot_wider(names_from = "cell", values_from = "val") %>%
+  mutate(level = "literal-speaker") %>%
+  select(-bias)
+  #  %>% compute_cond_prob("P(C|A)")
+
+# just filter speaker model predictions for A > C best utterance
+# speaker_literal2 <- speaker %>%
+#   pivot_wider(names_from = "utterance", values_from = "probs") %>%
+#   filter(`utt_A > C` > 0) %>% 
+#   mutate(level = "literal-speaker") %>%
+#   select(-u_best, -p_best)
+    
+speaker_pragmatic <- speaker %>%
+  filter(u_best == "utt_A > C") %>%
+  mutate(level = "pragmatic-speaker") %>%
+  select(-u_best, -p_best) %>%
+  pivot_wider(names_from = "utterance", values_from = "probs") 
+
+df <- bind_rows(prior, speaker_literal, speaker_pragmatic) %>%
+  group_by(bn_id, cn, level) %>%
+  pivot_longer(cols=c(p_delta, p_rooij, p_diff), names_to="condition", values_to = "val") %>% 
+  select(-starts_with("utt")) %>%
+  mutate(
+    level=factor(level, levels = c("prior", "literal-speaker", "pragmatic-speaker")), 
+    cn = case_when(cn == "A || C" ~ "A,C indep.",
+                   TRUE ~str_replace(cn, "-", "¬")
+                  ),
+    condition = factor(condition, levels = c("p_rooij", "p_delta", "p_diff"))
+  ) %>% 
+  group_by(bn_id, level, condition)
+
+plot_accept_conditions <- function(dat, fn){
+  x_labels <- c(c(-100000, -1000, -50, -10, -1),
+                seq(from=-0.75, by=0.25, to=0.7),
+                seq(from=0.75, by=0.05, to=1))
+  x_breaks <- seq(from=0.5, by=1, length.out=length(x_labels))
+  level_labels = as_labeller(
+    c(`literal-speaker` = paste(strwrap("Literal speaker", width=15), collapse="\n"),
+      `pragmatic-speaker` = paste(strwrap("Pragmatic speaker", width=15), collapse="\n"),
+      `prior` = "Prior")
+  )
+  condition_labels = as_labeller(c(`p_rooij`= "△*P", `p_delta`="△P", `p_diff`="P(C|A)-P(C)"))
+  cn_labels = as_labeller(dat$cn %>% unique())
+  getGroup = function(val) {
+    i<-1
+    x <- x_labels[[1]]
+    while(val > x){
+      i <- i + 1
+      x <- x_labels[[i]]
+    } 
+    return(i-1)
+  }
+
+  data <- dat %>% group_by(bn_id, level, condition) %>%
+    mutate(group = getGroup(val)) %>%
+    group_by(level, condition, group, cn)
+  data.sum <- data %>% 
+    summarise(count=n(), .groups="drop_last") %>%
+    group_by(level, condition) %>%
+    mutate(ratio = count/sum(count))
+    
+    p <- data.sum %>% ggplot(aes(x=group, fill=cn)) +
+      facet_grid(level~condition, scales="free", labeller=
+                 labeller(level=level_labels, condition=condition_labels))
+  
+  p <- p + geom_bar(aes(y=ratio), stat="identity", position="dodge") +
+    scale_x_continuous(breaks=x_breaks, labels=x_labels) +
+    labs(x=paste(strwrap("accept/assert condition value intervals", width=25), collapse="\n"),
+         y="ratio", fill="causal net") +
+    theme_bw(base_size=25) +
+    theme(legend.position="bottom", axis.text.x=element_text(angle=0, size=11))
+  
+  ggsave(paste(PLOT_DIR, fn, sep=.Platform$file.sep), p, width=18, height=10)
+  return(p)
+}
+
+plot_accept_conditions(df %>% filter(condition != "p_diff"), "accept-conditions.png")
+
+
+#analyze
+df %>% filter(condition == "p_rooij" & val > 0 & val < 0.25)
+
+# analyze: bns where large p_rooij does not necessarily represent causal relation
+# best utterance other than conditionl although p_rooij large
+df %>% filter(cn == "A,C indep." & val > 0 & condition == "p_rooij" &
+              category %in% c("pragmatic-best"))
+
+df <- df_best %>% mutate(u_best=factor(u_best), category=u_best)
+plot_accept_conditions(df %>% filter(val > 0), "accept-conditions-all.png", FALSE)
+       
+# Accept conditions given best utterance
+speaker_pragmatic <- speaker %>%
+  mutate(u_best = str_replace(u_best, "-", "¬"),
+         u_best = str_replace(u_best, "utt_", ""),
+         u_best = str_replace(u_best, ">", "%-%"),
+         u_best = factor(u_best),
+         cn = case_when(cn == "A || C" ~ "A,C indep.",
+                        TRUE ~str_replace(cn, "-", "¬"))
+        ) %>%
+  ungroup() %>% 
+  select(-category, -level) %>%
+  group_by(bn_id, `AC`, `A-C`, `-AC`, `-A-C`) %>% 
+  pivot_wider(names_from = "utterance", values_from = "probs") %>% 
+  filter(`utt_A > C` > 0) %>% 
+  pivot_longer(cols=c(p_delta, p_rooij, p_diff), names_to = "condition", values_to = "val")
+
+p <- speaker_pragmatic %>%
+      filter(condition != "p_diff" & val > 0) %>% 
+      ggplot(aes(x=cn, y=val, color=condition)) +
+      geom_boxplot(aes(y=val)) +
+      # geom_smooth(method=lm) +
+      # geom_jitter(aes(x=cn, y=val, color=condition), size=2, alpha=0.7) +
+      # facet_grid(cn~u_best, scales="free") + # strip.position = "top") +
+  facet_wrap(~u_best, scales="free", strip.position = "top", ncol = 4, nrow=2) +    
+  scale_color_discrete(name=paste(strwrap("accept/assert condition", width=25), collapse="\n"),
+                           breaks=c("p_delta", "p_rooij"),
+                           labels=c( "△P", "△*P")) +
+                           # labels=c(unname(c(TeX("$p_{diff}$")))) +
+      labs(x="", y="value accept/assert condition") +
+      theme_bw(base_size=25) +
+      theme(legend.position="bottom", axis.text.x = element_text(angle=25))
+
+ggsave(paste(PLOT_DIR, "accept-conditions-u-best.png",
              sep=.Platform$file.sep), p, width=18, height=8)
+
+
+
+
+  # signed_log <- function(val) {
+  #   return(sign(val) * log(abs(val)))
+  # }
+  # inv_signed_log <- function(val){
+  #   return(sign(val) * exp(abs(val)))
+  # }
+  # data <- dat %>% mutate(val_trans = signed_log(val)) 
+  # x_breaks <- c(-10, -5, 0, 5, 10)
+  # x_labels <- map(x_breaks, inv_signed_log)
+    # scale_x_continuous(trans_new("signed_log", signed_log, inv_signed_log))
+    # scale_x_continuous(breaks = x_breaks, labels = x_labels)
+
+# # test some stuff
+# df0 <- df %>% select(bn_id, `A > C`, cn, p_best, u_best, condition, val, category) %>% 
+#   pivot_wider(names_from = condition, values_from = val) %>% 
+#   filter(category=="conditional")
+# # df1 <- df0 %>% filter(`A > C` <= 0.2)
+# # df2 <- df0 %>% filter(`A > C` > 0.2 & `A > C` <= 0.4)
+# # df3 <- df0 %>% filter(`A > C` > 0.4 & `A > C` <= 0.6)
+# # df4 <- df0 %>% filter(`A > C` > 0.6 & `A > C` <= 0.8)
+# # df5 <- df0 %>% filter(`A > C` > 0.8 & `A > C` <= 1)
+# # df6 <- df0 %>% filter(`A > C` > 0.5)
+# # 
+# # cor(df1$p_rooij, df1$`A > C`)
+# # cor(df2$p_rooij, df2$`A > C`)
+# # cor(df3$p_rooij, df3$`A > C`)
+# # cor(df4$p_rooij, df4$`A > C`)
+# # cor(df5$p_rooij, df5$`A > C`)
+# # cor(df6$p_rooij, df6$`A > C`)
+# 
+# cor(df0 %>% filter(cn=="A implies C") %>% pull(p_rooij),
+#     df0 %>% filter(cn=="A implies C") %>% pull(`A > C`))
+# cor(df0 %>% filter(cn=="A implies C") %>% pull(p_delta),
+#     df0 %>% filter(cn=="A implies C") %>% pull(`A > C`))
+# cor(df0 %>% filter(cn=="A implies C") %>% pull(p_diff),
+#     df0 %>% filter(cn=="A implies C") %>% pull(`A > C`))
+# 
+# df0 %>% 
+#   pivot_longer(cols = c("p_delta", "p_rooij", "p_diff"), names_to = "condition", values_to = "val") %>% 
+#   group_by(bn_id, condition) %>% 
+#   ggplot(aes(x=val, y=`A > C`)) +
+#   geom_point(aes(color=condition)) +
+#   geom_smooth(method=lm) +
+#   # geom_jitter(aes(x=cn, y=val, color=condition), size=2, alpha=0.7) +
+#   # facet_wrap(~condition, scales="free", strip.position = "top") +
+#   facet_grid(cn~condition) + 
+#   scale_color_discrete(name=paste(strwrap("accept/assert condition", width=15),
+#                                   collapse="\n"),
+#                        breaks=c("p_diff", "p_delta", "p_rooij"),
+#                        labels=c(unname(c(TeX("$p_{diff}$"))), "△P", "△*P")) +
+#   # scale_x_discrete(breaks=x_breaks, labels = x_labels) + 
+#   # labs(x="causal net", y="value accept/assert condition") +
+#   theme_bw(base_size=25) + theme(legend.position="bottom")
+# 
+# 
+#   # labs(y=TeX("$P_S(u=A \\rightarrow C | s)$"), x="value condition") +
+#   # theme(legend.position="bottom",
+#   #       legend.box = "vertical",
+#   #       legend.key.width = unit("2.5", "cm")
+#   # ) 
+# ggsave(paste(PLOT_DIR, "accept-conditions.png",
+#              sep=.Platform$file.sep), p, width=18, height=8)
+# 
+# 
+# speaker_default %>% 
+#   ggplot() +
+#   geom_boxplot(aes(x=cn, y=`A > C`)) +
+#   labs(y=TeX("$P_S(A\\rightarrow C|s)$"))
+# 
+# 
+# p <- speaker_default %>% 
+#   ggplot() +
+#   geom_point(aes(x=val, y=`A > C`, color=condition, shape=cn)) +
+#   labs(y=TeX("$P_S(A\\rightarrow C|s)$"), x="measure val")
+# 
+# p
+# p + facet_wrap(~cn)
+# 
 
 
 # Conditional Perfection --------------------------------------------------
