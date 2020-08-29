@@ -81,7 +81,6 @@ voi_conditional_perfection <- function(posterior, params){
 
 # speaker-uncertainty/listener's ignorance inferences  --------------------
 addUncertainty2Bns <- function(distr, theta){
-  # todo: wo wird bn_id generiert? sollte in abhängigkeit von cn sein
   marginalA <- marginalize(distr, c("A")) %>% add_column(marginal="pA")
   marginalC <- marginalize(distr, c("C")) %>% add_column(marginal="pC")
   marginal <- bind_rows(marginalA, marginalC) %>%

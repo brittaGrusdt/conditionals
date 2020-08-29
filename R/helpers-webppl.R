@@ -43,7 +43,7 @@ run_webppl <- function(path_wppl_file, params){
   data <-   webppl(program_file = path_wppl_file,
                    data = params,
                    data_var = "data",
-                   random_seed = params$seed,
+                   random_seed = params$seed_webppl,
                    packages=params$packages
                   )
   # data is a list of lists
@@ -141,6 +141,7 @@ structure_speaker_data <- function(posterior, params){
                                    -level, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`),
                             names_to = "utterance", values_to = "probs") %>%
         add_column(bias=params$bias)
+  if(params$speaker_intents == "") df <- df %>% select(-intention)
   if(params$save){
     df %>% save_data(params$target)
     params %>% save_data(params$target_params)
@@ -149,12 +150,16 @@ structure_speaker_data <- function(posterior, params){
 }
 
 average_speaker <- function(distrs, params){
-  # @distrs: long format with columns: utterance, intention, ...
-  data <- distrs %>% group_by(utterance, intention)
-  df <- data %>% summarise(mean_per_intention=mean(probs)) %>%
-    add_column(bias=params$bias)
-  df_cns <- data %>% group_by(utterance, intention, cn) %>%
-    summarise(mean_per_intention=mean(probs), .groups="keep") %>%
+  # @distrs: long format with columns: utterance, [intention]
+  if(params$speaker_intents != ""){
+    data <- distrs %>% group_by(utterance, intention)
+    data.cns <- distrs %>% group_by(utterance, intention, cn)
+  } else {
+    data <- distrs %>% group_by(utterance)
+    data.cns <- distrs %>% group_by(utterance, cn)
+  }
+  df <- data %>% summarise(avg=mean(probs)) %>% add_column(bias=params$bias)
+  df_cns <- data.cns %>% summarise(avg=mean(probs), .groups="keep") %>%
     add_column(bias=params$bias)
 
   if(params$save){

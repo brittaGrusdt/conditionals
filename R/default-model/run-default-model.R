@@ -6,17 +6,15 @@ library(rwebppl)
 library(tidyverse)
 library(config)
 
-debug <- FALSE
+debug <- TRUE
 # params <- configure(c("bias_none", "prior"))
-params <- configure(c("bias_none", "priorN"))
+# params <- configure(c("bias_none", "priorN"))
 # params <- configure(c("bias_none", "ll"))
 # params <- configure(c("bias_none", "pl"))
 # params <- configure(c("bias_none", "speaker"))
-# params <- configure(c("bias_none", "speakerN"))
 # params <- configure(c("bias_none", "speaker_literal"))
 # params <- configure(c("bias_none", "speaker_uncertain"))
-# params <- configure(c("bias_none", "speaker_certain"))
-
+params <- configure(c("bias_none", "speaker_certain"))
 # params <- configure(c("bias_lawn", "pl"))
 
 if(debug){
@@ -25,69 +23,64 @@ if(debug){
 }
 
 # Setup -------------------------------------------------------------------
-# time_id <- str_replace_all(Sys.time(), c(" "="_", ":"="_"))
-
 dir.create(params$target_dir, recursive = TRUE)
 params$target <- file.path(params$target_dir, params$target_fn, fsep=.Platform$file.sep)
+params$target_params <- file.path(params$target_dir, params$target_params, fsep=.Platform$file.sep)
 params$utts_path <- file.path(params$target_dir, params$utts_fn, fsep = .Platform$file.sep)
-params$cns_path <- file.path(params$target_dir, params$cns_fn, fsep = .Platform$file.sep)     
 
 ## Generate/Retrieve causal nets
 if(params$generate_cns){
   cns <- run_webppl("./model/default-model/cns.wppl", params)
   cns <- cns %>% map(function(x){x %>% pull(value)}) %>% unlist()
-  cns %>% save_data(params$cns_path)
   params$cns <- cns
 }
+
 ## Generate/Retrieve tables
-tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
-if(params$generate_tables){
-  tables <- create_tables(params, tables_path, params$cns, params$seed_tables)
+params$tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
+if(params$generate_tables || !file.exists(params$tables_path)){
+  tables <- create_tables(params)
 } else {
-  tables <- readRDS(tables_path) %>% filter_tables(params)
+  tables <- readRDS(params$tables_path) %>% filter_tables(params)
   if(nrow(tables)==0){
-    tables <- create_tables(params, tables_path, params$cns, params$seed_tables)
+    tables <- create_tables(params)
   }
-  print(paste("tables read from:", tables_path))
+  print(paste("tables read from:", params$tables_path))
 }
-tables_to_wppl <- tables %>% dplyr::select(ps, vs)
-params$tables=tables_to_wppl
+params$tables = tables %>% dplyr::select(ps, vs)
 
 ## Generate/Retrieve utterances
-if(params$generate_utterances){
+generate_utts <- function(params){
   utterances <- run_webppl("./model/default-model/utterances.wppl", params)
   utterances <- utterances %>% map(function(x){x %>% pull(value)}) %>% unlist()
   utterances %>% save_data(params$utts_path)
-  params$utterances <- utterances
-} else if(!"utterances" %in% names(params)) {
+  return(utterances)
+}
+if(params$generate_utterances || !file.exists(params$utts_path)){
+  utterances <- generate_utts(params)
+} else {
   utterances <- readRDS(params$utts_path)
   print(paste("utterances read from:", params$utts_path))
-  params$utterances <- utterances
 }
+params$utterances <- utterances
 
 # Run Model ---------------------------------------------------------------
 posterior <- run_webppl(params$model_path, params)
 
 # structure + save data
 # update pathes depending on configuration
-if(params$level_max %in% c("speaker", "literal-speaker")) {
-  params$target <- file.path(params$target_dir, paste(params$target_fn, ".rds", sep=""),
-                             fsep=.Platform$file.sep)
-  params$target_params <- file.path(params$target_dir, paste(params$target_fn, "params.rds", sep="-"),
-                                    fsep=.Platform$file.sep)
-  params$target_fn <- paste(params$target_fn, ".rds", sep="")
-} else {
-  params$target <- file.path(params$target_dir, paste(params$target_fn, "-", params$level_max, ".rds", sep=""),
-                             fsep=.Platform$file.sep)
-  params$target_params <- file.path(params$target_dir, paste(params$target_fn, params$level_max, "params.rds", sep="-"),
-                                    fsep=.Platform$file.sep)
-  params$target_fn <- paste(params$target_fn, "-", params$level_max, ".rds", sep="")
+if(! params$level_max %in% c("speaker", "literal-speaker")) {
+  params$target <- file.path(
+    params$target_dir,
+    paste(str_sub(params$target_fn, 1, -5), "-", params$level_max, ".rds", sep=""),
+          fsep=.Platform$file.sep
+    )
+  params$target_params <- str_replace(params$target, "results", "params")
 }
 
 # restructure data and save
 if(params$level_max == "speaker") {
   speaker <- posterior %>% structure_speaker_data(params)
-  speaker_avg <- speaker %>% average_speaker(params) %>% arrange(mean_per_intention)
+  speaker_avg <- speaker %>% average_speaker(params) %>% arrange(avg)
   speaker_avg
 } else if(params$level_max %in% c("priorN", "literal-speaker")){
     data <- structure_bns(posterior, params)

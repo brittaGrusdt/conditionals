@@ -216,24 +216,23 @@ create_independent_tables <- function(params){
   return(tables_wide)
 }
 
-create_tables <- function(params, target_path, cns=CNS_DEP, seed=202008){
-  set.seed(seed)
-  cns_dep=cns[cns != "A || C"]
+create_tables <- function(params){
+  set.seed(params$seed_tables)
+  cns_dep=params$cns[params$cns != "A || C"]
   tables_all <- list()
+  tables_ind <- create_independent_tables(params)
   if(params$bias == "dutchman" || params$bias == "pizza"){
-    tables_ind <- create_independent_tables(params)
     tables_dep <- tibble()
   } else {
-      tables_ind <- create_independent_tables(params)
-      tables_dep <- create_dependent_tables(params, cns_dep)
+    tables_dep <- create_dependent_tables(params, cns_dep)
   }
   tables <- bind_rows(tables_ind, tables_dep) %>% rowid_to_column("id") %>% 
               mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,
                      indep_sigma=params$indep_sigma,
                      n_tables=params$n_tables,
-                     seed=params$seed
+                     seed=params$seed_tables
               )
-  tables %>% save_data(target_path)
+  tables %>% save_data(params$tables_path)
   return(tables)
 }
 

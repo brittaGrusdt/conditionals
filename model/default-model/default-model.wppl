@@ -98,13 +98,7 @@ if(LEVEL_MAX == "speaker"){
   if(n_samples != 0){
     // draw n_samples from prior
     var bns = repeat(n_samples, function(){sample(prior_conditioned)})
-    display('# samples from prior: ' + bns.length)
-    var distributions = run_speaker(bns)
-    distributions
-  } else{
-    // use all bayes nets in support of prior
-    var bns = prior_conditioned.support();
-    display('# used bns (where condition, if any, holds): ' + bns.length)
+    display('# sampled bns (where condition, if any, holds): ' + bns.length)
     var distributions = run_speaker(bns)
     distributions
   }
