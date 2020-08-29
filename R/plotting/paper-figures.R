@@ -112,19 +112,41 @@ ggsave(paste(PLOT_DIR, "speaker.png", sep=SEP), p, width=13, height=5)
 # 2. split into uncertain/certain states
 params_unc <- read_rds(paste(TARGET_DIR, "params-speaker-uncertain.rds", sep=SEP))
 params_cert <- read_rds(paste(TARGET_DIR, "params-speaker-certain.rds", sep=SEP))
-params_default <- read_rds(paste(TARGET_DIR, "params-speaker.rds", sep=SEP))
 
-plot_speaker_un_certain <- function(data, fn, w, h, legend_pos="none"){
-  df <- data %>% mutate(avg=round(as.numeric(avg), 2))
+chunk_utterances <- function(data){
+  data = data %>% mutate(
+    utterance = case_when(startsWith(utterance, "likely") ~ "likely + literal",
+                                 str_detect(utterance, ">") ~ "conditional",
+                                 str_detect(utterance, "and") ~ "conjunction",
+                                 TRUE ~ "literal"),
+    utterance = factor(utterance, levels=c("likely + literal", "conditional",
+                                           "literal", "conjunction"))
+    );
+  return(data)
+}
+
+chunk_cns <- function(data) {
+  data = data %>% mutate(cn = case_when(cn == "A || C" ~ "A,C independent",
+                                        TRUE ~ "A,C dependent"),
+                         cn = factor(cn))
+  return(data)
+}
+
+plot_speaker <- function(data, fn, w, h, legend_pos="none", facets=TRUE){
+  df <- data %>% mutate(p=round(as.numeric(p), 2))
   xlab = TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$")
   
-  if("cn" %in% colnames(df)) {p <- df %>% ggplot(aes(y=utterance, x=avg, fill=cn))
-  } else { p <-  df %>% ggplot(aes(y=utterance, x=avg, fill=speaker_condition))}
+  if("cn" %in% colnames(df)) {p <- df %>% ggplot(aes(y=utterance, x=p, fill=cn))
+  } else if("speaker_condition" %in% colnames(df)) {
+    p <-  df %>% ggplot(aes(y=utterance, x=p, fill=speaker_condition))
+  } else {
+    p <-  df %>% ggplot(aes(y=utterance, x=p))
+  }
   p <- p +
     geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
-    labs(x=xlab, y="utterance") + theme_bw(base_size=25) +
-    facet_wrap(~speaker_condition) +
-    theme(axis.text.y = element_text(size = 15), legend.position = legend_pos)
+    labs(x=xlab, y="utterance") + theme_bw(base_size=25)
+  if(facets) p <- p + facet_wrap(~speaker_condition)
+  p <- p + theme(axis.text.y=element_text(size=15), legend.position=legend_pos)
   
   ggsave(paste(PLOT_DIR, fn, sep=SEP), p, width=w, height=h)
   return(p)
@@ -132,23 +154,13 @@ plot_speaker_un_certain <- function(data, fn, w, h, legend_pos="none"){
 read_speaker_data <- function(params, chunk_utts, per_cns, sp_condition){
   data <- read_rds(params$target)
   if(chunk_utts) {
-    data = data %>%
-      mutate(utterance = case_when(
-        startsWith(utterance, "likely") ~ "likely + literal",
-        str_detect(utterance, ">") ~ "conditional",
-        str_detect(utterance, "and") ~ "conjunction",
-        TRUE ~ "literal"),
-        utterance = factor(utterance, levels=c("likely + literal", "conditional", "literal", "conjunction")),
-        cn = case_when(cn == "A || C" ~ "A,C independent",
-                       TRUE ~ "A,C dependent"),
-        cn = factor(cn)
-      ) %>% group_by(utterance, cn, bn_id) %>% 
+    data = data %>% chunk_utterances() %>% chunk_cns() %>%
+      group_by(utterance, cn, bn_id) %>%
       summarise(probs=sum(probs), .groups = "drop_last")
   }
-  data = data %>% group_by(utterance) 
+  data = data %>% group_by(utterance)
   if(per_cns) {data = data %>% group_by(utterance, cn)}
-  
-  data = data %>% summarise(avg=mean(probs), .groups="keep") %>%
+  data = data %>% summarise(p=mean(probs), .groups="keep") %>%
     add_column(speaker_condition=sp_condition)
   return(data)
 }
@@ -159,9 +171,21 @@ get_speaker_data <- function(chunk_utts, per_cns){
   if(per_cns) data <- data %>% group_by(speaker_condition, utterance)
   return(data)
 }
-plot_speaker_un_certain(get_speaker_data(TRUE, TRUE), "speaker_un_certain_chunked_cns.png", w=13, h=7, "bottom")
-plot_speaker_un_certain(get_speaker_data(TRUE, FALSE), "speaker_un_certain_chunked.png", w=13, h=7)
-plot_speaker_un_certain(get_speaker_data(FALSE, FALSE), "speaker_un_certain.png", w=13, h=7)
+plot_speaker(get_speaker_data(TRUE, TRUE), "speaker_un_certain_chunked_cns.png", w=13, h=7, "bottom")
+plot_speaker(get_speaker_data(TRUE, FALSE), "speaker_un_certain_chunked.png", w=13, h=7)
+plot_speaker(get_speaker_data(FALSE, FALSE), "speaker_un_certain.png", w=13, h=7)
+
+# not conditioned on certain/uncertain
+params_default <- read_rds(paste(TARGET_DIR, "params-speaker.rds", sep=SEP))
+data <- read_rds(params_default$target) %>% filter(p_rooij >= 0.9) %>%
+  chunk_utterances() %>% 
+  group_by(utterance, bn_id) %>%
+  summarise(probs=sum(probs), .groups = "drop_last") %>% 
+  summarise(p=mean(probs), .groups="keep") %>% arrange(p)
+
+data <- data %>% mutate(utterance=factor(utterance, levels = data$utterance))
+plot_speaker(data, "speaker_prooij_large.png", w=15, h=5, "bottom", FALSE)
+
 
 # speaker delta_p ----------------------------------------------------------
 params_prior <- read_rds(paste(TARGET_DIR, "params-none-priorN.rds", sep=SEP))
