@@ -78,11 +78,19 @@ speaker:
   n_samples: 20000 # bns sampled from prior
   
 speaker_literal:
-  level_max: "literal-speaker"
+  level_max: "speaker"
   utt: "A > C" #condition s.t. only states where utt is true are considered
   target_dir: "./data/default-model"
   target_fn: "results-speaker-literal.rds"
   target_params: "params-speaker-literal.rds"
+  n_samples: 20000 # bns sampled from prior
+
+speaker_p_rooij:
+  level_max: "speaker"
+  utt: "p_rooij"
+  target_dir: "./data/default-model"
+  target_fn: "results-speaker-p_rooij-large.rds"
+  target_params: "params-speaker-p_rooij-large.rds"
   n_samples: 20000 # bns sampled from prior
 
 # speaker given certain condition,

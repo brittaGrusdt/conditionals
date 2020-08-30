@@ -302,13 +302,14 @@ plot_tables <- function(data){
   return(plots)
 }
 
-# analysis generated tables
-analyze_tables <- function(params){
-  # conjunctions
-  tables <- read_rds("./data/default-model/tables-default.rds") %>%
-    select(id, cn, vs, ps) %>% unnest(c(ps, vs)) %>% group_by(id)
+# Analyze generated Tables ------------------------------------------------
+TABLES <- read_rds("./data/default-model/tables-default.rds") %>%
+  select(id, cn, vs, ps) %>% unnest(c(ps, vs)) %>% group_by(id)
+TABLES.wide <-  TABLES %>% pivot_wider(names_from = vs, values_from = ps)  
 
-  conj <- tables %>% mutate(conj=case_when(ps > params$theta ~ TRUE,
+analyze_tables <- function(theta){
+  # conjunctions
+  conj <- TABLES %>% mutate(conj=case_when(ps > theta ~ TRUE,
                             TRUE ~ FALSE))
   print('#true conjunctions')
   print(paste("AC", conj %>% filter(conj & vs == "AC") %>% nrow))
@@ -317,12 +318,11 @@ analyze_tables <- function(params){
   print(paste("-A-C", conj %>% filter(conj & vs == "-A-C") %>% nrow))
 
   print('#true ifs')
-  tables.wide <- tables %>% pivot_wider(names_from = vs, values_from = ps)
-  conditionals <- tables.wide %>%
-    add_column(pca=compute_cond_prob(tables.wide, "P(C|A)") %>% pull(p) > params$theta,
-               pac=compute_cond_prob(tables.wide, "P(A|C)") %>% pull(p) > params$theta,
-               pcna = compute_cond_prob(tables.wide, "P(C|-A)") %>% pull(p) > params$theta,
-               panc = compute_cond_prob(tables.wide, "P(A|-C)") %>% pull(p) > params$theta
+  conditionals <- TABLES.wide %>%
+    add_column(pca=compute_cond_prob(TABLES.wide, "P(C|A)") %>% pull(p) > theta,
+               pac=compute_cond_prob(TABLES.wide, "P(A|C)") %>% pull(p) > theta,
+               pcna = compute_cond_prob(TABLES.wide, "P(C|-A)") %>% pull(p) > theta,
+               panc = compute_cond_prob(TABLES.wide, "P(A|-C)") %>% pull(p) > theta
               )
   print(paste("P(C|A)", conditionals %>% filter(pca) %>% nrow))
   print(paste("P(A|C)", conditionals %>% filter(pac) %>% nrow))
@@ -330,17 +330,21 @@ analyze_tables <- function(params){
   print(paste("P(-A|-C)", conditionals %>% filter(panc) %>% nrow))
 
   print('#true literals')
-  literals <- tables.wide %>%
-    mutate(a=`AC` + `A-C` > params$theta,
-           c=`AC` + `-AC` > params$theta,
-           na=`-AC` + `-A-C` > params$theta,
-           nc=`A-C` + `-A-C` > params$theta)
+  literals <- TABLES.wide %>%
+    mutate(a=`AC` + `A-C` > theta,
+           c=`AC` + `-AC` > theta,
+           na=`-AC` + `-A-C` > theta,
+           nc=`A-C` + `-A-C` > theta)
   print(paste("A", literals %>% filter(a) %>% nrow))
   print(paste("C", literals %>% filter(c) %>% nrow))
   print(paste("-A", literals %>% filter(na) %>% nrow))
   print(paste("-C", literals %>% filter(nc) %>% nrow))
 }
 
+analyze_tables(0.9)
+
+TABLES.wide %>% filter(AC > 0.82 & `A-C` <0.0085 & `-AC`<0.11 & `-A-C` < 0.07 &
+                         AC < 0.83)
 
 # tables_data <- marginalize(tables_long %>% rename(level=cn), c("A")) %>%
 #   mutate(p=case_when(p==0 ~ 0.00001, TRUE~p), `P(C|A)`=AC/p)

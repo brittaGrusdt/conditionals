@@ -35,7 +35,7 @@ var verbose = data["verbose"][0]
 
 if(verbose){
   display('# utterances:' + (globalStore.utterances).length)
-  display("utterance for listeners: " + UTT)
+  display("UTT (for listener/condition speaker): " + UTT)
   display("cost conditional:" + globalStore.cost_conditional)
   display("# cns:" + (globalStore.cns).length)
   display("bias: " + BIAS)
@@ -102,17 +102,6 @@ if(LEVEL_MAX == "speaker"){
     var distributions = run_speaker(bns)
     distributions
   }
-} else if(LEVEL_MAX == "literal-speaker") {
-    display('literal speaker: only states where ' + UTT + ' is true.')
-    var prior = priorConditionedForSpeaker(UTT)
-    var bns = repeat(data["n_samples"][0], function(){
-      var bn = sample(prior)
-      return(bn)
-    });
-    display('# samples from prior: ' + bns.length)
-    var distributions = {"bns": bns}
-    distributions
-
 } else if(LEVEL_MAX == "ll_all_utts"){
   var distributions = {"ll": map(wrap_ll, globalStore.utterances)}
   distributions

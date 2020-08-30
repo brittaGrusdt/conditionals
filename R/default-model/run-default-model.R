@@ -13,8 +13,9 @@ debug <- TRUE
 # params <- configure(c("bias_none", "pl"))
 # params <- configure(c("bias_none", "speaker"))
 # params <- configure(c("bias_none", "speaker_literal"))
+params <- configure(c("bias_none", "speaker_p_rooij"))
 # params <- configure(c("bias_none", "speaker_uncertain"))
-params <- configure(c("bias_none", "speaker_certain"))
+# params <- configure(c("bias_none", "speaker_certain"))
 # params <- configure(c("bias_lawn", "pl"))
 
 if(debug){
@@ -82,7 +83,7 @@ if(params$level_max == "speaker") {
   speaker <- posterior %>% structure_speaker_data(params)
   speaker_avg <- speaker %>% average_speaker(params) %>% arrange(avg)
   speaker_avg
-} else if(params$level_max %in% c("priorN", "literal-speaker")){
+} else if(params$level_max %in% c("priorN")){
     data <- structure_bns(posterior, params)
 } else {
   data <- posterior %>% structure_listener_data(params)

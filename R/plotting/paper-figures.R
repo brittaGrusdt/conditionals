@@ -113,15 +113,25 @@ ggsave(paste(PLOT_DIR, "speaker.png", sep=SEP), p, width=13, height=5)
 params_unc <- read_rds(paste(TARGET_DIR, "params-speaker-uncertain.rds", sep=SEP))
 params_cert <- read_rds(paste(TARGET_DIR, "params-speaker-certain.rds", sep=SEP))
 
-chunk_utterances <- function(data){
+chunk_utterances <- function(data, utts_kept=c()){
   data = data %>% mutate(
-    utterance = case_when(startsWith(utterance, "likely") ~ "likely + literal",
-                                 str_detect(utterance, ">") ~ "conditional",
-                                 str_detect(utterance, "and") ~ "conjunction",
-                                 TRUE ~ "literal"),
-    utterance = factor(utterance, levels=c("likely + literal", "conditional",
-                                           "literal", "conjunction"))
-    );
+    utterance = case_when(
+      utterance %in% utts_kept ~ utterance,
+      startsWith(utterance, "likely") ~ "likely + literal",
+      str_detect(utterance, ">") ~ "conditional",
+      str_detect(utterance, "and") ~ "conjunction",
+      TRUE ~ "literal"
+    ),
+    utterance = str_replace(utterance, "-", "¬"),
+    utterance = str_replace(utterance, ">", "->"),
+    utterance = factor(utterance, levels=
+      c(map(utts_kept, function(s){
+        s <- str_replace(s, "-", "¬")
+        return(str_replace(s, ">", "->"))
+      }),
+      c("likely + literal", "conditional", "literal", "conjunction"))
+    )
+  );
   return(data)
 }
 
@@ -176,18 +186,62 @@ plot_speaker(get_speaker_data(TRUE, FALSE), "speaker_un_certain_chunked.png", w=
 plot_speaker(get_speaker_data(FALSE, FALSE), "speaker_un_certain.png", w=13, h=7)
 
 # not conditioned on certain/uncertain
-params_default <- read_rds(paste(TARGET_DIR, "params-speaker.rds", sep=SEP))
-data <- read_rds(params_default$target) %>% filter(p_rooij >= 0.9) %>%
-  chunk_utterances() %>% 
+params_default <- read_rds(paste(TARGET_DIR, "params-speaker-p_rooij-large.rds", sep=SEP))
+data <- read_rds(params_default$target) %>% select(-level, -bias) %>%
+  select(-p_delta, -p_diff)
+
+df1 <- data %>% 
+  chunk_utterances(c("A > C", "-C > -A", "C > A", "-A > -C")) %>%
   group_by(utterance, bn_id) %>%
   summarise(probs=sum(probs), .groups = "drop_last") %>% 
   summarise(p=mean(probs), .groups="keep") %>% arrange(p)
 
-data <- data %>% mutate(utterance=factor(utterance, levels = data$utterance))
-plot_speaker(data, "speaker_prooij_large.png", w=15, h=5, "bottom", FALSE)
+df1 <- df1 %>% mutate(utterance=factor(utterance, levels = df1$utterance))
+plot_speaker(df1, "speaker_prooij_large_conditionals.png", w=15, h=5, "bottom", FALSE)
+
+df2 <- data %>% 
+  chunk_utterances() %>%
+  group_by(utterance, bn_id) %>%
+  summarise(probs=sum(probs), .groups = "drop_last") %>% 
+  summarise(p=mean(probs), .groups="keep") %>% arrange(p)
+
+df2 <- df2 %>% mutate(utterance=factor(utterance, levels = df2$utterance))
+plot_speaker(df2, "speaker_prooij_large.png", w=15, h=5, "bottom", FALSE)
+
+# same plot but given that *best* utterance is NOT the conditional A > C
+df1 <- data %>% group_by(bn_id) %>% 
+  mutate(p_best=max(probs), u_best=list(utterance[probs == max(probs)])) %>%
+  unnest(u_best) %>% select(-p_best) %>% 
+  rename(utterance_temp = utterance, utterance = u_best) %>%
+  chunk_utterances(c("A > C")) %>%
+  rename(u_best=utterance, utterance=utterance_temp)
+
+df2 <- df1  %>% filter(!str_detect(u_best, ">")) %>% 
+  chunk_utterances() %>%
+  # chunk_utterances(c("A > C", "-A > -C", "C > A", "-C > -A")) %>% 
+  group_by(utterance, bn_id, u_best) %>%
+  summarise(probs=sum(probs), .groups = "drop_last")
+
+dat <- df2 %>% group_by(utterance) %>% 
+  summarise(p=mean(probs), .groups="keep") %>% arrange(p)
+
+plot_speaker(dat, "speaker_prooij_large_ac_not_best.png", w=15, h=5, "bottom", FALSE)
+
+  
+
+# 1.look at bns where *likely + literal* receives pos. probability
+# data %>% filter(utterance == "likely + literal" & probs > 0)
+# no conjunction/no literal/only conditionals + likely (aca likely gehts a higher probability)
+# max prob was ~ 0.08
+
+# 2.look at bns where *literal* receives pos. probability
+# highest prob ~ 0.93 !
+data %>% filter(utterance == "literal" & probs > 0.93)# %>% 
+  # pull(probs) %>% summary()
 
 
-# speaker delta_p ----------------------------------------------------------
+# Speaker Plots Acceptability conditions ----------------------------------
+# Delta P
 params_prior <- read_rds(paste(TARGET_DIR, "params-none-priorN.rds", sep=SEP))
 prior <-  read_rds(params_prior$target) %>%
   pivot_wider(names_from = "cell", values_from = "val") %>% 
@@ -216,10 +270,9 @@ speaker <- getSpeaker(params_speaker, "speaker") %>%
 # get data from implemented literal speaker
 # (20000 samples since conditioned s.t. A > C is true)
 speaker_literal <- read_rds(file.path(params_literal$target_dir, params_literal$target_fn)) %>%
-  pivot_wider(names_from = "cell", values_from = "val") %>%
   mutate(level = "literal-speaker") %>%
   select(-bias)
-  #  %>% compute_cond_prob("P(C|A)")
+  # %>% compute_cond_prob("P(C|A)")
 
 # just filter speaker model predictions for A > C best utterance
 # speaker_literal2 <- speaker %>%
