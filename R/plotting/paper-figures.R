@@ -146,9 +146,11 @@ plot_speaker <- function(data, fn, w, h, legend_pos="none", facets=TRUE){
   df <- data %>% mutate(p=round(as.numeric(p), 2))
   xlab = TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$")
   
-  if("cn" %in% colnames(df)) {p <- df %>% ggplot(aes(y=utterance, x=p, fill=cn))
+  if("cn" %in% colnames(df)) {p <- df %>%
+    ggplot(aes(y=utterance, x=p, fill=cn)) +
+    guides(fill=guide_legend(title="causal net"))
   } else if("speaker_condition" %in% colnames(df)) {
-    p <-  df %>% ggplot(aes(y=utterance, x=p, fill=speaker_condition))
+      p <-  df %>% ggplot(aes(y=utterance, x=p, fill=speaker_condition))
   } else {
     p <-  df %>% ggplot(aes(y=utterance, x=p))
   }
@@ -181,7 +183,18 @@ get_speaker_data <- function(chunk_utts, per_cns){
   if(per_cns) data <- data %>% group_by(speaker_condition, utterance)
   return(data)
 }
-plot_speaker(get_speaker_data(TRUE, TRUE), "speaker_un_certain_chunked_cns.png", w=13, h=7, "bottom")
+df <- get_speaker_data(TRUE, TRUE) 
+p <- df %>% group_by(cn, speaker_condition) %>% 
+  ggplot(aes(y=utterance, x=p, fill=speaker_condition)) +
+  geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
+  labs(x=xlab, y="utterance") + theme_bw(base_size=25) +
+  facet_wrap(~cn) +
+  theme(axis.text.y=element_text(size=15), legend.position="bottom") +
+  guides(fill=guide_legend(title="condition"))
+ggsave(paste(PLOT_DIR, "speaker_un_certain_chunked_cns_facets.png", sep=SEP),
+       p, width=15, height=6)
+
+plot_speaker(df, "speaker_un_certain_chunked_cns.png", w=15, h=6, "bottom")
 plot_speaker(get_speaker_data(TRUE, FALSE), "speaker_un_certain_chunked.png", w=13, h=7)
 plot_speaker(get_speaker_data(FALSE, FALSE), "speaker_un_certain.png", w=13, h=7)
 
@@ -272,15 +285,7 @@ speaker <- getSpeaker(params_speaker, "speaker") %>%
 speaker_literal <- read_rds(file.path(params_literal$target_dir, params_literal$target_fn)) %>%
   mutate(level = "literal-speaker") %>%
   select(-bias)
-  # %>% compute_cond_prob("P(C|A)")
 
-# just filter speaker model predictions for A > C best utterance
-# speaker_literal2 <- speaker %>%
-#   pivot_wider(names_from = "utterance", values_from = "probs") %>%
-#   filter(`utt_A > C` > 0) %>% 
-#   mutate(level = "literal-speaker") %>%
-#   select(-u_best, -p_best)
-    
 speaker_pragmatic <- speaker %>%
   filter(u_best == "utt_A > C") %>%
   mutate(level = "pragmatic-speaker") %>%
@@ -395,93 +400,11 @@ ggsave(paste(PLOT_DIR, "accept-conditions-u-best.png",
              sep=SEP), p, width=18, height=8)
 
 
-
-
-  # signed_log <- function(val) {
-  #   return(sign(val) * log(abs(val)))
-  # }
-  # inv_signed_log <- function(val){
-  #   return(sign(val) * exp(abs(val)))
-  # }
-  # data <- dat %>% mutate(val_trans = signed_log(val)) 
-  # x_breaks <- c(-10, -5, 0, 5, 10)
-  # x_labels <- map(x_breaks, inv_signed_log)
-    # scale_x_continuous(trans_new("signed_log", signed_log, inv_signed_log))
-    # scale_x_continuous(breaks = x_breaks, labels = x_labels)
-
-# # test some stuff
-# df0 <- df %>% select(bn_id, `A > C`, cn, p_best, u_best, condition, val, category) %>% 
-#   pivot_wider(names_from = condition, values_from = val) %>% 
-#   filter(category=="conditional")
-# # df1 <- df0 %>% filter(`A > C` <= 0.2)
-# # df2 <- df0 %>% filter(`A > C` > 0.2 & `A > C` <= 0.4)
-# # df3 <- df0 %>% filter(`A > C` > 0.4 & `A > C` <= 0.6)
-# # df4 <- df0 %>% filter(`A > C` > 0.6 & `A > C` <= 0.8)
-# # df5 <- df0 %>% filter(`A > C` > 0.8 & `A > C` <= 1)
-# # df6 <- df0 %>% filter(`A > C` > 0.5)
-# # 
-# # cor(df1$p_rooij, df1$`A > C`)
-# # cor(df2$p_rooij, df2$`A > C`)
-# # cor(df3$p_rooij, df3$`A > C`)
-# # cor(df4$p_rooij, df4$`A > C`)
-# # cor(df5$p_rooij, df5$`A > C`)
-# # cor(df6$p_rooij, df6$`A > C`)
-# 
-# cor(df0 %>% filter(cn=="A implies C") %>% pull(p_rooij),
-#     df0 %>% filter(cn=="A implies C") %>% pull(`A > C`))
-# cor(df0 %>% filter(cn=="A implies C") %>% pull(p_delta),
-#     df0 %>% filter(cn=="A implies C") %>% pull(`A > C`))
-# cor(df0 %>% filter(cn=="A implies C") %>% pull(p_diff),
-#     df0 %>% filter(cn=="A implies C") %>% pull(`A > C`))
-# 
-# df0 %>% 
-#   pivot_longer(cols = c("p_delta", "p_rooij", "p_diff"), names_to = "condition", values_to = "val") %>% 
-#   group_by(bn_id, condition) %>% 
-#   ggplot(aes(x=val, y=`A > C`)) +
-#   geom_point(aes(color=condition)) +
-#   geom_smooth(method=lm) +
-#   # geom_jitter(aes(x=cn, y=val, color=condition), size=2, alpha=0.7) +
-#   # facet_wrap(~condition, scales="free", strip.position = "top") +
-#   facet_grid(cn~condition) + 
-#   scale_color_discrete(name=paste(strwrap("accept/assert condition", width=15),
-#                                   collapse="\n"),
-#                        breaks=c("p_diff", "p_delta", "p_rooij"),
-#                        labels=c(unname(c(TeX("$p_{diff}$"))), "△P", "△*P")) +
-#   # scale_x_discrete(breaks=x_breaks, labels = x_labels) + 
-#   # labs(x="causal net", y="value accept/assert condition") +
-#   theme_bw(base_size=25) + theme(legend.position="bottom")
-# 
-# 
-#   # labs(y=TeX("$P_S(u=A \\rightarrow C | s)$"), x="value condition") +
-#   # theme(legend.position="bottom",
-#   #       legend.box = "vertical",
-#   #       legend.key.width = unit("2.5", "cm")
-#   # ) 
-# ggsave(paste(PLOT_DIR, "accept-conditions.png",
-#              sep=SEP), p, width=18, height=8)
-# 
-# 
-# speaker_default %>% 
-#   ggplot() +
-#   geom_boxplot(aes(x=cn, y=`A > C`)) +
-#   labs(y=TeX("$P_S(A\\rightarrow C|s)$"))
-# 
-# 
-# p <- speaker_default %>% 
-#   ggplot() +
-#   geom_point(aes(x=val, y=`A > C`, color=condition, shape=cn)) +
-#   labs(y=TeX("$P_S(A\\rightarrow C|s)$"), x="measure val")
-# 
-# p
-# p + facet_wrap(~cn)
-# 
-
-
 # Conditional Perfection --------------------------------------------------
 data_cp_plots <- function(params){
-  data <- read_rds(file.path(params$target_dir, params$target_fn, fsep = SEP)) %>%
+  data <- read_rds(params$target) %>%
     ungroup() %>% group_by(bn_id, level) %>% select(-p_delta, -p_rooij, -p_diff, -bias)
-  if("intention" %in% names(params)){
+  if("speaker_intents" %in% names(params) & params$speaker_intents==""){
     data <- data %>% select(-intention)
   }
   data.wide <- data %>%
@@ -493,51 +416,45 @@ data_cp_plots <- function(params){
   ev_nc_na = data.wide %>% rename(p=`-C_-A`) %>% expected_val("P(-C|-A)")
   ev_a_c = data.wide %>% rename(p=`A_C`) %>% expected_val("P(A|C)") 
   ev_probs <- bind_rows(ev_a_c, ev_nc_na) %>%
-    mutate(level=factor(level, levels=c("prior", "LL", "PL")))
+    mutate(level=factor(level, levels=c("PL", "LL", "prior")),
+           p=str_replace_all(p, "-", "¬")) %>%
+    rename(val_type=p) %>% add_column(val="p")
   
   ev_cns = data.wide %>% ungroup() %>% group_by(level, cn) %>% 
     summarise(ev=sum(prob), .groups="drop_last") %>%
-    mutate(s=sum(ev), level=factor(level, levels=c("prior", "LL", "PL")))
+    mutate(level=factor(level, levels=c("PL", "LL", "prior")),
+           cn=case_when(cn=="A || C" ~ "A,C indep.", TRUE ~ cn),
+           cn=str_replace(cn, "-", "¬"),
+           cn=str_replace(cn, "implies", "->")
+    ) %>%
+    rename(val_type=cn) %>% add_column(val="cns")
   
-  return(list(probs=ev_probs, cns=ev_cns))  
+  cns <- c("A -> ¬C", "C -> ¬A", "C -> A", "A -> C", "A,C indep.")
+  data <- bind_rows(ev_probs, ev_cns) %>% 
+    mutate(val_type=factor(val_type, levels=c(c("P(A|C)", "P(¬C|¬A)"), cns)))
+  
+  return(data)  
 }
 
-plot_evs_cp <- function(data, evs_probs, breaks, labels){
-  lim1 = ifelse(max(data$ev) < 1-0.1, max(data$ev)+0.1, 1)
-  lim2 = ifelse(max(evs_probs$ev) < 1-0.1, max(evs_probs$ev)+0.1, 1)
-  lim = ifelse(lim1 > lim2, lim1, lim2)
-  p <- data %>% ggplot(aes(x=cn, y=ev, fill=level)) + 
-    geom_bar(position=position_dodge2(preserve = "single"), stat="identity") + 
-    geom_bar(position=position_dodge2(preserve = "single"), stat="identity",
-             data = evs_probs, aes(x=p, y=ev, fill=level)) +
-    scale_y_continuous(limits=c(0, lim)) +
-    scale_x_discrete(name=paste(strwrap("causal nets / conditional probs", width=20),
-                                collapse="\n"),
-                     breaks=breaks, labels=labels) +
+plot_evs_cp <- function(data){
+  lim = ifelse(max(data$ev) < 1-0.1, max(data$ev)+0.1, 1)
+  p <- data %>% ggplot(aes(y=val_type, x=ev, fill=level)) + 
+    geom_bar(position=position_dodge2(preserve = "single"), stat="identity") +
+    scale_x_continuous(limits=c(0, lim)) +
+    scale_y_discrete(name=paste(strwrap("causal nets / conditional probs", width=20),
+                                collapse="\n")) + #, breaks=breaks, labels=labels) +
     scale_fill_discrete(name="Interpretation Level",
                         breaks=c("prior", "LL", "PL"),
                         labels=c("A priori", "Literal", "Pragmatic")) +
-    coord_flip() +
-    # facet_wrap(~level, labeller = labeller(
-    #   level = c(`prior` = "Prior belief",
-    #             `LL` = paste(strwrap("Literal interpretation", width=12),
-    #                          collapse="\n"),
-    #             `PL`= paste(strwrap("Pragmatic interpretation", width=15),
-    #                         collapse="\n")))) +
-    labs(y="Degree of belief") +
+    labs(x="Degree of belief") +
     theme_bw(base_size=25) +
-    theme(legend.position = c(.9, .3), legend.justification=c("right", "top"))
+    theme(legend.position = c(.95, .95), legend.justification=c("right", "top"))
   return(p)
 }
 
-params_none <- read_rds(paste(TARGET_DIR, "results-none-params.rds", sep=SEP))
+params_none <- read_rds(paste(TARGET_DIR, "params-none-PL.rds", sep=SEP))
 dat.none = data_cp_plots(params_none)
-
-breaks=c("P(A|C)", "P(-C|-A)", "A || C", "A implies C", "A implies -C",
-         "C implies A", "C implies -A")
-labels=c("P(A|C)", "P(¬C|¬A)",  "A,C indep.", "A implies C", "A implies -C",
-         "C implies A", "C implies ¬A")
-p <- plot_evs_cp(dat.none$cns, dat.none$probs, breaks, labels)
+p <- plot_evs_cp(dat.none)
 ggsave(paste(PLOT_DIR, "none-evs-cp.png", sep=SEP), p, width=16, height=8)
 
 
