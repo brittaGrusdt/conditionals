@@ -89,10 +89,10 @@ ggsave(paste(PLOT_DIR, "ignorance-inferences.png", sep=SEP),
 
 # speaker plots certain/uncertain -----------------------------------------
 # 1. what the speaker says on average
-params <- read_rds(paste(TARGET_DIR, "params-speaker-20000.rds", sep=SEP))
-UTTERANCES <- read_rds(paste(params$target_dir, params$utts_fn, sep=SEP))
+PARAMS_SPEAKER <- read_rds(paste(TARGET_DIR, "params-speaker.rds", sep=SEP))
+UTTERANCES <- read_rds(paste(PARAMS_SPEAKER$target_dir, PARAMS_SPEAKER$utts_fn, sep=SEP))
 
-fn <- paste(str_sub(params$target, 1, -5), "-avg.rds", sep="");
+fn <- paste(str_sub(PARAMS_SPEAKER$target, 1, -5), "-avg.rds", sep="");
 data <- read_rds(fn) %>% select(-bias) %>%
   add_column(condition="default") %>%
   arrange(avg) %>%
@@ -142,9 +142,11 @@ chunk_cns <- function(data) {
   return(data)
 }
 
-plot_speaker <- function(data, fn, w, h, legend_pos="none", facets=TRUE){
+plot_speaker <- function(data, fn, w, h, legend_pos="none", facets=TRUE,
+                         xlab="", ylab=""){
   df <- data %>% mutate(p=round(as.numeric(p), 2))
-  xlab = TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$")
+  if(xlab==""){xlab = TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$")}
+  if(ylab==""){ylab = "utterance"}
   
   if("cn" %in% colnames(df)) {p <- df %>%
     ggplot(aes(y=utterance, x=p, fill=cn)) +
@@ -156,7 +158,7 @@ plot_speaker <- function(data, fn, w, h, legend_pos="none", facets=TRUE){
   }
   p <- p +
     geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
-    labs(x=xlab, y="utterance") + theme_bw(base_size=25)
+    labs(x=xlab, y=ylab) + theme_bw(base_size=25)
   if(facets) p <- p + facet_wrap(~speaker_condition)
   p <- p + theme(axis.text.y=element_text(size=15), legend.position=legend_pos)
   
@@ -183,11 +185,12 @@ get_speaker_data <- function(chunk_utts, per_cns){
   if(per_cns) data <- data %>% group_by(speaker_condition, utterance)
   return(data)
 }
+
 df <- get_speaker_data(TRUE, TRUE) 
 p <- df %>% group_by(cn, speaker_condition) %>% 
   ggplot(aes(y=utterance, x=p, fill=speaker_condition)) +
   geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
-  labs(x=xlab, y="utterance") + theme_bw(base_size=25) +
+  labs(x=TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$"), y="utterance") + theme_bw(base_size=25) +
   facet_wrap(~cn) +
   theme(axis.text.y=element_text(size=15), legend.position="bottom") +
   guides(fill=guide_legend(title="condition"))
@@ -198,12 +201,16 @@ plot_speaker(df, "speaker_un_certain_chunked_cns.png", w=15, h=6, "bottom")
 plot_speaker(get_speaker_data(TRUE, FALSE), "speaker_un_certain_chunked.png", w=13, h=7)
 plot_speaker(get_speaker_data(FALSE, FALSE), "speaker_un_certain.png", w=13, h=7)
 
-# not conditioned on certain/uncertain
-params_default <- read_rds(paste(TARGET_DIR, "params-speaker-p_rooij-large.rds", sep=SEP))
-data <- read_rds(params_default$target) %>% select(-level, -bias) %>%
-  select(-p_delta, -p_diff)
 
-df1 <- data %>% 
+# 3. not conditioned on certain/uncertain -------------------------------
+params_default <- read_rds(paste(TARGET_DIR, "params-speaker-p_rooij-large.rds", sep=SEP))
+DATA <- read_rds(params_default$target) %>% select(-level, -bias) %>%
+  select(-p_delta, -p_diff)
+DATA.best <- DATA %>% group_by(bn_id) %>%
+  mutate(p_best=max(probs), u_best=list(utterance[probs == max(probs)])) %>%
+  unnest(u_best) %>% select(-p_best)
+# 3.1 average speaker probability, conditionals plotted seperately
+df1 <- DATA %>%
   chunk_utterances(c("A > C", "-C > -A", "C > A", "-A > -C")) %>%
   group_by(utterance, bn_id) %>%
   summarise(probs=sum(probs), .groups = "drop_last") %>% 
@@ -212,7 +219,8 @@ df1 <- data %>%
 df1 <- df1 %>% mutate(utterance=factor(utterance, levels = df1$utterance))
 plot_speaker(df1, "speaker_prooij_large_conditionals.png", w=15, h=5, "bottom", FALSE)
 
-df2 <- data %>% 
+# 3.2 average speaker probability, conditionals plotted as chunk
+df2 <- DATA %>%
   chunk_utterances() %>%
   group_by(utterance, bn_id) %>%
   summarise(probs=sum(probs), .groups = "drop_last") %>% 
@@ -221,27 +229,24 @@ df2 <- data %>%
 df2 <- df2 %>% mutate(utterance=factor(utterance, levels = df2$utterance))
 plot_speaker(df2, "speaker_prooij_large.png", w=15, h=5, "bottom", FALSE)
 
-# same plot but given that *best* utterance is NOT the conditional A > C
-df1 <- data %>% group_by(bn_id) %>% 
+# 3.3 same plot but given that *best* utterance is NOT the conditional A > C
+df3 <- DATA %>% group_by(bn_id) %>% 
   mutate(p_best=max(probs), u_best=list(utterance[probs == max(probs)])) %>%
   unnest(u_best) %>% select(-p_best) %>% 
   rename(utterance_temp = utterance, utterance = u_best) %>%
   chunk_utterances(c("A > C")) %>%
   rename(u_best=utterance, utterance=utterance_temp)
 
-df2 <- df1  %>% filter(!str_detect(u_best, ">")) %>% 
+df3 <- df3  %>% filter(!str_detect(u_best, ">")) %>% 
   chunk_utterances() %>%
   # chunk_utterances(c("A > C", "-A > -C", "C > A", "-C > -A")) %>% 
   group_by(utterance, bn_id, u_best) %>%
-  summarise(probs=sum(probs), .groups = "drop_last")
-
-dat <- df2 %>% group_by(utterance) %>% 
+  summarise(probs=sum(probs), .groups = "drop_last") %>%
+  group_by(utterance) %>% 
   summarise(p=mean(probs), .groups="keep") %>% arrange(p)
 
-plot_speaker(dat, "speaker_prooij_large_ac_not_best.png", w=15, h=5, "bottom", FALSE)
-
-  
-
+plot_speaker(df3, "speaker_prooij_large_ac_not_best.png", w=15, h=5, "bottom", FALSE)
+#///////////////////////////////
 # 1.look at bns where *likely + literal* receives pos. probability
 # data %>% filter(utterance == "likely + literal" & probs > 0)
 # no conjunction/no literal/only conditionals + likely (aca likely gehts a higher probability)
@@ -251,6 +256,76 @@ plot_speaker(dat, "speaker_prooij_large_ac_not_best.png", w=15, h=5, "bottom", F
 # highest prob ~ 0.93 !
 data %>% filter(utterance == "literal" & probs > 0.93)# %>% 
   # pull(probs) %>% summary()
+#///////////////////////////////
+
+# 3.4  FREQUNCY utterance type is the speaker's best utterance given certain conditions
+# 3.4.1 given A > C is NOT the speaker's best utterance
+df4 <- DATA.best %>% filter(case_when(utterance == "A > C" & probs==0 ~ FALSE,
+                                TRUE ~ TRUE
+                                ))
+df4 <- df4 %>% select(-utterance) %>%
+  rename(utterance = u_best) %>% distinct(bn_id, .keep_all = TRUE)
+
+dat <- df4 %>%
+  filter(utterance != "A > C") %>%
+  # chunk_utterances(c("A > C", "-C > -A", "C > A", "-A > -C")) %>%
+  chunk_utterances(c("A > C"))
+df4 <- dat %>% group_by(utterance) %>%
+  summarise(p=n(), .groups = "drop_last") %>% arrange(p) %>% 
+  mutate(N=sum(p), p=p/N)
+
+df4 <- df4 %>% mutate(utterance=factor(utterance, levels = df4$utterance))
+plot_speaker(df4, "speaker_prooij_large_freq_best_not_ac.png", w=13.5, h=4,
+             "bottom", FALSE, "proportion", "best utterance")
+
+# FREQUENCY given certain/uncertain
+# which bns fall in these two categories?
+data.speaker <- read_rds(params_speaker$target) %>% select(-level, -bias) %>%
+  select(-p_delta, -p_diff)
+data.speaker.best <- data.speaker %>% group_by(bn_id) %>%
+  mutate(p_best=max(probs), u_best=list(utterance[probs == max(probs)])) %>%
+  unnest(u_best) %>% select(-p_best)
+
+THETA = 0.9
+dat <- data.speaker.best %>%
+  mutate(pa=`AC` + `A-C`, pc=`AC` + `-AC`,
+         certainA = pa >= THETA | pa <= 1-THETA,
+         certainC = pc >= THETA | pc <= 1-THETA,
+         uncA = pa > 1 - THETA & pa < THETA,
+         uncC = pc > 1-THETA & pc < THETA,
+         certain=certainA & certainC,
+         uncertain=uncA & uncC, 
+         both=!certain & !uncertain,
+         speaker_condition = case_when(certain ~ "certain",
+                                       uncertain ~ "uncertain",
+                                       both ~ "both")) %>% 
+  select(-uncA, -uncC, -certainA, -certainC, -certain, -uncertain)
+
+dat <- dat %>% select(-utterance) %>%
+  rename(utterance = u_best) %>% distinct(bn_id, .keep_all = TRUE) %>%
+  chunk_utterances()
+
+df5 <- dat %>% group_by(speaker_condition, cn, utterance) %>%
+  summarise(p=n(), .groups = "drop_last") %>% arrange(p) %>% 
+  mutate(N=sum(p), ratio=p/N) %>% rename(n=p, p=ratio)
+
+df5 <- df5 %>%
+  mutate(utterance=factor(utterance, levels = df5$utterance %>% unique()),
+         speaker_condition = factor(speaker_condition,
+                                    levels=c("certain", "uncertain", "both"))) %>%
+  chunk_cns()
+plot_speaker(df5, "speaker_freq_best_un_certain_other.png", w=13.5, h=5,
+             "bottom", TRUE, "proportion", "best utterance")
+
+
+
+
+
+
+
+
+
+
 
 
 # Speaker Plots Acceptability conditions ----------------------------------
@@ -261,7 +336,6 @@ prior <-  read_rds(params_prior$target) %>%
   mutate(level = "prior") %>% 
   select(-bias)
 params_literal <- read_rds(paste(TARGET_DIR, "params-speaker-literal.rds", sep=SEP))
-params_speaker <- read_rds(paste(TARGET_DIR, "params-speaker.rds", sep=SEP))
 
 getSpeaker <- function(params, cat) {
   speaker <- read_rds(file.path(params$target_dir, params$target_fn)) %>%
@@ -273,7 +347,7 @@ getSpeaker <- function(params, cat) {
   return(speaker)
 }
 
-speaker <- getSpeaker(params_speaker, "speaker") %>%
+speaker <- getSpeaker(PARAMS_SPEAKER, "speaker") %>%
   pivot_longer(cols = starts_with("utt_"), names_to = "utterance",
                values_to = "probs") %>% 
   group_by(bn_id, level, cn) %>% 

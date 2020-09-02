@@ -38,9 +38,9 @@ add_pspeaker_max_conj_lit <- function(df){
 # Probabilities -----------------------------------------------------------
 #@arg vars: list of variables, if more than one, only states where all hold
 # are retained!
+# data must be in long format, such that cell is one column and marginals can
+# be computed for any cell entries, returned object is in wide format
 marginalize <- function(data, vars){
-  # data must be in long format, such that cell is one column and marginals can
-  # be computed for any cell entries, returned object is in wide format
   df <- data %>% filter_vars(vars)
   df <- df %>%  mutate(p=case_when(keep ~ val, TRUE ~ 0)) %>%
           group_by(bn_id, level, intention) %>% mutate(p=sum(p))  %>%
