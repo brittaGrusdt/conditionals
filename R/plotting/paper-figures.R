@@ -539,11 +539,5 @@ dat.lawn = data_cp_plots(params_lawn)
 p <- plot_evs_cp(dat.lawn$cns, dat.lawn$probs, breaks, labels)
 ggsave(paste(PLOT_DIR, "lawn-evs-cp.png", sep=SEP), p, width=16, height=8)
 
-
-
 p <- plot_evs_bar(ev_probs)
 ggsave(paste(PLOT_DIR, "none-evs-cp-probs.png", sep=SEP), p, width=18, height=8)
-
-# todo: look at hellinger distance etc.
-# dat.none.voi <- read_rds(file.path(params$target_dir, "results-none-voi.rds",
-#                                    fsep = SEP))

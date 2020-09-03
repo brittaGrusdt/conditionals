@@ -19,7 +19,6 @@ default:
   nor_theta: !expr NA
 
 ## 1. bias configurations ##
-
 bias_none:
   target_dir: "./data/default-model"
   target_fn: "results-none.rds"
@@ -63,6 +62,31 @@ bias_lawn:
   speaker_intents: !expr c("")
   n_tables: 2000
   tables_fn: "tables-lawn"
+
+sundowners:
+  model_path: "./model/douven-examples/sundowners.wppl"
+  utt: "R > -S"
+  prior_pr: !expr seq(0, 1, 0.1)
+  condition_on: !expr NA
+  level_max: "PL"
+  bias: ""
+  add_accept_conditions: FALSE
+  target: "./data/douven-examples/results-sundowners.rds"
+  target_params: "./data/douven-examples/params-sundowners.rds"
+  tables_fn: "tables-sundowners"
+  
+skiing:
+  model_path: "./model/douven-examples/skiing.wppl"
+  utt: "E > S"
+  prior_pe: 0.2
+  evidence: "C"
+  condition_on: !expr c("C")
+  level_max: "PL"
+  bias: ""
+  add_accept_conditions: FALSE
+  target: "./data/douven-examples/results-skiing.rds"
+  target_params: "./data/douven-examples/params-skiing.rds"
+  tables_fn: "tables-skiing"
 
 
 ## 2. Level configurations ##

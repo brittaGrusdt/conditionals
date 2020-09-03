@@ -15,7 +15,7 @@ filter_vars <- function(df_long, vars){
       df <- df %>% mutate(keep=case_when(!keep ~ keep, TRUE ~ !str_detect(cell, token)))
     }
   }
-  return(df)
+  return(df %>% filter(keep) %>% select(-keep))
 }
 
 

@@ -5,6 +5,8 @@
   //   "cost_conditional": [0],
   //   "prior_pr": [0.6, 0.7, 0.8]
   // }
+  globalStore.thresholds = {t: 0.899, f: 0.0499, theta: data["theta"][0], theta_likely : 0.499}
+
   var vars = [["R", "-R"], ["S", "-S"], ["W", "-W"]]
   var powerset = get_var_powerset(vars, false)
   var utterances = make_utterances(powerset)
@@ -84,8 +86,7 @@
     // var cn = flip(prior_cn2) ? "cn2" : "cn1"
     var cn = sample(prior_cns)
     var bn = uniform_draw_bn(cn)
-    var intention = uniformDraw(speaker_intents)
-    return {bn, intention}
+    return {bn}
   }})
 
   globalStore.state_prior = state_prior

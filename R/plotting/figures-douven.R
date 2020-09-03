@@ -1,87 +1,86 @@
 library(tidyverse)
 library(ggplot2)
+library(rwebppl)
 source("R/helper-functions.R")
 source("R/helpers-webppl.R")
 source("R/helper-functions.R")
 # source("R/plot-functions.R")
 
-RESULT_DIR <- file.path("data", "douven-examples", fsep=.Platform$file.sep)
-TARGET_DIR <- file.path(RESULT_DIR, "figs", fsep=.Platform$file.sep)
-dir.create(TARGET_DIR, recursive = TRUE, showWarnings = FALSE)
+# Run Model ---------------------------------------------------------------
+run_douven_case <- function(params){
+  data <- run_webppl(params$model_path, params) %>%
+    structure_listener_data(params) %>% select(-bias) %>%
+    group_by(cn, cell, level) %>% summarise(ev=sum(prob*val))
+  return(data)
+}
+listener_beliefs <- function(data, params){
+  data <- data %>% filter(level==params$level_max) %>%
+    group_by(cn, cell) 
+  if(!is.na(params$condition_on)){
+    data <- data %>% filter_vars(params$condition_on) %>%
+      summarise(ev=sum(ev), .groups="drop_last") %>%
+      mutate(ev=ev/sum(ev)) # marginalize
+  }
+  else {data = data %>% summarise(ev=sum(ev), .groups="drop_last")}
+      
+  return(data %>% add_column(level="trust"))
+}
 
-params <- list()
-params$bias <- ""
-params$target <- ""
-params$save <- FALSE
+
 # 1. Skiing ---------------------------------------------------------------
-# Data
-fn <- file.path(RESULT_DIR, "results-skiing.rds")
-data_long <- readRDS(fn)
-data_wide <- data_long %>% spread(key=cell, val=val, fill = 0)
-# df <- data_wide %>% adapt_bn_ids()
-
-trust <- data_long %>% listener_beliefs("PL", params, c("C"))
-trust_df <- trust %>% select(-marginal_cn_int, -keep) %>%
-  add_column(level="trust", prob=1, bn_id="0")
-  
-data <- bind_rows(data_long, trust_df)
-
-# Plots -------------------------------------------------------------------
-pe <- marginalize(data, c("E")) 
-ev_pe <-  pe %>% expected_val("E") %>% mutate(level=as.factor(level))
-
-p <- plot_evs(ev_pe)
-title <- "Expected degree of belief in P(E)"
-p <- p +
-  facet_wrap(~p, labeller=labeller(p=c(`E`=paste(strwrap(title, width=20), collapse="\n"))))  +
-  scale_x_discrete(
-    limits = c("trust", "PL", "LL", "prior"),
-    labels = c(
-     paste(strwrap("Listener's beliefs conditioned on C", width=20), collapse="\n"),
-     paste(strwrap("Pragmatic interpretation", width=15), collapse="\n"),
-     paste(strwrap("Literal interpretation", width=15), collapse="\n"),
-     "Prior Belief"
-     )) +
-  scale_y_continuous(limits=c(0,1))
-p
-fn <- paste(TARGET_DIR, "skiing.png", sep=.Platform$file.sep)
-  ggsave(fn, p, height = 5, width=6)
-
+params.skiing <- configure(c("skiing"))
+data.skiing <- run_douven_case(params.skiing)
+skiing <- bind_rows(data.skiing, listener_beliefs(data.skiing, params.skiing)) 
+skiing.marginal = skiing %>% filter_vars(c("E")) %>%
+  group_by(cn, level) %>% summarise(ev=sum(ev)) %>% 
+  add_column(marginal="e", example="skiing")
 
 # 2. Sundowners -----------------------------------------------------------
-# Data
-fn <- file.path(RESULT_DIR, "results-sundowners.rds")
-data_long <- readRDS(fn)
-data_wide <- data_long %>% spread(key=cell, val=val, fill = 0)
-# df <- data_wide %>% adapt_bn_ids()
+params.sundowners <- configure(c("sundowners"))
+data.sundowners <- run_douven_case(params.sundowners)
+sundowners <- bind_rows(data.sundowners, listener_beliefs(data.sundowners,
+                                                          params.sundowners)) 
 
-prs <- marginalize(data_long, c("R", "S")) 
-ev_prs <- prs %>% expected_val("RS")
+sundowners.rain = sundowners %>% filter_vars(c("R")) %>%
+  group_by(cn, level) %>% summarise(ev=sum(ev)) %>% add_column(marginal="r")
 
-pr <- marginalize(data_long, c("R"))
-ev_pr <- pr %>% expected_val("R")
+sundowners.rain_sundowner = sundowners %>% filter_vars(c("R", "S")) %>%
+  group_by(cn, level) %>% summarise(ev=sum(ev)) %>%
+  add_column(marginal="rs")
 
-data <- bind_rows(ev_pr, ev_prs)
+sundowners.data <- bind_rows(sundowners.rain, sundowners.rain_sundowner) %>%
+  add_column(example="sundowners")
 
-# Plots
-p <- plot_evs(data)
+douven.data <- bind_rows(sundowners.data, skiing.marginal)
 
-title1 <-"Expected degree of belief in P(R)"
-title2 <- "Expected degree of belief in P(R ∧ S)"
-ll <- "Literal interpretation"
-pl <- "Pragmatic interpretation"
-p <- p + facet_wrap(~p,
-      labeller=labeller(p=c(`R`=paste(strwrap(title1, width=25), collapse="\n"),
-                            `RS`=paste(strwrap(title2, width=25), collapse="\n")))
-                       ) +
-      scale_x_discrete(limits = c("prior", "LL", "PL"),
-                       labels = c(
-                                  paste(strwrap(pl, width=10), collapse="\n"),
-                                  paste(strwrap(ll, width=10), collapse="\n"),
-                                  "Prior Belief")
-                       ) + 
-      scale_y_continuous(limits=c(0,1))
-p
-fn <- paste(TARGET_DIR, "sundowners.png", sep=.Platform$file.sep)
-ggsave(fn, p, height = 5, width=9)
+douven_plot <- function(data){
+  p <- data %>% mutate(level=as.factor(level)) %>%
+    ggplot() +
+    geom_bar(mapping = aes(y=level, x=ev, fill=cn), stat="identity", position="stack") +
+    facet_wrap(~example) + 
+    facet_wrap(~marginal, labeller=
+                 as_labeller(c(`r`="Sundowners: P(R)", `rs`="Sundowners: P(R,S)",
+                               `e`="Skiing: P(E)"))) +
+    scale_y_discrete(
+      name = "",
+      limits = c("trust", "PL", "LL", "prior"),
+      labels = c(
+        paste(strwrap("Listener's beliefs", width=20), collapse="\n"),
+        paste(strwrap("Pragmatic interpretation", width=20), collapse="\n"),
+        paste(strwrap("Literal interpretation", width=20), collapse="\n"),
+        "Prior Belief"
+      )) +
+    scale_fill_discrete(name="causal net",
+                        limits=c("R > W > S", "R||S", "E || S>C", "E>S>C"),
+                        labels=c("R->W->S", "R,S indep.", "E indep. S, S->C", "E->S->C")) +
+    labs(x="Expected value", title="") +
+    theme_bw(base_size=25) + theme(legend.position="bottom")
+  
+  return(p)
+}
+
+p <- douven.data %>% douven_plot()
+ggsave(paste(PLOT_DIR, "douven-cases.png", sep=SEP), p, width=15, height=6)
+
+  
 
