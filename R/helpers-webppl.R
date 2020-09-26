@@ -84,19 +84,18 @@ structure_listener_data <- function(posterior, params){
 # summarise webppl distributions ------------------------------------------
 # @arg posterior: in long format, must have columns *cell* and *val*
 listener_beliefs <- function(posterior, level, params, vars_condition_on=NA){
-  df <- posterior %>% filter(level==(!! level)) %>% mutate(val=prob*val)
-  listener <- df %>% group_by(cn, intention, cell) %>%
-              summarise(val=sum(val), marginal_cn_int=sum(prob), .groups="keep") %>% 
-              add_column(bias=params$bias)
-
+  df <- posterior %>% filter(level==(!! level)) %>% mutate(ev=prob*val)
   if(!is.na(vars_condition_on)){
-    listener <- listener %>% filter_vars(vars_condition_on) %>%  filter(keep) %>%
-      mutate(val=val/sum(val))
-  }
+    listener <- df %>% filter_vars(vars_condition_on) %>%  filter(keep) %>%
+      select(-keep)
+  } 
+  listener <- df %>% group_by(cell) %>% mutate(ev=sum(ev))
+    
+  listener <- listener %>% mutate(ev=sum(ev)) %>%
+    summarise(ev=sum(val), marginal=sum(prob), .groups="keep")
   if(params$save){listener %>% 
       save_data(paste(str_sub(params$target, 1, -5), "-listener-beliefs-world.rds", sep=""))
   }
-  
   return(listener)
 }
 

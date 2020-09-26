@@ -15,7 +15,8 @@ filter_vars <- function(df_long, vars){
       df <- df %>% mutate(keep=case_when(!keep ~ keep, TRUE ~ !str_detect(cell, token)))
     }
   }
-  return(df %>% filter(keep) %>% select(-keep))
+  # %>% filter(keep) %>% select(-keep)
+  return(df)
 }
 
 
@@ -33,6 +34,13 @@ add_pspeaker_max_conj_lit <- function(df){
                         max(A, `-A`, C, `-C`,
                             `C and A`, `C and -A`, `-C and A`,`-C and -A`))
   return(df)
+}
+
+generate_utts <- function(params){
+  utterances <- run_webppl("./model/default-model/utterances.wppl", params)
+  utterances <- utterances %>% map(function(x){x %>% pull(value)}) %>% unlist()
+  utterances %>% save_data(params$utts_path)
+  return(utterances)
 }
 
 # Probabilities -----------------------------------------------------------
@@ -156,9 +164,9 @@ adapt_bn_ids <- function(data_wide){
 configure <- function(config_keys) {
   key <- config_keys[[1]]
   params <- config::get(config=key)
-  print(key)
+  # print(key)
   for(key in config_keys[-1]){
-    print(key)
+    # print(key)
     params2 <- config::get(config=key)
     for (name in names(params2)) {
       params[name] = params2[name]

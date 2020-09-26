@@ -4,16 +4,15 @@ source("R/helper-functions.R")
 source("R/helpers-values-of-interest.R")
 library(rwebppl)
 library(tidyverse)
-library(config)
 
 debug <- TRUE
 # params <- configure(c("bias_none", "prior"))
 # params <- configure(c("bias_none", "priorN"))
 # params <- configure(c("bias_none", "ll"))
-# params <- configure(c("bias_none", "pl"))
+params <- configure(c("bias_none", "pl"))
 # params <- configure(c("bias_none", "speaker"))
 # params <- configure(c("bias_none", "speaker_literal"))
-params <- configure(c("bias_none", "speaker_p_rooij"))
+# params <- configure(c("bias_none", "speaker_p_rooij"))
 # params <- configure(c("bias_none", "speaker_uncertain"))
 # params <- configure(c("bias_none", "speaker_certain"))
 # params <- configure(c("bias_lawn", "pl"))
@@ -41,7 +40,7 @@ params$tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platf
 if(params$generate_tables || !file.exists(params$tables_path)){
   tables <- create_tables(params)
 } else {
-  tables <- readRDS(params$tables_path) %>% filter_tables(params)
+  tables <- readRDS(params$tables_path)
   if(nrow(tables)==0){
     tables <- create_tables(params)
   }

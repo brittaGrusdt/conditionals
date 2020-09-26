@@ -16,8 +16,8 @@ PLOT_DIR <- file.path(params_none_pl$target_dir, "figs", fsep=SEP)
 dir.create(PLOT_DIR, recursive = TRUE)
 
 # Tables ------------------------------------------------------------------
-tables_per_cns <- function(tables_path, fn){
-  tables_wide <- readRDS(tables_path) %>% filter_tables(params) %>% unnest_tables() %>%
+tables_per_cns <- function(params, fn){
+  tables_wide <- readRDS(params$tables_path) %>% filter_tables(params) %>% unnest_tables() %>%
     rename(bn_id=rowid) %>% group_by(bn_id, cn) %>% 
     pivot_wider(names_from = cell, values_from = val) %>% ungroup()
   tables <- tables_wide %>% 
@@ -38,16 +38,19 @@ tables_per_cns <- function(tables_path, fn){
   
   table_plots <- plot_tables(tables)
   p <- do.call(plot_grid, table_plots)
-  ggsave(paste(PLOT_DIR, fn, sep=SEP), p, width=15, height=10)
+  save_to = paste(PLOT_DIR, fn, sep=SEP)
+  ggsave(save_to, p, width=15, height=10)
+  print(paste('saved to', save_to))
 }
 
 # bias: none
-tables_per_cns(params_none_pl$tables_path, "table_plots_none.png")
+params.tables <- configure(c("tables"))
+tables_per_cns(params.tables, "table_plots_none.png")
 
 # bias: lawn
 # params_lawn <- read_rds(paste(
 #   "./data/special-conditionals", "results-lawn-PL-params.rds", sep=SEP))
-# tables_per_cns(params_lawn$tables_path, "table_plots_lawn.png")
+# tables_per_cns(params_lawn, "table_plots_lawn.png")
 
 
 # Ignorance inferences ----------------------------------------------------

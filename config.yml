@@ -18,6 +18,32 @@ default:
   nor_beta: !expr NA
   nor_theta: !expr NA
 
+tables:
+  nor_theta: !expr NA
+  nor_beta: !expr NA
+  indep_sigma: 0.001
+  n_tables: 20000
+  seed: 202009
+  tables_path: "./data/tables-20000.rds"
+  bias: "none"
+  
+speaker_tables_stimuli:
+  tables_path: "data/tables-stimuli.rds"
+  target_dir: "data/predictions-tables-stimuli"
+  target_fn: "results-tables-stimuli.rds"
+  target_params: "params-tables-stimuli.rds"
+  cns: !expr c("if1_AC", "if2_AC", "A || C")
+  speaker_intents: !expr c("")
+  bias: "uniform-prior-states"
+  level_max: "speaker"
+  vars: !expr c("A", "C")
+  n_samples: 0
+  utts_path: "data/default-model/utterances-tables-stimuli.rds"
+  utt: ""
+  theta: 0.8
+  
+  
+
 ## 1. bias configurations ##
 bias_none:
   target_dir: "./data/default-model"
@@ -66,7 +92,7 @@ bias_lawn:
 sundowners:
   model_path: "./model/douven-examples/sundowners.wppl"
   utt: "R > -S"
-  prior_pr: !expr seq(0, 1, 0.1)
+  prior_pr: !expr c(0.5)
   condition_on: !expr NA
   level_max: "PL"
   bias: ""

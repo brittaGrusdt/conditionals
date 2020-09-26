@@ -35,10 +35,10 @@ if(verbose){
 // Probabilities ----------------------------------------------------------------
 var probabilities = {"cn1": {"p_clothes": {"S": 0.7, "-S": 0.1},
                              "p_exam": prior_pe,
-                             "p_skiing": 0.1},
+                             "p_skiing": 0.05},
                      "cn2": {"p_clothes": {"S": 0.7, "-S": 0.1},
                              "p_exam": prior_pe,
-                             "p_skiing": {"E": 0.98, "-E": 0.1}}
+                             "p_skiing": {"E": 0.98, "-E": 0.05}}
                     }
 
 // States ----------------------------------------------------------------

@@ -76,11 +76,13 @@ var run_speaker = function(bns){
 
        var distributions = {"speaker_isa": isa, "speaker_pa": pa, "bns": bns}
        distributions
-     } else{
-       var distrs = map(function(bn){wrap_speaker(bn, "")}, bns)
-       var distributions = {"speaker_": distrs, "bns": bns}
-       distributions
-     }
+   } else{
+     var distrs = map(function(bn){
+       wrap_speaker(bn, "")
+     }, bns)
+     var distributions = {"speaker_": distrs, "bns": bns}
+     distributions
+   }
 }
 
 // var distrs_isa = map(function(bn){wrap_speaker(bn, "ISA")}, bns)
@@ -99,6 +101,17 @@ if(LEVEL_MAX == "speaker"){
     // draw n_samples from prior
     var bns = repeat(n_samples, function(){sample(prior_conditioned)})
     display('# sampled bns (where condition, if any, holds): ' + bns.length)
+    var distributions = run_speaker(bns)
+    distributions
+  } else {
+    var bns = data["bn_ids"] ? filter(function(bn){
+      data["bn_ids"].includes(bn.id);
+    }, all_bns) : all_bns;
+    // map(function(obj){
+    //   var p = Categorical({"vs": obj["vs"], "ps": obj["ps"]})
+    //   return {"id": obj["stimulus_id"], "Table": p}
+    // }, data["bns"]) : all_bns;
+    display('# bns as input to speaker: ' + bns.length)
     var distributions = run_speaker(bns)
     distributions
   }

@@ -1,12 +1,6 @@
+source("R/helper-functions.R")
 library(truncnorm)
 library(dplyr)
-
-SEED <- 2020081
-set.seed(SEED)
-BASE_DIR <- getwd()
-cns_path <- file.path(paste(BASE_DIR, "/data/default-model/cns-default.rds", sep=""), fsep = .Platform$file.sep)
-cns <- readRDS(cns_path)
-CNS_DEP <- cns[cns != "A || C"]
 
 # Table Generation --------------------------------------------------------
 create_me_tables <-function(params) {
@@ -280,19 +274,24 @@ plot_tables <- function(data){
   plots <- list(); idx = 1
   for(causal_net in cns){
     if(causal_net == "A || C"){
-      cn_title <- "A independent C"
+      cn_title <- "A,C indep."
     } else {
-      cn_title <- str_replace(causal_net, "-", "¬")
+      cn_title = ifelse(endsWith(causal_net, "-A"), TeX("$C\\rightarrow\\neg A$"),
+                        ifelse(endsWith(causal_net, "-C"), TeX("$A\\rightarrow\\neg C$"),
+                                        parse(text=str_replace(causal_net, " implies ", '%->%'))))
     }
+    ylab = ifelse(idx %in% c(1,4), "density", "");
+    xlab = ifelse(idx %in% c(3,4,5), "probability", "");
+    
     p <- data %>% 
       filter(cn==causal_net) %>%
       ggplot(aes(x=val,  color = cell)) +
       geom_density() +
       facet_wrap(~cell, ncol = 2, scales = "free",
-                 labeller = labeller(cell = c(`AC` = "A ∧ C", `A-C` = "A ∧ ¬C",
-                                              `-AC`= "¬A ∧ C", `-A-C` = "¬A ∧ ¬C"))
+                 labeller = labeller(cell = c(`AC` = "P(A,C)", `A-C` = "P(A,¬C)",
+                                              `-AC`= "P(¬A,C)", `-A-C` = "P(¬A,¬C)"))
                  ) +
-      labs(title = cn_title, x="probability") +
+      labs(title = cn_title, x=xlab, y=ylab) +
       theme_classic(base_size = 20) +
       theme(legend.position = "none", axis.text.x = element_text(size=10))
     plots[[idx]] <- p
@@ -307,7 +306,14 @@ TABLES <- read_rds("./data/default-model/tables-default.rds") %>%
   select(id, cn, vs, ps) %>% unnest(c(ps, vs)) %>% group_by(id)
 TABLES.wide <-  TABLES %>% pivot_wider(names_from = vs, values_from = ps)  
 
-analyze_tables <- function(theta){
+analyze_tables <- function(path, theta, TABLES=tibble()){
+  if(TABLES %>% nrow() == 0) {
+    TABLES <- read_rds(path) %>%
+      select(id, cn, vs, ps) %>% unnest(c(ps, vs)) %>% group_by(id)
+  }    
+  TABLES.wide <-  TABLES %>% pivot_wider(names_from = vs, values_from = ps)  
+    # TABLES.wide %>% filter(AC > 0.82 & `A-C` <0.0085 & `-AC`<0.11 & `-A-C` < 0.07 &
+                         # AC < 0.83)
   # conjunctions
   conj <- TABLES %>% mutate(conj=case_when(ps > theta ~ TRUE,
                             TRUE ~ FALSE))
@@ -329,6 +335,17 @@ analyze_tables <- function(theta){
   print(paste("P(C|-A)", conditionals %>% filter(pcna) %>% nrow))
   print(paste("P(-A|-C)", conditionals %>% filter(panc) %>% nrow))
 
+  print('#true likely+literal')
+  literals <- TABLES.wide %>%
+    mutate(a=`AC` + `A-C` > 0.5,
+           c=`AC` + `-AC` > 0.5,
+           na=`-AC` + `-A-C` > 0.5,
+           nc=`A-C` + `-A-C` > 0.5)
+  print(paste("likely A", literals %>% filter(a) %>% nrow))
+  print(paste("likely C", literals %>% filter(c) %>% nrow))
+  print(paste("likely -A", literals %>% filter(na) %>% nrow))
+  print(paste("likely -C", literals %>% filter(nc) %>% nrow))
+  
   print('#true literals')
   literals <- TABLES.wide %>%
     mutate(a=`AC` + `A-C` > theta,
@@ -340,11 +357,6 @@ analyze_tables <- function(theta){
   print(paste("-A", literals %>% filter(na) %>% nrow))
   print(paste("-C", literals %>% filter(nc) %>% nrow))
 }
-
-analyze_tables(0.9)
-
-TABLES.wide %>% filter(AC > 0.82 & `A-C` <0.0085 & `-AC`<0.11 & `-A-C` < 0.07 &
-                         AC < 0.83)
 
 # tables_data <- marginalize(tables_long %>% rename(level=cn), c("A")) %>%
 #   mutate(p=case_when(p==0 ~ 0.00001, TRUE~p), `P(C|A)`=AC/p)

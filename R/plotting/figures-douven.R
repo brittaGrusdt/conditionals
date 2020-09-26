@@ -4,13 +4,26 @@ library(rwebppl)
 source("R/helper-functions.R")
 source("R/helpers-webppl.R")
 source("R/helper-functions.R")
-# source("R/plot-functions.R")
+
+SEP = .Platform$file.sep
+TARGET_DIR <- "./data/test-default"
+params_none_pl <- read_rds(paste(TARGET_DIR, "params-none-PL.rds", sep=SEP))
+
+PLOT_DIR <- file.path(params_none_pl$target_dir, "figs", fsep=SEP)
 
 # Run Model ---------------------------------------------------------------
-run_douven_case <- function(params){
-  data <- run_webppl(params$model_path, params) %>%
-    structure_listener_data(params) %>% select(-bias) %>%
-    group_by(cn, cell, level) %>% summarise(ev=sum(prob*val))
+get_douven_data <- function(params, run=FALSE){
+  if(file.exists(params$target) & !run){
+    data <- read_rds(params$target)
+    print(paste('file read from:', params$target))
+  } else {
+      params$save <- FALSE
+      data <- run_webppl(params$model_path, params) %>%
+        structure_listener_data(params) %>% select(-bias) %>%
+        group_by(cn, cell, level) %>% summarise(ev=sum(prob*val))
+      data %>% save_data(params$target)
+      params %>% save_data(params$target_params)
+  }
   return(data)
 }
 listener_beliefs <- function(data, params){
@@ -29,7 +42,7 @@ listener_beliefs <- function(data, params){
 
 # 1. Skiing ---------------------------------------------------------------
 params.skiing <- configure(c("skiing"))
-data.skiing <- run_douven_case(params.skiing)
+data.skiing <- get_douven_data(params.skiing, TRUE)
 skiing <- bind_rows(data.skiing, listener_beliefs(data.skiing, params.skiing)) 
 skiing.marginal = skiing %>% filter_vars(c("E")) %>%
   group_by(cn, level) %>% summarise(ev=sum(ev)) %>% 
@@ -37,7 +50,7 @@ skiing.marginal = skiing %>% filter_vars(c("E")) %>%
 
 # 2. Sundowners -----------------------------------------------------------
 params.sundowners <- configure(c("sundowners"))
-data.sundowners <- run_douven_case(params.sundowners)
+data.sundowners <- get_douven_data(params.sundowners, FALSE)
 sundowners <- bind_rows(data.sundowners, listener_beliefs(data.sundowners,
                                                           params.sundowners)) 
 
