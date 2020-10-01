@@ -14,7 +14,7 @@ default:
   model_path: "./model/default-model/default-model.wppl"
   seed_webppl: !expr as.numeric(Sys.time())
   add_accept_conditions: true
-  indep_sigma: 0.001
+  indep_sigma: 0.01 # previously: 0.001
   nor_beta: !expr NA
   nor_theta: !expr NA
 
@@ -32,12 +32,13 @@ speaker_tables_stimuli:
   target_dir: "data/predictions-tables-stimuli"
   target_fn: "results-tables-stimuli.rds"
   target_params: "params-tables-stimuli.rds"
-  cns: !expr c("if1_AC", "if2_AC", "A || C")
+  #cns: !expr c("if1", "if2", "A || C")
+  cns: !expr c("A implies C", "A implies -C", "C implies A", "C implies -A", "A || C")
   speaker_intents: !expr c("")
-  bias: "uniform-prior-states"
+  bias: "none"
   level_max: "speaker"
   vars: !expr c("A", "C")
-  n_samples: 0
+  n_samples: 1000
   utts_path: "data/default-model/utterances-tables-stimuli.rds"
   utt: ""
   theta: 0.8

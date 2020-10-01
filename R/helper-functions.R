@@ -122,10 +122,35 @@ likelihood <- function(df_wide, sigma_indep){
   df <- df %>% compute_cond_prob("P(C|-A)") %>% rename(p_c_given_na=p)
   df <- df %>% mutate(pa=AC+`A-C`, pc=AC+`-AC`)  
   # compute
-  df %>% mutate(likelihood_ind=log(dnorm(AC, mean=pa*pc, sd=sigma_indep)),
-                likelihood_ac=log(dbeta(p_c_given_a, 10, 1)) +
-                              log(dbeta(p_c_given_na, 1, 10))
-                )
+  tables <- df %>%
+    mutate(ac=round(`AC`*100)/100, anc=round(`A-C`*100)/100,
+           nac=round(`-AC`*100)/100, nanc=round(`-A-C`*100)/100) %>%
+    nest(cells=c(ac, anc, nac, nanc))
+  
+  # chisq_stats=list()
+  # for(i in seq(1, nrow(tables))){
+  #   test <- chisq.test(matrix(as.numeric(tables$cells[[i]]), ncol=2))
+  #   test.stat = dchisq(x=test$statistic, df=1, log=TRUE)
+  #   chisq_stats[[i]] =  test.stat
+  # }
+  df <- df %>% #add_column(likelihood_ind=as.numeric(chisq_stats)) %>%
+    mutate(
+        logL_ind=log(dtruncnorm(x=AC, a=0, b=1, mean=pa*pc, sd=sigma_indep)),
+        # logL_ind=log(dnorm(x=AC, mean=pa*pc, sd=sigma_indep)),
+        logL_if1=log(dbeta(p_c_given_a, 10, 1)) +
+                 log(dbeta(p_c_given_na, 1, 10)),
+        logL_if2=log(dbeta(p_c_given_a, 10, 1)) +
+                       log(dbeta(p_c_given_na, 1, 5))
+        ) %>%
+    select(-p_c_given_na, -p_c_given_a, -pa, -pc)
+  return(df)
+}
+
+add_meaning_probs = function(df.wide){
+  return(df.wide %>%
+    compute_cond_prob("P(C|A)") %>% rename(pc_given_a=p) %>%
+    compute_cond_prob("P(A|C)") %>% rename(pa_given_c=p) %>%
+    mutate(pa=`AC`+`A-C`, pc=`AC`+`-AC`));
 }
 
 # other functions ---------------------------------------------------------

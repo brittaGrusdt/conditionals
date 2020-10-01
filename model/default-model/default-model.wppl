@@ -9,7 +9,12 @@ globalStore.utterances = data["utterances"]
 var tables_list = data["tables"]
 globalStore.Tables = map(function(obj){
   var p = Categorical({"vs": obj["vs"], "ps": obj["ps"]})
-  return {"id": obj["stimulus_id"], "Table": p}
+  // display(obj["likelihood_if1"])
+  return {"id": obj["stimulus_id"], "Table": p,
+          "logL_if1": obj["logL_if1"],
+          "logL_if2": obj["logL_if2"],
+          "logL_ind": obj["logL_ind"]
+          }
 }, tables_list)
 
 // model parameters
@@ -97,24 +102,19 @@ if(LEVEL_MAX == "speaker"){
   // depending on value of UTT; use (UTT="" for no condition)
   var prior_conditioned = priorConditionedForSpeaker(UTT);
   var n_samples = data["n_samples"][0]
-  if(n_samples != 0){
-    // draw n_samples from prior
-    var bns = repeat(n_samples, function(){sample(prior_conditioned)})
-    display('# sampled bns (where condition, if any, holds): ' + bns.length)
-    var distributions = run_speaker(bns)
-    distributions
-  } else {
-    var bns = data["bn_ids"] ? filter(function(bn){
-      data["bn_ids"].includes(bn.id);
-    }, all_bns) : all_bns;
-    // map(function(obj){
-    //   var p = Categorical({"vs": obj["vs"], "ps": obj["ps"]})
-    //   return {"id": obj["stimulus_id"], "Table": p}
-    // }, data["bns"]) : all_bns;
-    display('# bns as input to speaker: ' + bns.length)
-    var distributions = run_speaker(bns)
-    distributions
-  }
+  // draw n_samples from prior or take all bns from support of prior
+  var bns = n_samples != 0 ? repeat(n_samples, function(){sample(prior_conditioned)})
+                           : all_bns;
+  display('nb bns considered for speaker:' + bns.length)
+  var bns = data["bn_ids"] ? filter(function(bn){
+    data["bn_ids"].includes(bn.id)
+    // &&
+    // (bn.id.includes(bn.cn) || (bn.id.includes("independent") && bn.cn == "A || C"))
+  }, bns) : bns;
+
+  display('# filtered bns that are input to speaker (where condition, if any, holds): ' + bns.length)
+  var distributions = run_speaker(bns)
+  distributions
 } else if(LEVEL_MAX == "ll_all_utts"){
   var distributions = {"ll": map(wrap_ll, globalStore.utterances)}
   distributions
