@@ -11,8 +11,10 @@ globalStore.Tables = map(function(obj){
   var p = Categorical({"vs": obj["vs"], "ps": obj["ps"]})
   // display(obj["likelihood_if1"])
   return {"id": obj["stimulus_id"], "Table": p,
-          "logL_if1": obj["logL_if1"],
-          "logL_if2": obj["logL_if2"],
+          "logL_if_ac": obj["logL_if_ac"],
+          "logL_if_ca": obj["logL_if_ca"],
+          "logL_if_anc": obj["logL_if_anc"],
+          "logL_if_cna": obj["logL_if_cna"],
           "logL_ind": obj["logL_ind"]
           }
 }, tables_list)

@@ -7,79 +7,68 @@ source("R/helpers-values-of-interest.R")
 library(rwebppl)
 
 # Tables for qualitative model check --------------------------------------
-
-# associate tables with stimuli
-tables_to_stimuli <- function(tables.all.wide, t=0.8){
-  tables <- tables.all.wide %>%
-    mutate(pa=`AC` + `A-C`, pc=`AC`+`-AC`) %>%
-    compute_cond_prob("P(C|A)") %>% rename(pc_given_a=p) %>%
-    mutate(stimulus_id=case_when(
-      str_detect(stimulus_id, "independent|if2") & pa>=t & pc>=t ~ paste(stimulus_id, "hh", sep="_"),
-      str_detect(stimulus_id, "independent|if2") & pa>=t & pc<=1-t ~ paste(stimulus_id, "hl", sep="_"),
-      str_detect(stimulus_id, "independent|if2") & pa>=t & pc>=0.4 & pc<=0.6 ~ paste(stimulus_id, "hu", sep="_"), 
-      
-      str_detect(stimulus_id, "independent|if2") & pa<=1-t & pc>=t ~ paste(stimulus_id, "lh", sep="_"),
-      str_detect(stimulus_id, "independent|if2") & pa<=1-t & pc<=1-t ~ paste(stimulus_id, "ll", sep="_"),
-      str_detect(stimulus_id, "independent|if2") & pa<=1-t & pc>=0.4 & pc<=0.6 ~ paste(stimulus_id, "lu", sep="_"),
-      
-      str_detect(stimulus_id, "independent|if2") & pa>=0.4 & pa<=0.6 & pc>=t ~ paste(stimulus_id, "uh", sep="_"),
-      str_detect(stimulus_id, "independent|if2") & pa>=0.4 & pa<=0.6 & pc<=1-t ~ paste(stimulus_id, "ul", sep="_"),
-      str_detect(stimulus_id, "independent|if2") & pa>=0.4 & pa<=0.6 & pc>=0.4 & pc<=0.6 ~ paste(stimulus_id, "uu", sep="_"),
-      
-      str_detect(stimulus_id, "if1") & pa>=0.4 & pa<=0.6 ~ paste(stimulus_id, "u", sep="_"),
-      str_detect(stimulus_id, "if1") & pa>=t ~ paste(stimulus_id, "h", sep="_"),
-      str_detect(stimulus_id, "if1") & pa<=1-t ~ paste(stimulus_id, "l", sep="_"), 
-      TRUE ~ paste(stimulus_id, "X", sep="_"))) %>% 
-    mutate(stimulus_id=
-             case_when(str_detect(stimulus_id, "if1") & pc_given_a >=t ~ paste(stimulus_id, "h", sep=""),
-                       str_detect(stimulus_id, "if1") & pc_given_a <=1-t ~ paste(stimulus_id, "l", sep=""),
-                       str_detect(stimulus_id, "if1") & pc_given_a >=0.4 & pc_given_a<=0.6 ~
-                         paste(stimulus_id, "u", sep=""),
-                       TRUE ~ stimulus_id)
-           );
-  return(tables)
-}
-
-# Theoretical tables used in model ----------------------------------------
-tables.model <- readRDS("data/default-model/tables-default.rds") 
-tables.model.wide = tables.model %>% unnest(c(vs, ps)) %>%
-  select(-seed, -n_tables) %>%
-  group_by(id) %>% pivot_wider(names_from="vs", values_from="ps") %>% 
-  likelihood(tables.model$indep_sigma[[1]]) %>%
-  mutate(stimulus_id=case_when(cn=="A || C" ~ "independent",
-                               TRUE ~ "if1")) %>%
-  tables_to_stimuli()
-
-tables.model.long <- tables.model.wide %>%
-  pivot_longer(cols=c(`AC`, `A-C`, `-AC`, `-A-C`),
-               names_to="vs", values_to="ps")
-tables.model.towppl <- tables.model.long %>%
-  mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% 
-  group_by(id, stimulus_id, vs, cn, nor_theta, nor_beta, indep_sigma,
-           logL_ind, logL_if1, logL_if2) %>%
-  summarise(ps = list(ps), .groups = 'drop')
-
-# Save tables -------------------------------------------------------------
-save_tables_as <- here("data", "tables-default-with-stimuli.rds")
-tables.model.towppl %>% saveRDS(save_tables_as)
-
-most_likely_cn <- function(tables.enriched){
-  # check own cn is most likely one!
-  max.ll = tables.enriched %>%
-    pivot_longer(cols=starts_with("logL"), names_to="logL.key", values_to="logL.val") %>%
-    group_by(id, stimulus_id) %>%
-    summarize(max_ll=max(logL.val), ll=logL.key[logL.val==max_ll], .groups='drop_last')
+params <- configure(c("speaker_tables_stimuli"))
+if(params$generate_tables || !file.exists(params$tables_path)){
+  tables.model <- create_tables(params)
+  # Theoretical tables used in model ----------------------------------------   
+  tables.model.wide = tables.model %>% #unnest(c(vs, ps)) %>%
+    select(-seed, -vs, -ps) %>%
+    mutate(stimulus_id=case_when(cn=="A || C" ~ "independent",
+                                 TRUE ~ "if")) %>%
+    tables_to_stimuli()
   
-  max.ll.match = max.ll %>%
-    mutate(match=case_when(str_detect(stimulus_id, "independent") & ll=="logL_ind" ~ TRUE,
-                           str_detect(stimulus_id, "if1") & ll=="logL_if1" ~ TRUE,
-                           str_detect(stimulus_id, "if2") & ll=="logL_if2" ~ TRUE,
-                           TRUE ~ FALSE))
-  df <- max.ll.match %>% mutate(cn=substr(stimulus_id, 1, 3)) %>%
-    group_by(cn) %>% summarize(N=n(), n=sum(match))
-  return(df)
+  tables.model.long <- tables.model.wide %>%
+    pivot_longer(cols=c(`AC`, `A-C`, `-AC`, `-A-C`),
+                 names_to="vs", values_to="ps")
+  
+  tables.model.towppl <- tables.model.long %>%
+    mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% 
+    group_by(logL_if_ac, logL_if_anc, logL_if_ca, logL_if_cna, logL_ind, id, stimulus_id, vs, cn) %>%
+    summarise(ps = list(ps), .groups = 'drop')
+  
+  tables.model.long %>% saveRDS(here(str_replace(params$tables_path, "-to-wppl", "-long")))
+  tables.model.wide %>% saveRDS(here(str_replace(params$tables_path, "-to-wppl", "-wide")))
+  tables.model.towppl %>% saveRDS(here(params$tables_path))
+  
+  # some table checks
+  tables.per_stimuli <- tables.model.wide %>%
+    select(id, stimulus_id, AC, `A-C`, `-AC`, `-A-C`) %>%
+    group_by(stimulus_id) %>% summarize(n=n(), .groups="drop_last")
+  
+  #likelihoods
+  max.ll=tables.model.wide %>%
+    select(id, cn, starts_with("logL"), `AC`, `-AC`, `A-C`, `-A-C`) %>%
+    group_by(id) %>% pivot_longer(starts_with("logL"), names_to="logL.cn",
+                                  names_prefix="logL_", values_to="logL.val") %>%
+    mutate(max=max(logL.val)) %>% filter(logL.val==max)
+  # max.ll %>% filter((cn=="A || C" & logL.cn != "ind"))
+  # max.ll %>% filter((cn!="A || C" & logL.cn == "ind"))
+  
+    
+} else {
+  tables.model.towppl <- readRDS(params$tables_path)
+  tables.model.long <- readRDS(str_replace(params$tables_path, "-to-wppl", "-long"))
+  print(paste("tables read from:", params$tables_path))
 }
-most_likely_cn(tables.enriched)
+
+# Run ---------------------------------------------------------------------
+# most_likely_cn <- function(tables.enriched){
+#   # check own cn is most likely one!
+#   max.ll = tables.enriched %>%
+#     pivot_longer(cols=starts_with("logL"), names_to="logL.key", values_to="logL.val") %>%
+#     group_by(id, stimulus_id) %>%
+#     summarize(max_ll=max(logL.val), ll=logL.key[logL.val==max_ll], .groups='drop_last')
+#   
+#   max.ll.match = max.ll %>%
+#     mutate(match=case_when(str_detect(stimulus_id, "independent") & ll=="logL_ind" ~ TRUE,
+#                            str_detect(stimulus_id, "if1") & ll=="logL_if1" ~ TRUE,
+#                            str_detect(stimulus_id, "if2") & ll=="logL_if2" ~ TRUE,
+#                            TRUE ~ FALSE))
+#   df <- max.ll.match %>% mutate(cn=substr(stimulus_id, 1, 3)) %>%
+#     group_by(cn) %>% summarize(N=n(), n=sum(match))
+#   return(df)
+# }
+# most_likely_cn(tables.model.towppl)
 analyze_tables("", 0.8, tables.model.long)
 # tables.model.long %>%
 # separate(stimulus_id, c("id", "stimulus"), sep="\\.") %>% select(-id) %>% 
@@ -88,9 +77,9 @@ analyze_tables("", 0.8, tables.model.long)
 
 # Run Model ---------------------------------------------------------------
 stimuli = c("independent_ul", "independent_uh", "independent_ll", "independent_hl", "independent_hh",
-            "if2_ul", "if2_uh", "if2_ll", "if2_hl", "if2_hh",
-            "if1_uu", "if1_uh", "if1_lh", "if1_hh")
-params <- configure(c("speaker_tables_stimuli"))
+            "if2_uh", "if2_hh", "if1_uu", "if1_uh", "if1_lh", "if1_hh",
+            "if2_ll", "if2_hl", "if2_ul")
+
 bns = tables.model.towppl %>% filter(stimulus_id %in% stimuli)
 params$bn_ids =  bns %>% pull(stimulus_id) %>% unique
 params$add_accept_conditions = FALSE
@@ -119,9 +108,27 @@ if(params$level_max %in% c("prior", "LL")) {
   data <- posterior %>% structure_listener_data(params)
   data.wide <- data %>% group_by(bn_id) %>%
     pivot_wider(names_from = "cell", values_from="val") %>%
-    likelihood(params$indep_sigma) %>%
-    select(-p_c_given_a, -p_c_given_na, -pa, -pc)
+    arrange(desc(prob)) 
   
+  dat <- data.wide %>% mutate(bn.id=substr(bn.id, 1,3)) %>%
+    group_by(bn.id) %>% summarize(P=sum(prob)) 
+
+} else if(params$level_max == "priorN") {
+  tables = tibble(cn=posterior$bns$cn, bn_id=seq(1,nrow(posterior$bns)),
+                  ps=posterior$bns$table.probs, vs=posterior$bns$table.support) %>%
+            unnest(c(ps,vs)) %>% group_by(bn_id)
+  tables.wide = tables %>% pivot_wider(names_from="vs", values_from="ps")
+  
+  tables.wide %>% filter(cn=="A implies C") %>%
+    compute_cond_prob("P(C|A)") %>%
+    filter(p>=0.8) %>%
+    mutate(pa=`AC`+`A-C`, pc=AC+`-AC`) %>% 
+    filter(pa<0.8 & pc<0.8 & pa>0.1 & pc>0.1 &
+           `AC`<0.8 & `A-C`<0.8 & `-AC`<0.8 & `-A-C`<0.8 &
+           `AC`>0.1 & `A-C`>0.1 & `-AC`>0.1 & `-A-C`>0.1)
+  
+  tables.wide %>% group_by(cn) %>% summarize(n=n())
+  analyze_tables("", 0.8, TABLES=tables)
 } else if(params$level_max == "speaker"){
   data <- posterior %>% structure_speaker_data(params) %>%
     select(-p_delta, -p_rooij, -p_diff) %>%
@@ -141,6 +148,7 @@ if(params$level_max %in% c("prior", "LL")) {
   
   speaker_avg.wide <- speaker_avg %>% group_by(stimulus, cn) %>%
     pivot_wider(names_from = "response", values_from="avg")
+  
   df.green_blue <- speaker_avg %>%
     filter(str_detect(stimulus, "if1_uh|if1_uu|if2_hh|if2_ll|independent_ul")) %>%
     mutate(response=case_when(
@@ -185,6 +193,10 @@ if(params$level_max %in% c("prior", "LL")) {
     ungroup() 
   
   df %>% select(response) %>% unique()
+  speaker_avg %>% filter(avg>0 & str_detect(stimulus, "independent") &
+                         str_detect(response, ">") & cn == "A || C") %>%
+    arrange(desc(avg))
+  
   df %>% saveRDS(here("data", "speaker-predictions-means-stimuli.rds"))
 }
 

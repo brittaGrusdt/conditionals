@@ -28,17 +28,18 @@ tables:
   bias: "none"
   
 speaker_tables_stimuli:
-  tables_path: "data/tables-stimuli.rds"
+  tables_path: "data/tables-stimuli-to-wppl.rds"
   target_dir: "data/predictions-tables-stimuli"
   target_fn: "results-tables-stimuli.rds"
   target_params: "params-tables-stimuli.rds"
-  #cns: !expr c("if1", "if2", "A || C")
+  n_tables: 2000
+  n_ind_tables: 8000
   cns: !expr c("A implies C", "A implies -C", "C implies A", "C implies -A", "A || C")
   speaker_intents: !expr c("")
   bias: "none"
   level_max: "speaker"
   vars: !expr c("A", "C")
-  n_samples: 1000
+  n_samples: 5000
   utts_path: "data/default-model/utterances-tables-stimuli.rds"
   utt: ""
   theta: 0.8
@@ -56,6 +57,7 @@ bias_none:
   speaker_intents: !expr c("")
   bias: "none"
   n_tables: 2000
+  n_ind_tables: 8000
   tables_fn: "tables-default.rds"
 
 bias_pizza:
@@ -67,6 +69,7 @@ bias_pizza:
   speaker_intents: !expr c("") # c("ISA", "PA")
   bias: "pizza"
   n_tables: 10000
+  n_ind_tables: 10000
   tables_fn: "tables_independent.rds"
 
 bias_pizza_intents:
@@ -88,6 +91,7 @@ bias_lawn:
                       "likely B", "likely -B")
   speaker_intents: !expr c("")
   n_tables: 2000
+  n_ind_tables: 10000
   tables_fn: "tables-lawn"
 
 sundowners:

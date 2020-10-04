@@ -117,11 +117,16 @@ params_unc <- read_rds(paste(TARGET_DIR, "params-speaker-uncertain.rds", sep=SEP
 params_cert <- read_rds(paste(TARGET_DIR, "params-speaker-certain.rds", sep=SEP))
 
 chunk_utterances <- function(data, utts_kept=c()){
+  levels = c("likely + literal", "conditional", "literal", "conjunction");
+  s = paste(utts_kept, collapse="");
+  if(str_detect(s, ">") || str_detect(s, "if")){
+    levels = c("likely + literal", "other conditional", "literal", "conjunction");
+  }
   data = data %>% mutate(
     utterance = case_when(
       utterance %in% utts_kept ~ utterance,
       startsWith(utterance, "likely") ~ "likely + literal",
-      str_detect(utterance, ">") ~ "conditional",
+      str_detect(utterance, ">") ~ levels[[2]],
       str_detect(utterance, "and") ~ "conjunction",
       TRUE ~ "literal"
     ),
@@ -132,7 +137,7 @@ chunk_utterances <- function(data, utts_kept=c()){
         s <- str_replace(s, "-", "¬")
         return(str_replace(s, ">", "->"))
       }),
-      c("likely + literal", "conditional", "literal", "conjunction"))
+      levels)
     )
   );
   return(data)
@@ -283,7 +288,7 @@ plot_speaker(df4, "speaker_prooij_large_freq_best_not_ac.png", w=13.5, h=4,
 
 # FREQUENCY given certain/uncertain
 # which bns fall in these two categories?
-data.speaker <- read_rds(params_speaker$target) %>% select(-level, -bias) %>%
+data.speaker <- read_rds(PARAMS_SPEAKER$target) %>% select(-level, -bias) %>%
   select(-p_delta, -p_diff)
 data.speaker.best <- data.speaker %>% group_by(bn_id) %>%
   mutate(p_best=max(probs), u_best=list(utterance[probs == max(probs)])) %>%
@@ -431,6 +436,7 @@ plot_accept_conditions(df %>% filter(condition != "p_diff"), "accept-conditions.
 
 
 #analyze
+# todo: check these, category not used anymore..!
 df %>% filter(condition == "p_rooij" & val > 0 & val < 0.25)
 
 # analyze: bns where large p_rooij does not necessarily represent causal relation

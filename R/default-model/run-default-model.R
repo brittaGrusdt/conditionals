@@ -46,7 +46,8 @@ if(params$generate_tables || !file.exists(params$tables_path)){
   }
   print(paste("tables read from:", params$tables_path))
 }
-params$tables = tables %>% dplyr::select(ps, vs)
+params$tables = tables %>% ungroup %>%
+  dplyr::select(ps, vs, starts_with("logL"))
 
 ## Generate/Retrieve utterances
 generate_utts <- function(params){

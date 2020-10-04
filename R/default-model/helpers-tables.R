@@ -140,20 +140,18 @@ create_dependent_tables <- function(params, cns){
       theta <- rbeta(params$n_tables, 10, 1)
       if(cn == "only A implies C") {
         beta <- rep(0, params$n_tables) 
-      } else {
-        beta <- rbeta(params$n_tables, 1, 10)
-      }
+      } else { beta <- rbeta(params$n_tables, 1, 10)}
       p_child_parent <- theta + beta * (1 - theta)
       p_child_neg_parent <- beta
       p_parent <- runif(params$n_tables)
 
-      if(cn == "A implies C" || cn == "C implies A" || cn == "only A implies C"){
+      if(cn %in% c("A implies C", "C implies A", "only A implies C")){
         probs <- tibble(cond1=p_child_parent, cond2=p_child_neg_parent, marginal=p_parent)
-      } else if(cn=="A implies -C" || cn=="C implies -A"){
+      } else if(cn %in% c("A implies -C", "C implies -A")){
         probs <- tibble(cond1=1-p_child_parent, cond2=1-p_child_neg_parent, marginal=p_parent)
-      } else if(cn=="-A implies C" || cn=="-C implies A"){
+      } else if(cn %in% c("-A implies C", "-C implies A")){
         probs <- tibble(cond1=p_child_neg_parent, cond2=p_child_parent, marginal=1-p_parent)
-      } else if(cn=="-A implies -C" || cn=="-C implies -A"){
+      } else if(cn %in% c("-A implies -C", "-C implies -A")){
         probs <- tibble(cond1=1-p_child_neg_parent, cond2=1-p_child_parent, marginal=1-p_parent)
       }
 
@@ -190,19 +188,32 @@ create_dependent_tables <- function(params, cns){
 }
 
 create_independent_tables <- function(params){
-  tables <- tibble(pc=runif(params$n_tables), pa=runif(params$n_tables)) %>% rowid_to_column("id") %>%
-    group_by(id) %>% mutate(min=min(pa, pc),
-                            `AC`=rtruncnorm(1, a=0, b=min, mean=pc*pa, sd=params$indep_sigma),
-                            `-AC`=pc-`AC`,
-                            `A-C`=pa-`AC`,
-                            s=sum(`AC`, `-AC`, `A-C`))
-  cell_nanc <- case_when(tables$s >= 1 ~ 0,
-                         TRUE ~ 1-(tables$`AC` + tables$`-AC` + tables$`A-C`))
+  digits=4
+  tables <- tibble(pc=runif(params$n_ind_tables), pa=runif(params$n_ind_tables)) %>%
+    rowid_to_column("id") %>%
+    group_by(id) %>%
+    mutate(`AC`=round(pa*pc, digits), add_max = min(pa, pc) - `AC`,
+           #noisy samples
+           `AC`= round(AC + rtruncnorm(1, a=-`AC`, b=add_max, mean=0, sd=params$indep_sigma), digits), 
+           `-AC`=round(pc-`AC`, digits),
+           `A-C`=round(pa-`AC`, digits),
+           s1 = `-AC`+`A-C`+`AC`,
+           `-A-C`= ifelse(1-s1 < 0, 0, 1-s1),
+           s=sum(`AC`, `-AC`, `A-C`, `-A-C`),
+           #normalize again for minor round errors
+           AC=AC/s, `A-C` = `A-C`/s, `-AC`=`-AC`/s, `-A-C`=`-A-C`/s, 
+           N=sum(`AC`, `-AC`, `A-C`, `-A-C`),
+           diff=AC-pa*pc) %>% 
+    select(-add_max, -s1, -s, -diff)
+  # cell_nanc <- case_when(tables$s >= 1 ~ 0,
+  #                        TRUE ~ 1-(tables$`AC` + tables$`-AC` + tables$`A-C`))
   
-  tables <- tables %>% add_column(`-A-C`=cell_nanc) %>% mutate(s=sum(`AC`, `-AC`, `A-C`, `-A-C`))
+  # tables <- tables %>% add_column(`-A-C`=cell_nanc) %>%
+  #   mutate(s=sum(`AC`, `-AC`, `A-C`, `-A-C`))
   
-  tables_long <- tables %>% gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
-                  mutate(val=round(val, 4))
+  tables_long <- tables %>%
+    gather(`AC`, `A-C`, `-AC`, `-A-C`, key="cell", val="val") %>% 
+    mutate(val=round(val, 4))
   tables_wide <- tables_long %>% group_by(id) %>%
     summarise(ps = list(val), .groups = 'drop') %>% add_column(cn="A || C") %>% 
     mutate(vs=list(c("AC", "A-C", "-AC", "-A-C"))) %>% dplyr::select(-id)
@@ -221,11 +232,16 @@ create_tables <- function(params){
     tables_dep <- create_dependent_tables(params, cns_dep)
   }
   tables <- bind_rows(tables_ind, tables_dep) %>% rowid_to_column("id") %>% 
-              mutate(nor_theta=params$nor_theta, nor_beta=params$nor_beta,
-                     indep_sigma=params$indep_sigma,
-                     n_tables=params$n_tables,
-                     seed=params$seed_tables
-              )
+              mutate(seed=params$seed_tables)
+                     # nor_theta=params$nor_theta, nor_beta=params$nor_beta,
+                     # indep_sigma=params$indep_sigma,
+                     # n_tables=params$n_tables)
+  tables <- tables %>% unnest(c(vs, ps)) %>%
+    group_by(id) %>% pivot_wider(names_from="vs", values_from="ps") %>% 
+    likelihood(params$indep_sigma) %>% 
+    mutate(vs=list(c("AC", "A-C", "-AC", "-A-C")),
+           ps=list(c(`AC`, `A-C`, `-AC`, `-A-C`)))
+  
   tables %>% save_data(params$tables_path)
   return(tables)
 }
@@ -357,6 +373,69 @@ analyze_tables <- function(path, theta, TABLES=tibble()){
   print(paste("-A", literals %>% filter(na) %>% nrow))
   print(paste("-C", literals %>% filter(nc) %>% nrow))
 }
+
+# associate tables with stimuli of experiment
+tables_to_stimuli <- function(tables.all.wide, t=0.8){
+  tables <- tables.all.wide %>%
+    mutate(pa=`AC` + `A-C`, pc=`AC`+`-AC`) %>%
+    compute_cond_prob("P(C|A)") %>% rename(pc_given_a=p) %>%
+    compute_cond_prob("P(C|-A)") %>% rename(pc_given_na=p) %>%
+    mutate(stimulus_id=case_when(
+      str_detect(stimulus_id, "independent") & pa>=t & pc>=t ~ paste(stimulus_id, "hh", sep="_"),
+      str_detect(stimulus_id, "independent") & pa>=t & pc<=1-t ~ paste(stimulus_id, "hl", sep="_"),
+      str_detect(stimulus_id, "independent") & pa>=t & pc>=0.4 & pc<=0.6 ~ paste(stimulus_id, "hu", sep="_"), 
+      
+      str_detect(stimulus_id, "independent") & pa<=1-t & pc>=t ~ paste(stimulus_id, "lh", sep="_"),
+      str_detect(stimulus_id, "independent") & pa<=1-t & pc<=1-t ~ paste(stimulus_id, "ll", sep="_"),
+      str_detect(stimulus_id, "independent") & pa<=1-t & pc>=0.4 & pc<=0.6 ~ paste(stimulus_id, "lu", sep="_"),
+      
+      str_detect(stimulus_id, "independent") & pa>=0.4 & pa<=0.6 & pc>=t ~ paste(stimulus_id, "uh", sep="_"),
+      str_detect(stimulus_id, "independent") & pa>=0.4 & pa<=0.6 & pc<=1-t ~ paste(stimulus_id, "ul", sep="_"),
+      str_detect(stimulus_id, "independent") & pa>=0.4 & pa<=0.6 & pc>=0.4 & pc<=0.6 ~ paste(stimulus_id, "uu", sep="_"),
+      TRUE ~ stimulus_id));
+  
+  tables <- tables %>%
+    mutate(stimulus_id= case_when(str_detect(stimulus_id, "if") & pc_given_na <= 0.02 ~ "if1",
+                                  str_detect(stimulus_id, "if") & pc_given_na > 0.02 ~ "if2",
+                                  TRUE ~ stimulus_id)
+    );
+  df <- tables %>% 
+    mutate(stimulus_id=case_when(
+      str_detect(stimulus_id, "if") & pc_given_a >=t & pa >= t ~ paste(stimulus_id, "hh", sep="_"),
+      str_detect(stimulus_id, "if") & pc_given_a >=t & pa<=1-t ~ paste(stimulus_id, "lh", sep="_"),
+      str_detect(stimulus_id, "if") & pc_given_a >=t & pa >=0.4 & pa<=0.6 ~ paste(stimulus_id, "uh", sep="_"),
+      TRUE ~ stimulus_id)) %>%
+    mutate(stimulus_id=case_when(
+      str_detect(stimulus_id, "if1") & pc_given_a <=1-t & pa >= t ~ paste(stimulus_id, "hl", sep="_"),
+      str_detect(stimulus_id, "if1") & pc_given_a <=1-t & pa <= 1-t ~ paste(stimulus_id, "ll", sep="_"),
+      str_detect(stimulus_id, "if1") & pc_given_a <=1-t & pa>=0.4 & pa <= 0.6 ~ paste(stimulus_id, "ul", sep="_"),
+      
+      str_detect(stimulus_id, "if1") & (pc_given_a >=0.4 & pc_given_a <=0.6) & pa >= t ~ paste(stimulus_id, "hu", sep="_"),
+      str_detect(stimulus_id, "if1") & (pc_given_a >=0.4 & pc_given_a <=0.6) & pa <= 1-t ~ paste(stimulus_id, "lu", sep="_"),
+      str_detect(stimulus_id, "if1") & (pc_given_a >=0.4 & pc_given_a <=0.6) & pa>=0.4 & pa <= 0.6 ~ paste(stimulus_id, "uu", sep="_"),
+      
+      str_detect(stimulus_id, "if2_") & pc >=t ~ paste(substr(stimulus_id, 1, 5), "h", sep=""),
+      str_detect(stimulus_id, "if2_") & pc<=1-t ~ paste(substr(stimulus_id, 1, 5), "l", sep=""),
+      str_detect(stimulus_id, "if2_") & pc >=0.4 & pc<=0.6 ~ paste(substr(stimulus_id, 1, 5), "u", sep=""),
+      TRUE ~ stimulus_id));
+  return(df)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # tables_data <- marginalize(tables_long %>% rename(level=cn), c("A")) %>%
 #   mutate(p=case_when(p==0 ~ 0.00001, TRUE~p), `P(C|A)`=AC/p)
