@@ -17,7 +17,8 @@ dir.create(PLOT_DIR, recursive = TRUE)
 
 # Tables ------------------------------------------------------------------
 tables_per_cns <- function(params, fn){
-  tables_wide <- readRDS(params$tables_path) %>% filter_tables(params) %>% unnest_tables() %>%
+  tables_wide <- readRDS(params$tables_path) %>% #filter_tables(params) %>% 
+    unnest_tables() %>%
     rename(bn_id=rowid) %>% group_by(bn_id, cn) %>% 
     pivot_wider(names_from = cell, values_from = val) %>% ungroup()
   tables <- tables_wide %>% 
@@ -46,7 +47,7 @@ tables_per_cns <- function(params, fn){
 # bias: none
 params.tables <- configure(c("tables"))
 tables_per_cns(params.tables, "table_plots_none.png")
-
+plot_tables_all_cns(params.tables$tables_path, PLOT_DIR, w=5, h=5)
 # bias: lawn
 # params_lawn <- read_rds(paste(
 #   "./data/special-conditionals", "results-lawn-PL-params.rds", sep=SEP))

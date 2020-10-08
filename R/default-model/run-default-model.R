@@ -6,10 +6,12 @@ library(rwebppl)
 library(tidyverse)
 
 debug <- TRUE
+params <- configure(c("bias_none", "log_likelihood"))
+# params <- configure(c("bias_none", "tables"))
 # params <- configure(c("bias_none", "prior"))
 # params <- configure(c("bias_none", "priorN"))
 # params <- configure(c("bias_none", "ll"))
-params <- configure(c("bias_none", "pl"))
+# params <- configure(c("bias_none", "pl"))
 # params <- configure(c("bias_none", "speaker"))
 # params <- configure(c("bias_none", "speaker_literal"))
 # params <- configure(c("bias_none", "speaker_p_rooij"))
@@ -36,7 +38,9 @@ if(params$generate_cns){
 }
 
 ## Generate/Retrieve tables
-params$tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
+if(!"tables_path" %in% names(params)){
+  params$tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
+}
 if(params$generate_tables || !file.exists(params$tables_path)){
   tables <- create_tables(params)
 } else {
@@ -47,7 +51,7 @@ if(params$generate_tables || !file.exists(params$tables_path)){
   print(paste("tables read from:", params$tables_path))
 }
 params$tables = tables %>% ungroup %>%
-  dplyr::select(ps, vs, starts_with("logL"))
+  dplyr::select(stimulus_id, ps, vs, starts_with("logL"))
 
 ## Generate/Retrieve utterances
 generate_utts <- function(params){
@@ -85,6 +89,9 @@ if(params$level_max == "speaker") {
   speaker_avg
 } else if(params$level_max %in% c("priorN")){
     data <- structure_bns(posterior, params)
+} else if(params$level_max == "log_likelihood"){
+  data <- tibble(id=posterior$id$value, cn=posterior$cn$value,
+                 logL=posterior$logL$value)
 } else {
   data <- posterior %>% structure_listener_data(params)
   # trust <- data %>% listener_beliefs("PL", params)

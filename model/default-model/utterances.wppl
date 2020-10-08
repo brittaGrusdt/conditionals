@@ -36,6 +36,7 @@ var variables = reduce(function(token, acc){
 var powerset = get_var_powerset(variables, false)
 var dependent_nets = connect_variables(powerset, " implies ")
 globalStore.cns = dependent_nets.concat("A || C")
+globalStore.dep_cns = dependent_nets;
 
 if(verbose){
   display('# cns: ' + globalStore.cns.length)

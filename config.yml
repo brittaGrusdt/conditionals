@@ -21,10 +21,11 @@ default:
 tables:
   nor_theta: !expr NA
   nor_beta: !expr NA
-  indep_sigma: 0.001
-  n_tables: 20000
+  indep_sigma: 0.01
+  n_tables: 5000
+  n_ind_tables: 5000
   seed: 202009
-  tables_path: "./data/tables-20000.rds"
+  tables_path: "./data/tables-5000-per-cns.rds"
   bias: "none"
   
 speaker_tables_stimuli:
@@ -32,12 +33,12 @@ speaker_tables_stimuli:
   target_dir: "data/predictions-tables-stimuli"
   target_fn: "results-tables-stimuli.rds"
   target_params: "params-tables-stimuli.rds"
-  n_tables: 2000
-  n_ind_tables: 8000
+  n_tables: 5000
+  n_ind_tables: 5000
   cns: !expr c("A implies C", "A implies -C", "C implies A", "C implies -A", "A || C")
   speaker_intents: !expr c("")
   bias: "none"
-  level_max: "speaker"
+  level_max: "priorN"
   vars: !expr c("A", "C")
   n_samples: 5000
   utts_path: "data/default-model/utterances-tables-stimuli.rds"
@@ -59,6 +60,13 @@ bias_none:
   n_tables: 2000
   n_ind_tables: 8000
   tables_fn: "tables-default.rds"
+
+log_likelihood:
+  inherits: bias_none
+  level_max: "log_likelihood"
+  tables_path: "./data/tables-500-per-cns.rds"
+  utt: ""
+  
 
 bias_pizza:
   target_dir: "./data/special-conditionals"

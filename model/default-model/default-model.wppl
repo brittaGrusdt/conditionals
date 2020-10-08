@@ -4,6 +4,7 @@ globalStore.thresholds = {t: 0.899, f: 0.0499, theta: data["theta"][0], theta_li
 
 // states + utterances
 globalStore.cns = data["cns"]
+globalStore.dep_cns = _.without(data["cns"], "A || C");
 globalStore.utterances = data["utterances"]
 
 var tables_list = data["tables"]
@@ -41,6 +42,7 @@ var LEVEL_MAX = data["level_max"][0]
 var verbose = data["verbose"][0]
 
 if(verbose){
+  display('level_max: ' + LEVEL_MAX);
   display('# utterances:' + (globalStore.utterances).length)
   display("UTT (for listener/condition speaker): " + UTT)
   display("cost conditional:" + globalStore.cost_conditional)
@@ -144,7 +146,16 @@ if(LEVEL_MAX == "speaker"){
   var distributions = {"bns": bns}
   distributions
 
-}else{
+} else if(LEVEL_MAX == "log_likelihood") {
+  display("compute log-likelihoods ...")
+  var likelihoods = [];
+  map(function(bn){
+    var ll = log_likelihood(bn)
+    // display(bn.id + ' '  + bn.table + ' ' + bn.cn + '' + ll)
+    likelihoods.push({"cn": bn.cn, "logL": ll, "id": bn.id});
+  }, all_bns)
+  likelihoods
+} else{
   var distributions = LEVEL_MAX == "prior" ? {"prior": globalStore.state_prior} :
                       LEVEL_MAX == "LL" ? {"prior": globalStore.state_prior, "LL": run("LL")} :
                       LEVEL_MAX == "PL" ? {"prior": globalStore.state_prior, "LL": run("LL"),

@@ -140,10 +140,11 @@ create_dependent_tables <- function(params, cns){
       theta <- rbeta(params$n_tables, 10, 1)
       if(cn == "only A implies C") {
         beta <- rep(0, params$n_tables) 
-      } else { beta <- rbeta(params$n_tables, 1, 10)}
-      p_child_parent <- theta + beta * (1 - theta)
-      p_child_neg_parent <- beta
-      p_parent <- runif(params$n_tables)
+      } else {
+        beta <- rbeta(params$n_tables, 1, 10)}
+        p_child_parent <- theta + beta * (1 - theta)
+        p_child_neg_parent <- beta
+        p_parent <- runif(params$n_tables)
 
       if(cn %in% c("A implies C", "C implies A", "only A implies C")){
         probs <- tibble(cond1=p_child_parent, cond2=p_child_neg_parent, marginal=p_parent)
@@ -240,7 +241,12 @@ create_tables <- function(params){
     group_by(id) %>% pivot_wider(names_from="vs", values_from="ps") %>% 
     likelihood(params$indep_sigma) %>% 
     mutate(vs=list(c("AC", "A-C", "-AC", "-A-C")),
-           ps=list(c(`AC`, `A-C`, `-AC`, `-A-C`)))
+           ps=list(c(`AC`, `A-C`, `-AC`, `-A-C`))) %>%
+    select(-`AC`, -`A-C`, -`-AC`, -`-A-C`) %>%
+    mutate(stimulus_id=case_when(
+      cn=="A || C" ~ paste(id, "independent", sep="_"),
+      TRUE ~ paste(id, str_replace_all(cn, " ", ""), sep="_"))
+      );
   
   tables %>% save_data(params$tables_path)
   return(tables)
@@ -315,6 +321,53 @@ plot_tables <- function(data){
     print(p)
   }
   return(plots)
+}
+
+plot_tables_all_cns <- function(tables_path, plot_dir, w, h){
+  tables.wide <- readRDS(tables_path) %>% unnest_tables() %>%
+    rename(bn_id=rowid) %>% group_by(bn_id, cn) %>% 
+    pivot_wider(names_from = cell, values_from = val) %>% ungroup()
+  tables.long <- tables.wide %>% 
+    mutate(`-A-C` = case_when(is.na(`-A-C`) ~ rowSums(select(., starts_with("-A-C_"))),
+                              TRUE ~ `-A-C`),
+           `-AC` = case_when(is.na(`-AC`) ~ rowSums(select(., starts_with("-AC_"))),
+                             TRUE ~ `-AC`), 
+           `A-C` = case_when(is.na(`A-C`) ~ rowSums(select(., starts_with("A-C_"))),
+                             TRUE ~ `A-C`),
+           `AC` = case_when(is.na(`AC`) ~ rowSums(select(., starts_with("AC_"))),
+                            TRUE ~ `AC`)) %>% 
+    group_by(bn_id, cn) %>%
+    pivot_longer(cols = c(AC, `A-C`, `-AC`, `-A-C`), names_to = "cell", values_to = "val") %>% 
+    ungroup() %>% 
+    mutate(cell=factor(cell, levels=c("AC", "A-C", "-AC", "-A-C")),
+           cn=case_when(cn=="A || C" ~ "A,C independent",
+                        TRUE ~ cn),
+           cn=as.factor(cn)) %>% 
+    group_by(bn_id, cn)
+  
+  # tables must be in long format with columns *cell* and *val*
+  all_plots = list()
+  cns <- list(c("A,C independent"), c("A implies -C", "C implies -A"), c("A implies C", "C implies A"))
+  cns.short <- c("indep", "anc-cna", "ac-ca")
+  for(i in seq(1,3)) {
+    p <- tables.long %>% filter(cn %in% cns[[i]]) %>%
+      ggplot(aes(x=val,  fill = cn)) +
+      geom_density(alpha=0.5) +
+      facet_wrap(~cell, ncol = 2, scales = "free",
+                 labeller = labeller(cell = c(`AC` = "P(A,C)", `A-C` = "P(A,¬C)",
+                                              `-AC`= "P(¬A,C)", `-A-C` = "P(¬A,¬C)"))
+      ) +
+      scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
+      labs(x="probability", y="density") +
+      theme_classic(base_size = 20) +
+      theme(legend.position = "bottom")
+    all_plots[[i]] = p
+    
+    save_to = paste(plot_dir, paste("tables-", cns.short[[i]], ".png", sep=""), sep=SEP)
+    ggsave(save_to, p, width=w, height=h)
+    print(paste('saved to', save_to))
+  }
+  return(all_plots)
 }
 
 # Analyze generated Tables ------------------------------------------------
@@ -422,8 +475,11 @@ tables_to_stimuli <- function(tables.all.wide, t=0.8){
 }
 
 
-
-
+makeTables <- function(){
+  params <- configure(c("bias_none", "tables"))
+  tables <- create_tables(params)
+  return(tables)  
+}
 
 
 
