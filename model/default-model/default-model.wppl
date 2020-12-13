@@ -6,18 +6,19 @@ globalStore.thresholds = {t: 0.899, f: 0.0499, theta: data["theta"][0], theta_li
 globalStore.cns = data["cns"]
 globalStore.dep_cns = _.without(data["cns"], "A || C");
 globalStore.utterances = data["utterances"]
+var empirical_tables = data["empirical"] ? true: false;
 
+globalStore.params_ll = data["params_ll"]
 var tables_list = data["tables"]
 globalStore.Tables = map(function(obj){
   var p = Categorical({"vs": obj["vs"], "ps": obj["ps"]})
   // display(obj["likelihood_if1"])
-  return {"id": obj["stimulus_id"], "Table": p,
-          "logL_if_ac": obj["logL_if_ac"],
-          "logL_if_ca": obj["logL_if_ca"],
-          "logL_if_anc": obj["logL_if_anc"],
-          "logL_if_cna": obj["logL_if_cna"],
-          "logL_ind": obj["logL_ind"]
-          }
+  return empirical_tables ?
+    {id: obj.stimulus_id, Table: p, logL_ind: obj.logL_ind,
+     logL_dep: obj.logL_dep} :
+    {id: obj.stimulus_id, Table: p, logL_if_ac: obj.logL_if_ac,
+     logL_if_ca: obj.logL_if_ca, logL_if_anc: obj.logL_if_anc,
+     logL_if_cna: obj.logL_if_cna, logL_ind: obj.logL_ind}
 }, tables_list)
 
 // model parameters
@@ -110,13 +111,15 @@ if(LEVEL_MAX == "speaker"){
   var bns = n_samples != 0 ? repeat(n_samples, function(){sample(prior_conditioned)})
                            : all_bns;
   display('nb bns considered for speaker:' + bns.length)
-  var bns = data["bn_ids"] ? filter(function(bn){
+  var bns_in = data["bn_ids"] ? filter(function(bn){
     data["bn_ids"].includes(bn.id)
-    // &&
-    // (bn.id.includes(bn.cn) || (bn.id.includes("independent") && bn.cn == "A || C"))
   }, bns) : bns;
-
+  var bns = reduce(function(bn, acc){
+    var add = acc.includes(bn) ? [] : [bn]
+    acc.concat(add)
+  }, [], bns_in);
   display('# filtered bns that are input to speaker (where condition, if any, holds): ' + bns.length)
+
   var distributions = run_speaker(bns)
   distributions
 } else if(LEVEL_MAX == "ll_all_utts"){

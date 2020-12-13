@@ -20,6 +20,7 @@ filter_vars <- function(df_long, vars){
 }
 
 
+# Utterances --------------------------------------------------------------
 sort_utterances <- function(utterances){
   literals <- c("A", "C", "-A", "-C")
   conjs <- c("C and A", "-C and A", "C and -A", "-C and -A")
@@ -42,6 +43,53 @@ generate_utts <- function(params){
   utterances %>% save_data(params$utts_path)
   return(utterances)
 }
+
+# columns: bn_id, probs, utterance
+best_utterance = function(data.speaker){
+  # data.speaker <- read_rds(PARAMS_SPEAKER$target) %>% select(-level, -bias) %>%
+  #   select(-p_delta, -p_diff)
+  
+  data.speaker.best <- data.speaker %>% group_by(bn_id) %>%
+    mutate(p_best=max(probs), u_best=list(utterance[probs == max(probs)])) %>%
+    unnest(u_best) %>% select(-p_best)
+  return(data.speaker.best)
+}
+
+# instead of all different utterances, categorize them in a few chunks (for plotting)
+chunk_utterances <- function(data, utts_kept=c()){
+  levels = c("likely + literal", "conditional", "literal", "conjunction");
+  s = paste(utts_kept, collapse="");
+  if(str_detect(s, ">") || str_detect(s, "if")){
+    levels = c("likely + literal", "other conditional", "literal", "conjunction");
+  }
+  data = data %>% mutate(
+    utterance = case_when(
+      utterance %in% utts_kept ~ utterance,
+      startsWith(utterance, "likely") ~ "likely + literal",
+      str_detect(utterance, ">") ~ levels[[2]],
+      str_detect(utterance, "and") ~ "conjunction",
+      TRUE ~ "literal"
+    ),
+    utterance = str_replace(utterance, "-", "¬"),
+    utterance = str_replace(utterance, ">", "->"),
+    utterance = factor(utterance, levels=
+                         c(map(utts_kept, function(s){
+                           s <- str_replace(s, "-", "¬")
+                           return(str_replace(s, ">", "->"))
+                         }),
+                         levels)
+    )
+  );
+  return(data)
+}
+
+chunk_cns <- function(data) {
+  data = data %>% mutate(cn = case_when(cn == "A || C" ~ "A,C independent",
+                                        TRUE ~ "A,C dependent"),
+                         cn = factor(cn))
+  return(data)
+}
+
 
 # Probabilities -----------------------------------------------------------
 #@arg vars: list of variables, if more than one, only states where all hold
@@ -217,5 +265,29 @@ plot_evs <- function(data){
     coord_flip() +
     theme_classic(base_size = 20) +
     theme(legend.position="none")
+  return(p)
+}
+
+plot_speaker <- function(data, fn, w, h, legend_pos="none", facets=TRUE,
+                         xlab="", ylab=""){
+  df <- data %>% mutate(p=round(as.numeric(p), 2))
+  if(xlab==""){xlab = TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$")}
+  if(ylab==""){ylab = "utterance"}
+  
+  if("cn" %in% colnames(df)) {p <- df %>%
+    ggplot(aes(y=utterance, x=p, fill=cn)) +
+    guides(fill=guide_legend(title="causal net"))
+  } else if("speaker_condition" %in% colnames(df)) {
+    p <-  df %>% ggplot(aes(y=utterance, x=p, fill=speaker_condition))
+  } else {
+    p <-  df %>% ggplot(aes(y=utterance, x=p))
+  }
+  p <- p +
+    geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
+    labs(x=xlab, y=ylab) + theme_bw(base_size=25)
+  if(facets) p <- p + facet_wrap(~speaker_condition)
+  p <- p + theme(axis.text.y=element_text(size=15), legend.position=legend_pos)
+  
+  ggsave(paste(PLOT_DIR, fn, sep=SEP), p, width=w, height=h)
   return(p)
 }

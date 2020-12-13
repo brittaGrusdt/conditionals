@@ -5,9 +5,7 @@ source("R/helpers-values-of-interest.R")
 library(rwebppl)
 library(tidyverse)
 
-debug <- TRUE
-params <- configure(c("bias_none", "log_likelihood"))
-# params <- configure(c("bias_none", "tables"))
+debug <- FALSE
 # params <- configure(c("bias_none", "prior"))
 # params <- configure(c("bias_none", "priorN"))
 # params <- configure(c("bias_none", "ll"))
@@ -17,10 +15,17 @@ params <- configure(c("bias_none", "log_likelihood"))
 # params <- configure(c("bias_none", "speaker_p_rooij"))
 # params <- configure(c("bias_none", "speaker_uncertain"))
 # params <- configure(c("bias_none", "speaker_certain"))
+params <- configure(c("bias_none", "speaker_tables_stimuli"))
+
+# params <- configure(c("bias_none", "log_likelihood"))
+# params <- configure(c("bias_none", "tables"))
+# params <- configure(c("bias_none", "empirical_model_tables"))
+# params <- configure(c("bias_none", "empirical_tables"))
+
 # params <- configure(c("bias_lawn", "pl"))
 
+params$verbose <- TRUE
 if(debug){
-  params$verbose <- TRUE
   params$target_dir <- "./data/test-default"
 }
 
@@ -39,8 +44,10 @@ if(params$generate_cns){
 
 ## Generate/Retrieve tables
 if(!"tables_path" %in% names(params)){
-  params$tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
+  # params$tables_path <- file.path(params$target_dir, params$tables_fn, fsep=.Platform$file.sep)
+  params$tables_path <- here("data", params$tables_fn)
 }
+
 if(params$generate_tables || !file.exists(params$tables_path)){
   tables <- create_tables(params)
 } else {
@@ -49,6 +56,12 @@ if(params$generate_tables || !file.exists(params$tables_path)){
     tables <- create_tables(params)
   }
   print(paste("tables read from:", params$tables_path))
+}
+if(length(params$params_ll) != 0) {
+  params$params_ll = read_csv(params$params_ll)
+}
+if("empirical" %in% colnames(tables)){
+  params$bn_ids = tables %>% filter(empirical) %>% pull(stimulus_id)
 }
 params$tables = tables %>% ungroup %>%
   dplyr::select(stimulus_id, ps, vs, starts_with("logL"))
@@ -67,7 +80,7 @@ if(params$generate_utterances || !file.exists(params$utts_path)){
   print(paste("utterances read from:", params$utts_path))
 }
 params$utterances <- utterances
-
+ 
 # Run Model ---------------------------------------------------------------
 posterior <- run_webppl(params$model_path, params)
 

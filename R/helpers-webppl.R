@@ -25,7 +25,7 @@ structure_bns <- function(posterior, params){
     df_wide <- data.long %>% spread(key=cell, val=val)
     df <- acceptability_conditions(df_wide)
     data.long <- df %>% group_by(bn_id, cn, level) %>%
-      pivot_longer(cols = c(-bn_id, -cn, -level, -bias, -p_delta, -p_rooij, -p_diff),
+      pivot_longer(cols = c(`AC`, `A-C`, `-AC`, `-A-C`), #c(-bn_id, -cn, -level, -bias, -p_delta, -p_rooij, -p_diff),
                    names_to = "cell", values_to = "val")
   }
   if(params$save){
@@ -68,9 +68,8 @@ structure_listener_data <- function(posterior, params){
     )
     df <- acceptability_conditions(df_wide)
     df_long <- df %>% group_by(bn_id, cn, level) %>%
-      pivot_longer(cols = c(-bn_id, -intention, -cn, -prob,
-                            -level, -bias, -p_delta, -p_rooij, -p_diff),
-                  names_to = "cell", values_to = "val")
+      pivot_longer(cols=c(AC, `A-C`, `-AC`, `-A-C`),
+                   names_to="cell", values_to="val")
   }
   
   if(params$save){
@@ -113,6 +112,7 @@ webppl_speaker_distrs_to_tibbles <- function(posterior){
     unnest(cols = c(table.probs, table.support)) %>% 
     rename(cell=table.support, val=table.probs) %>%
     spread(key=cell, val=val) %>%
+    # mutate(AC=as.double(AC), `A-C`=as.double(`A-C`), `-AC`=as.double(`-AC`), `-A-C`=as.double(`-A-C`)) %>% 
     mutate(`-A-C` = case_when(is.na(`-A-C`) ~ rowSums(select(., starts_with("-A-C_"))),
                               TRUE ~ `-A-C`),
            `-AC` = case_when(is.na(`-AC`) ~ rowSums(select(., starts_with("-AC_"))),
@@ -135,11 +135,19 @@ webppl_speaker_distrs_to_tibbles <- function(posterior){
 
 structure_speaker_data <- function(posterior, params){
   speaker_wide <- webppl_speaker_distrs_to_tibbles(posterior)
-  df <- acceptability_conditions(speaker_wide)
-  df <- df %>% pivot_longer(cols=c(-bn_id, -intention, -p_delta, -p_rooij, -p_diff,
-                                   -level, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`),
-                            names_to = "utterance", values_to = "probs") %>%
+  bns = posterior$bns %>% rowid_to_column("bn_id") %>% group_by(bn_id) %>%
+    unnest(c(table.probs, table.support)) %>%
+    pivot_wider(names_from=table.support, values_from=table.probs) %>%
+    rename(stimulus_id=id) %>% select(-cn);
+  df.wide = left_join(speaker_wide %>% select(-`AC`, -`A-C`, -`-AC`, -`-A-C`), bns, by = "bn_id")
+  df <- acceptability_conditions(df.wide)
+  df <- df %>% group_by(bn_id, stimulus_id) %>% 
+    pivot_longer(cols=c(-bn_id, -intention, -stimulus_id, -starts_with("cell."), 
+                        -p_delta, -p_rooij, -p_diff,
+                        -level, -cn, -`AC`, -`A-C`, -`-AC`, -`-A-C`),
+                  names_to = "utterance", values_to = "probs") %>%
         add_column(bias=params$bias)
+  
   if(params$speaker_intents == "") df <- df %>% select(-intention)
   if(params$save){
     df %>% save_data(params$target)

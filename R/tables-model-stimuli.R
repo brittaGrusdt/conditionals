@@ -24,70 +24,74 @@ stimuli = c("if1_uh", "if1_lh", "if1_hh", "if2_ll", "if2_hl", "if2_ul",
 speaker.means = df.speaker %>%
   select(-pa, -pc, -pc_given_a, -pc_given_na) %>%
   group_by(stimulus_id, cn, utterance) %>% 
-  summarize(response=mean(probs), .groups="drop_last") %>%
+  summarize(ratio=mean(probs), .groups="drop_last") %>%
   add_column(predictor="model") %>%
-  filter(stimulus_id %in% stimuli)
+  filter(stimulus_id %in% stimuli) %>%
+  rename(response=utterance, id=stimulus_id)
 
 
 # map to colors to compare with empirical data
-speaker.means.wide <- speaker.means %>% group_by(stimulus_id, cn) %>%
-  pivot_wider(names_from = "utterance", values_from="response")
+speaker.means.wide <- speaker.means %>% group_by(id, cn) %>%
+  pivot_wider(names_from = "response", values_from="ratio")
 
 df.green_blue <- speaker.means %>%
   # filter(str_detect(stimulus, "if1_uh|if1_uu|if2_hh|if2_ll|independent_ul")) %>%
-  mutate(utterance=case_when(
-    str_detect(utterance, "-C") ~ str_replace(utterance, "-C", "the blue block does not fall"),
-    str_detect(utterance, "C") ~ str_replace(utterance, "C", "the blue block falls"),
-    TRUE ~ utterance)) %>%
-  mutate(utterance=case_when(
-    str_detect(utterance, "-A") ~ str_replace(utterance, "-A", "the green block does not fall"),
-    str_detect(utterance, "A") ~ str_replace(utterance, "A", "the green block falls"),
-    TRUE ~ utterance));
+  mutate(response=case_when(
+    str_detect(response, "-C") ~ str_replace(response, "-C", "the blue block does not fall"),
+    str_detect(response, "C") ~ str_replace(response, "C", "the blue block falls"),
+    TRUE ~ response)) %>%
+  mutate(response=case_when(
+    str_detect(response, "-A") ~ str_replace(response, "-A", "the green block does not fall"),
+    str_detect(response, "A") ~ str_replace(response, "A", "the green block falls"),
+    TRUE ~ response));
 
 df.blue_green <- speaker.means %>%
   # filter(!str_detect(stimulus, "if1_uh|if1_uu|if2_hh|if2_ll|independent_ul")) %>%
-  mutate(utterance=case_when(
-    str_detect(utterance, "-A") ~ str_replace(utterance, "-A", "the blue block does not fall"),
-    str_detect(utterance, "A") ~ str_replace(utterance, "A", "the blue block falls"),
-    TRUE ~ utterance)) %>%
-  mutate(utterance=case_when(
-    str_detect(utterance, "-C") ~ str_replace(utterance, "-C", "the green block does not fall"),
-    str_detect(utterance, "C") ~ str_replace(utterance, "C", "the green block falls"),
-    TRUE ~ utterance));
+  mutate(response=case_when(
+    str_detect(response, "-A") ~ str_replace(response, "-A", "the blue block does not fall"),
+    str_detect(response, "A") ~ str_replace(response, "A", "the blue block falls"),
+    TRUE ~ response)) %>%
+  mutate(response=case_when(
+    str_detect(response, "-C") ~ str_replace(response, "-C", "the green block does not fall"),
+    str_detect(response, "C") ~ str_replace(response, "C", "the green block falls"),
+    TRUE ~ response));
 
 df <- bind_rows(df.blue_green, df.green_blue) %>%
-  mutate(utterance=case_when(str_detect(utterance, " >") ~
-                              paste("if", str_replace(utterance, " >", "")),
-                            TRUE ~ utterance)) %>%
-  mutate(utterance=case_when(str_detect(utterance, "likely") ~ str_replace(utterance, "falls", "might fall"),
-                             TRUE ~ utterance)) %>%
-  mutate(utterance=case_when(str_detect(utterance, "likely") ~ str_replace(utterance, "does not fall", "might not fall"),
-                            TRUE ~ utterance)) %>% 
-  mutate(utterance=case_when(str_detect(utterance, "might") ~ str_replace(utterance, "likely", ""),
-                             TRUE ~ utterance)) %>%
-  mutate(utterance=case_when(utterance=="the green block falls and the blue block falls" ~ "both blocks fall",
-                            utterance=="the blue block falls and the green block falls" ~ "both blocks fall",
-                            utterance=="the green block does not fall and the blue block does not fall" ~
+  mutate(response=case_when(str_detect(response, " >") ~
+                              paste("if", str_replace(response, " >", "")),
+                            TRUE ~ response)) %>%
+  mutate(response=case_when(str_detect(response, "likely") ~ str_replace(response, "falls", "might fall"),
+                             TRUE ~ response)) %>%
+  mutate(response=case_when(str_detect(response, "likely") ~ str_replace(response, "does not fall", "might not fall"),
+                            TRUE ~ response)) %>% 
+  mutate(response=case_when(str_detect(response, "might") ~ str_replace(response, "likely", ""),
+                             TRUE ~ response)) %>%
+  mutate(response=case_when(response=="the green block falls and the blue block falls" ~ "both blocks fall",
+                            response=="the blue block falls and the green block falls" ~ "both blocks fall",
+                            response=="the green block does not fall and the blue block does not fall" ~
                               "neither block falls",
-                            utterance=="the blue block does not fall and the green block does not fall" ~
+                            response=="the blue block does not fall and the green block does not fall" ~
                               "neither block falls",
-                            TRUE ~ utterance)) %>%
-  mutate(utterance=str_replace(utterance, "and", "but")) %>%
-  mutate(utterance=case_when(
-    utterance=="the green block does not fall but the blue block falls" ~
+                            TRUE ~ response)) %>%
+  mutate(response=str_replace(response, "and", "but")) %>%
+  mutate(response=case_when(
+    response=="the green block does not fall but the blue block falls" ~
       "the blue block falls but the green block does not fall",
-    utterance=="the blue block does not fall but the green block falls" ~
+    response=="the blue block does not fall but the green block falls" ~
       "the green block falls but the blue block does not fall",
-    TRUE ~ utterance)) %>%
-  mutate(utterance=str_trim(utterance)) %>%
+    TRUE ~ response)) %>%
+  mutate(response=str_trim(response)) %>%
   ungroup() 
 
-df %>% select(utterance) %>% unique()
-df %>% filter(response>0 & str_detect(stimulus_id, "independent") &
-              str_detect(utterance, ">") & cn == "A || C") %>%
-  arrange(desc(response))
+df %>% select(response) %>% unique()
+df %>% filter(ratio>0 & str_detect(id, "independent") &
+              str_detect(response, ">") & cn == "A || C") %>%
+  arrange(desc(ratio))
 
-df %>% saveRDS(here("data", "speaker-predictions-means-stimuli.rds"))
+df.means = df %>% group_by(id, response, cn) %>%
+  summarize(ratio=mean(ratio), .groups="drop_last")
+
+df.means %>% saveRDS(here("data", "speaker-predictions-means-stimuli.rds"))
 
 
 # Run ---------------------------------------------------------------------

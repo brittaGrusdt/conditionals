@@ -117,64 +117,7 @@ ggsave(paste(PLOT_DIR, "speaker.png", sep=SEP), p, width=13, height=5)
 params_unc <- read_rds(paste(TARGET_DIR, "params-speaker-uncertain.rds", sep=SEP))
 params_cert <- read_rds(paste(TARGET_DIR, "params-speaker-certain.rds", sep=SEP))
 
-chunk_utterances <- function(data, utts_kept=c()){
-  levels = c("likely + literal", "conditional", "literal", "conjunction");
-  s = paste(utts_kept, collapse="");
-  if(str_detect(s, ">") || str_detect(s, "if")){
-    levels = c("likely + literal", "other conditional", "literal", "conjunction");
-  }
-  data = data %>% mutate(
-    utterance = case_when(
-      utterance %in% utts_kept ~ utterance,
-      startsWith(utterance, "likely") ~ "likely + literal",
-      str_detect(utterance, ">") ~ levels[[2]],
-      str_detect(utterance, "and") ~ "conjunction",
-      TRUE ~ "literal"
-    ),
-    utterance = str_replace(utterance, "-", "¬"),
-    utterance = str_replace(utterance, ">", "->"),
-    utterance = factor(utterance, levels=
-      c(map(utts_kept, function(s){
-        s <- str_replace(s, "-", "¬")
-        return(str_replace(s, ">", "->"))
-      }),
-      levels)
-    )
-  );
-  return(data)
-}
-
-chunk_cns <- function(data) {
-  data = data %>% mutate(cn = case_when(cn == "A || C" ~ "A,C independent",
-                                        TRUE ~ "A,C dependent"),
-                         cn = factor(cn))
-  return(data)
-}
-
-plot_speaker <- function(data, fn, w, h, legend_pos="none", facets=TRUE,
-                         xlab="", ylab=""){
-  df <- data %>% mutate(p=round(as.numeric(p), 2))
-  if(xlab==""){xlab = TeX("$\\frac{1}{|S|} \\cdot \\sum_{s \\in S} P_S(u|s)$")}
-  if(ylab==""){ylab = "utterance"}
-  
-  if("cn" %in% colnames(df)) {p <- df %>%
-    ggplot(aes(y=utterance, x=p, fill=cn)) +
-    guides(fill=guide_legend(title="causal net"))
-  } else if("speaker_condition" %in% colnames(df)) {
-      p <-  df %>% ggplot(aes(y=utterance, x=p, fill=speaker_condition))
-  } else {
-    p <-  df %>% ggplot(aes(y=utterance, x=p))
-  }
-  p <- p +
-    geom_bar(stat="identity", position=position_dodge(preserve = "single"))  +
-    labs(x=xlab, y=ylab) + theme_bw(base_size=25)
-  if(facets) p <- p + facet_wrap(~speaker_condition)
-  p <- p + theme(axis.text.y=element_text(size=15), legend.position=legend_pos)
-  
-  ggsave(paste(PLOT_DIR, fn, sep=SEP), p, width=w, height=h)
-  return(p)
-}
-read_speaker_data <- function(params, chunk_utts, per_cns, sp_condition){
+  read_speaker_data <- function(params, chunk_utts, per_cns, sp_condition){
   data <- read_rds(params$target)
   if(chunk_utts) {
     data = data %>% chunk_utterances() %>% chunk_cns() %>%
@@ -221,7 +164,7 @@ DATA.best <- DATA %>% group_by(bn_id) %>%
 # 3.1 average speaker probability, conditionals plotted seperately
 df1 <- DATA %>%
   chunk_utterances(c("A > C", "-C > -A", "C > A", "-A > -C")) %>%
-  group_by(utterance, bn_id) %>%
+  group_by(utterance, cn, bn_id) %>%
   summarise(probs=sum(probs), .groups = "drop_last") %>% 
   summarise(p=mean(probs), .groups="keep") %>% arrange(p)
 
@@ -263,7 +206,7 @@ plot_speaker(df3, "speaker_prooij_large_ac_not_best.png", w=15, h=5, "bottom", F
 
 # 2.look at bns where *literal* receives pos. probability
 # highest prob ~ 0.93 !
-data %>% filter(utterance == "literal" & probs > 0.93)# %>% 
+# data %>% filter(utterance == "literal" & probs > 0.93)# %>% 
   # pull(probs) %>% summary()
 #///////////////////////////////
 

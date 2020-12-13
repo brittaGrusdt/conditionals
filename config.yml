@@ -12,41 +12,53 @@ default:
   packages:  !expr c("./node_modules/conditionalsHelpers",
                      "./node_modules/conditionalsDefault")
   model_path: "./model/default-model/default-model.wppl"
-  seed_webppl: !expr as.numeric(Sys.time())
+  #seed_webppl: !expr as.numeric(Sys.time())
+  seed_webppl: 123467
   add_accept_conditions: true
-  indep_sigma: 0.01 # previously: 0.001
+  indep_sigma: 0.001 # previously: 0.001
   nor_beta: !expr NA
   nor_theta: !expr NA
 
 tables:
   nor_theta: !expr NA
   nor_beta: !expr NA
-  indep_sigma: 0.01
-  n_tables: 5000
-  n_ind_tables: 5000
+  indep_sigma: 0.001
+  n_tables: 2500
+  n_ind_tables: 10000
   seed: 202009
-  tables_path: "./data/tables-5000-per-cns.rds"
+  tables_path: "./data/tables-10000-(in)dependent.rds"  
+  bias: "none"
+  
+tables_fitted:
+  indep_sigma: 0.001
+  n_tables: 2500
+  n_ind_tables: 10000
+  seed: 202009
+  tables_path: "../../blocksworld-v2/data/prolific/results/experiment-wor(l)ds-of-toy-blocks/beta-fits.rds"
   bias: "none"
   
 speaker_tables_stimuli:
-  tables_path: "data/tables-stimuli-to-wppl.rds"
+  tables_path: "../../blocksworld-v2/data/prolific/results/toy-blocks-pilot-2/model-tables-stimuli.rds"
+  #tables_path: "./data/model-tables-stimuli.rds"
   target_dir: "data/predictions-tables-stimuli"
   target_fn: "results-tables-stimuli.rds"
   target_params: "params-tables-stimuli.rds"
-  n_tables: 5000
-  n_ind_tables: 5000
-  cns: !expr c("A implies C", "A implies -C", "C implies A", "C implies -A", "A || C")
-  speaker_intents: !expr c("")
+  #cns: !expr c("A implies C", "A || C")
+  cns: !expr c("if1_uh", "if1_hh", "if1_lh", "if1_u-Lh", "if1_uh",
+               "if2_hl", "if2_ll", "if2_u-Ll", "if2_ul", 
+               "independent_hh", "independent_hl", "independent_ll",
+               "independent_uh", "independent_ul")
+  speaker_intents: !expr c("")  
+  params_ll: "../../blocksworld-v2/data/prolific/results/toy-blocks-pilot-2/results-dirichlet-fits.csv"
   bias: "none"
-  level_max: "priorN"
+  level_max: "LL"
   vars: !expr c("A", "C")
-  n_samples: 5000
+  n_samples: 0 #50000 #bns samples from prior for speaker input 
   utts_path: "data/default-model/utterances-tables-stimuli.rds"
   utt: ""
   theta: 0.8
+  empirical: TRUE
   
-  
-
 ## 1. bias configurations ##
 bias_none:
   target_dir: "./data/default-model"
@@ -57,9 +69,9 @@ bias_none:
   cns: !expr c("A implies C", "C implies A","A implies -C", "C implies -A", "A || C")
   speaker_intents: !expr c("")
   bias: "none"
-  n_tables: 2000
-  n_ind_tables: 8000
-  tables_fn: "tables-default.rds"
+  n_tables: 2500
+  n_ind_tables: 10000
+  tables_fn: "tables-10000-(in)dependent.rds" #"tables-default.rds"
 
 log_likelihood:
   inherits: bias_none
@@ -138,7 +150,19 @@ speaker:
   target_dir: "./data/default-model"
   target_fn: "results-speaker.rds"
   target_params: "params-speaker.rds"
-  n_samples: 20000 # bns sampled from prior
+  n_samples: 10000 # bns sampled from prior
+  
+empirical_model_tables:
+  inherits: speaker
+  tables_path: "./data/tables-empirical-model.rds"
+  target_fn: "results-speaker-empirical-model-tables.rds"
+  target_params: "params-speaker-empirical-model-tables.rds"
+  
+empirical_tables:
+  inherits: speaker
+  tables_path: "./data/tables-empirical.rds"
+  target_fn: "results-speaker-empirical-tables.rds"
+  target_params: "params-speaker-empirical-tables.rds"
   
 speaker_literal:
   level_max: "speaker"
@@ -146,7 +170,7 @@ speaker_literal:
   target_dir: "./data/default-model"
   target_fn: "results-speaker-literal.rds"
   target_params: "params-speaker-literal.rds"
-  n_samples: 20000 # bns sampled from prior
+  n_samples: 10000 # bns sampled from prior
 
 speaker_p_rooij:
   level_max: "speaker"
@@ -154,7 +178,7 @@ speaker_p_rooij:
   target_dir: "./data/default-model"
   target_fn: "results-speaker-p_rooij-large.rds"
   target_params: "params-speaker-p_rooij-large.rds"
-  n_samples: 20000 # bns sampled from prior
+  n_samples: 10000 # bns sampled from prior
 
 # speaker given certain condition,
 # e.g. speaker only gets states where utt is applicable
@@ -186,7 +210,7 @@ priorN:
   level_max: "priorN"
   utt: ""
   target_params: "params-priorN.rds"
-  n_samples: 20000
+  n_samples: 10000
 
 ll:
   level_max: "LL"

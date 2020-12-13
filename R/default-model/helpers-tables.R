@@ -1,6 +1,7 @@
-source("R/helper-functions.R")
 library(truncnorm)
 library(dplyr)
+library(here)
+source(here("R", "helper-functions.R"))
 
 # Table Generation --------------------------------------------------------
 create_me_tables <-function(params) {
@@ -141,10 +142,11 @@ create_dependent_tables <- function(params, cns){
       if(cn == "only A implies C") {
         beta <- rep(0, params$n_tables) 
       } else {
-        beta <- rbeta(params$n_tables, 1, 10)}
-        p_child_parent <- theta + beta * (1 - theta)
-        p_child_neg_parent <- beta
-        p_parent <- runif(params$n_tables)
+        beta <- rbeta(params$n_tables, 1, 10)
+      }
+      p_child_parent <- theta + beta * (1 - theta)
+      p_child_neg_parent <- beta
+      p_parent <- runif(params$n_tables)
 
       if(cn %in% c("A implies C", "C implies A", "only A implies C")){
         probs <- tibble(cond1=p_child_parent, cond2=p_child_neg_parent, marginal=p_parent)
@@ -289,7 +291,6 @@ adapt_bn_ids <- function(data_wide){
   return(df)
 }
 
-
 plot_tables <- function(data){
   # data must be in long format with columns *cell* and *val*
   cns <- data$cn %>% as.factor() %>% levels()
@@ -371,7 +372,7 @@ plot_tables_all_cns <- function(tables_path, plot_dir, w, h){
 }
 
 # Analyze generated Tables ------------------------------------------------
-TABLES <- read_rds("./data/default-model/tables-default.rds") %>%
+TABLES <- readRDS("./data/default-model/tables-default.rds") %>%
   select(id, cn, vs, ps) %>% unnest(c(ps, vs)) %>% group_by(id)
 TABLES.wide <-  TABLES %>% pivot_wider(names_from = vs, values_from = ps)  
 
@@ -448,10 +449,8 @@ tables_to_stimuli <- function(tables.all.wide, t=0.8){
       TRUE ~ stimulus_id));
   
   tables <- tables %>%
-    mutate(stimulus_id= case_when(str_detect(stimulus_id, "if") & pc_given_na <= 0.02 ~ "if1",
-                                  str_detect(stimulus_id, "if") & pc_given_na > 0.02 ~ "if2",
-                                  TRUE ~ stimulus_id)
-    );
+    mutate(stimulus_id= case_when(str_detect(stimulus_id, "if") & pc_given_na <= 0.05 ~ "if1",
+                                  TRUE ~ stimulus_id));
   df <- tables %>% 
     mutate(stimulus_id=case_when(
       str_detect(stimulus_id, "if") & pc_given_a >=t & pa >= t ~ paste(stimulus_id, "hh", sep="_"),
@@ -466,10 +465,9 @@ tables_to_stimuli <- function(tables.all.wide, t=0.8){
       str_detect(stimulus_id, "if1") & (pc_given_a >=0.4 & pc_given_a <=0.6) & pa >= t ~ paste(stimulus_id, "hu", sep="_"),
       str_detect(stimulus_id, "if1") & (pc_given_a >=0.4 & pc_given_a <=0.6) & pa <= 1-t ~ paste(stimulus_id, "lu", sep="_"),
       str_detect(stimulus_id, "if1") & (pc_given_a >=0.4 & pc_given_a <=0.6) & pa>=0.4 & pa <= 0.6 ~ paste(stimulus_id, "uu", sep="_"),
-      
-      str_detect(stimulus_id, "if2_") & pc >=t ~ paste(substr(stimulus_id, 1, 5), "h", sep=""),
-      str_detect(stimulus_id, "if2_") & pc<=1-t ~ paste(substr(stimulus_id, 1, 5), "l", sep=""),
-      str_detect(stimulus_id, "if2_") & pc >=0.4 & pc<=0.6 ~ paste(substr(stimulus_id, 1, 5), "u", sep=""),
+      startsWith(stimulus_id, "if_") & pc_given_na >=t ~ paste("if2_", substr(stimulus_id, 4, 4), "h", sep=""),
+      startsWith(stimulus_id, "if_") & pc_given_na <=1-t ~ paste("if2_", substr(stimulus_id, 4, 4), "l", sep=""),
+      startsWith(stimulus_id, "if_") & pc_given_na >=0.4 & pc<=0.6 ~  paste("if2_", substr(stimulus_id, 4, 4), "u", sep=""),
       TRUE ~ stimulus_id));
   return(df)
 }
@@ -482,9 +480,7 @@ makeTables <- function(){
 }
 
 
-
-
-
+params = configure(c("bias_none", "tables_fitted"))
 
 
 
